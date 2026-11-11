@@ -1,0 +1,26 @@
+<!--
+  Wazuh Integration Configuration for Agentic SOC Platform
+  Add this block inside the <ossec_config> tag in /var/ossec/etc/ossec.conf
+  Then restart Wazuh Manager: systemctl restart wazuh-manager
+-->
+
+<ossec_config>
+  <!-- Forward all alerts with level >= 5 to Agentic SOC Platform -->
+  <integration>
+    <name>custom-asp</name>
+    <hook_url>http://host.docker.internal:8000/api/webhook/wazuh/?direct=true</hook_url>
+    <level>5</level>
+    <alert_format>json</alert_format>
+  </integration>
+
+  <!-- Or forward specific rule groups (e.g. authentication, attack, ransomware) -->
+  <!--
+  <integration>
+    <name>custom-asp</name>
+    <hook_url>http://host.docker.internal:8000/api/webhook/wazuh/</hook_url>
+    <group>authentication_failures,sshd,sysmon,ransomware</group>
+    <alert_format>json</alert_format>
+  </integration>
+  -->
+</ossec_config>
+

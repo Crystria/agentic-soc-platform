@@ -25,6 +25,46 @@ class KibanaPayload(BaseModel):
     context: KibanaContext
 
 
+class WazuhMitre(BaseModel):
+    id: list[str] | str | None = None
+    tactic: list[str] | str | None = None
+    technique: list[str] | str | None = None
+
+
+class WazuhRule(BaseModel):
+    id: str | int | None = None
+    level: int = 0
+    description: str = "Wazuh Alert"
+    mitre: WazuhMitre | dict[str, Any] | None = None
+    groups: list[str] = Field(default_factory=list)
+
+
+class WazuhAgent(BaseModel):
+    id: str | None = None
+    name: str | None = None
+    ip: str | None = None
+
+
+class WazuhAlert(BaseModel):
+    timestamp: str | None = None
+    rule: WazuhRule = Field(default_factory=WazuhRule)
+    agent: WazuhAgent | None = None
+    data: dict[str, Any] = Field(default_factory=dict)
+    decoder: dict[str, Any] = Field(default_factory=dict)
+    location: str | None = None
+    full_log: str | None = None
+    id: str | None = None
+
+
+class WazuhPayload(BaseModel):
+    alert: WazuhAlert | None = None
+    rule: WazuhRule | None = None
+    agent: WazuhAgent | None = None
+    data: dict[str, Any] = Field(default_factory=dict)
+    timestamp: str | None = None
+    full_log: str | None = None
+
+
 class WebhookResult(BaseModel):
     status: str = "success"
     stream: str

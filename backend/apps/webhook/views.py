@@ -9,6 +9,7 @@ from apps.webhook.service import (
     WebhookRedisError,
     handle_kibana_webhook,
     handle_splunk_webhook,
+    handle_wazuh_webhook,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,4 +46,24 @@ class KibanaWebhookView(APIView):
         except WebhookRedisError:
             logger.exception("Failed to process Kibana webhook")
             return Response({"detail": WEBHOOK_STREAM_UNAVAILABLE_DETAIL}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(result.model_dump(), status=status.HTTP_200_OK)
+
+
+class WazuhWebhookView(APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        direct_ingest = str(request.query_params.get("direct", "false")).lower() in ("true", "1", "yes")
+        try:
+            result = handle_wazuh_webhook(request.data, direct_ingest=direct_ingest)
+        except (ValidationError, ValueError):
+            logger.info("Invalid Wazuh webhook payload", exc_info=True)
+            return Response({"detail": INVALID_WEBHOOK_PAYLOAD_DETAIL}, status=status.HTTP_400_BAD_REQUEST)
+        except WebhookRedisError:
+            logger.exception("Failed to process Wazuh webhook")
+            return Response({"detail": WEBHOOK_STREAM_UNAVAILABLE_DETAIL}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception:
+            logger.exception("Unexpected error processing Wazuh webhook")
+            return Response({"detail": "Failed to process Wazuh alert."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(result.model_dump(), status=status.HTTP_200_OK)

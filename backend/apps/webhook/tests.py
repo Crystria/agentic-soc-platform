@@ -14,6 +14,7 @@ from apps.webhook.service import (
     WebhookRedisError,
     handle_kibana_webhook,
     handle_splunk_webhook,
+    handle_wazuh_webhook,
 )
 
 
@@ -111,6 +112,26 @@ class WebhookServiceTests(TestCase):
             [{"stream": "kibana-rule", "data": {"user": "alice", "tags": ["prod"]}, "maxlen": 456}],
         )
 
+    def test_handle_wazuh_webhook_writes_to_wazuh_stream(self):
+        self.set_stream_maxlen(789)
+        redis_client = FakeRedisClient()
+
+        payload = {
+            "timestamp": "2026-11-11T12:00:00.000+0000",
+            "rule": {"id": "5710", "level": 10, "description": "sshd: brute force"},
+            "agent": {"name": "ubuntu-lab", "ip": "192.168.1.50"},
+            "data": {"srcip": "10.0.0.99", "dstuser": "root"},
+        }
+
+        result = handle_wazuh_webhook(payload, redis_client=redis_client)
+
+        self.assertEqual(result.stream, "WAZUH-ALERTS")
+        self.assertEqual(result.sent, 1)
+        self.assertEqual(result.skipped, 0)
+        self.assertEqual(result.message_ids, ["1-0"])
+        self.assertEqual(redis_client.messages[0]["stream"], "WAZUH-ALERTS")
+        self.assertEqual(redis_client.messages[0]["data"]["rule"]["id"], "5710")
+
     def test_handle_kibana_webhook_skips_empty_sources(self):
         redis_client = FakeRedisClient()
 
@@ -186,6 +207,20 @@ class WebhookAPITests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["stream"], "rule")
         handle_kibana_webhook_mock.assert_called_once()
+
+    @patch("apps.webhook.views.handle_wazuh_webhook")
+    def test_wazuh_webhook_route(self, handle_wazuh_webhook_mock):
+        handle_wazuh_webhook_mock.return_value = WebhookResult(stream="WAZUH-ALERTS", sent=1, message_ids=["1-0"])
+
+        response = self.client.post(
+            "/api/webhook/wazuh/",
+            {"rule": {"id": "5710", "description": "SSH Brute Force"}},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["stream"], "WAZUH-ALERTS")
+        handle_wazuh_webhook_mock.assert_called_once()
 
     @patch("apps.webhook.views.handle_splunk_webhook")
     def test_webhook_redis_error_returns_service_unavailable(self, handle_splunk_webhook_mock):

