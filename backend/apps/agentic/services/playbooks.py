@@ -239,7 +239,7 @@ def recover_orphaned_playbook_runs():
     with transaction.atomic():
         orphaned_runs = list(
             Playbook.objects
-            .select_for_update()
+            .select_for_update(of=("self",))
             .select_related("user", "case")
             .filter(job_status=PlaybookJobStatus.RUNNING)
         )
