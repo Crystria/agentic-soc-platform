@@ -1,5 +1,6 @@
 import {Tabs} from 'antd'
-import {Activity, Bot, DatabaseSearch, FileSearch, Network, Radar, SlidersHorizontal, Tags, UsersRound} from 'lucide-react'
+import {Activity, Bot, DatabaseSearch, FileSearch, Network, Radar, Scale, SlidersHorizontal, Tags, UsersRound} from 'lucide-react'
+import AIQualitySettings from './AIQualitySettings'
 import AuditLogsSettings from './AuditLogsSettings'
 import LDAPSettings from './LDAPSettings'
 import LLMProviderSettings from './LLMProviderSettings'
@@ -51,6 +52,11 @@ export default function SystemSettings() {
             key: 'workers',
             label: <IconTabLabel icon={Activity}>Workers</IconTabLabel>,
             children: <WorkersSettings />,
+          },
+          {
+            key: 'ai-quality',
+            label: <IconTabLabel icon={Scale}>AI Quality</IconTabLabel>,
+            children: <AIQualitySettings />,
           },
           {
             key: 'tag-preview',

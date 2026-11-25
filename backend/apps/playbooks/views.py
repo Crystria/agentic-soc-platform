@@ -8,7 +8,12 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsBusinessWriterOrReadOnly
-from apps.agentic.services.playbooks import create_pending_playbook_run, list_playbook_definitions
+from apps.agentic.services.playbooks import (
+    approve_playbook_run,
+    create_pending_playbook_run,
+    list_playbook_definitions,
+    reject_playbook_run,
+)
 from apps.audit.context import audit_actor
 from apps.cases.models import Case
 from apps.common.advanced_filters import AdvancedFilterBackend
@@ -59,6 +64,12 @@ class PlaybookViewSet(viewsets.ReadOnlyModelViewSet):
         name = request.data.get("name")
         case_id = request.data.get("case")
         user_input = request.data.get("user_input", "")
+        raw_require_approval = request.data.get("require_approval", None)
+        require_approval = (
+            bool(raw_require_approval)
+            if raw_require_approval is not None
+            else None
+        )
 
         if not name:
             return Response({"name": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
@@ -77,9 +88,32 @@ class PlaybookViewSet(viewsets.ReadOnlyModelViewSet):
                     case=case,
                     user=request.user,
                     user_input=user_input,
+                    require_approval=require_approval,
                 )
         except ValueError:
             logger.info("Invalid playbook run request", exc_info=True)
             return Response({"detail": "Unknown playbook definition."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(self.get_serializer(playbook).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="approve")
+    def approve(self, request, id=None):
+        playbook = self.get_object()
+        note = request.data.get("note", "")
+        try:
+            with audit_actor(request.user):
+                updated = approve_playbook_run(playbook, user=request.user, note=note)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(updated).data)
+
+    @action(detail=True, methods=["post"], url_path="reject")
+    def reject(self, request, id=None):
+        playbook = self.get_object()
+        note = request.data.get("note", "")
+        try:
+            with audit_actor(request.user):
+                updated = reject_playbook_run(playbook, user=request.user, note=note)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(updated).data)

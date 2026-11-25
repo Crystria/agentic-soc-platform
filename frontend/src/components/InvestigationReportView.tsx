@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react'
-import {Empty} from 'antd'
+import {Button, Empty} from 'antd'
 import {
     AimOutlined,
     BranchesOutlined,
@@ -10,6 +10,7 @@ import {
     PlayCircleOutlined,
     QuestionCircleOutlined,
     SearchOutlined,
+    ThunderboltOutlined,
     ToolOutlined,
 } from '@ant-design/icons'
 import {fontFamilyMono} from '../utils/typography'
@@ -18,6 +19,7 @@ type RecordMap = Record<string, unknown>
 
 interface InvestigationReportViewProps {
   value: unknown
+  onRunRemediation?: (remediation: RecordMap) => void
 }
 
 interface ParsedReport {
@@ -379,7 +381,13 @@ function UnknownsSection({ report }: { report: RecordMap }) {
   )
 }
 
-function RemediationSection({ report }: { report: RecordMap }) {
+function RemediationSection({
+  report,
+  onRunRemediation,
+}: {
+  report: RecordMap
+  onRunRemediation?: (remediation: RecordMap) => void
+}) {
   const remediations = recordArray(report.remediations)
   return (
     <div style={{ ...sectionStyle, paddingTop: 8 }}>
@@ -391,9 +399,20 @@ function RemediationSection({ report }: { report: RecordMap }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ color: '#4ade80', fontSize: 14, lineHeight: '20px', fontWeight: 700 }}>{stringValue(rec, 'action_type')}</span>
-                <span style={{ ...smallTypeStyle(severityColor(rec.priority)), padding: '2px 8px', borderRadius: 4, border: `1px solid ${translucent(severityColor(rec.priority), 0.35)}`, background: translucent(severityColor(rec.priority), 0.1), textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                  {stringValue(rec, 'priority')}
-                </span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ ...smallTypeStyle(severityColor(rec.priority)), padding: '2px 8px', borderRadius: 4, border: `1px solid ${translucent(severityColor(rec.priority), 0.35)}`, background: translucent(severityColor(rec.priority), 0.1), textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                    {stringValue(rec, 'priority')}
+                  </span>
+                  {onRunRemediation && (
+                    <Button
+                      size="small"
+                      icon={<ThunderboltOutlined />}
+                      onClick={() => onRunRemediation(rec)}
+                    >
+                      Run Playbook
+                    </Button>
+                  )}
+                </div>
               </div>
               <span style={{ color: 'rgba(134,239,172,0.80)', fontSize: 12, lineHeight: '18px', textAlign: 'justify' }}>{stringValue(rec, 'description')}</span>
             </div>
@@ -408,7 +427,7 @@ function RawReportFallback({ raw }: { raw: unknown }) {
   return <pre style={{ margin: 0, padding: 16, whiteSpace: 'pre-wrap', overflow: 'auto', height: '100%' }}>{rawPreview(raw)}</pre>
 }
 
-export default function InvestigationReportView({ value }: InvestigationReportViewProps) {
+export default function InvestigationReportView({ value, onRunRemediation }: InvestigationReportViewProps) {
   const parsed = parseReport(value)
 
   if (parsed.status === 'empty') return <div style={reportRootStyle}><div style={{ color: c.textMuted, textAlign: 'center', fontFamily: fontFamilyMono }}>No data</div></div>
@@ -429,7 +448,7 @@ export default function InvestigationReportView({ value }: InvestigationReportVi
         <AttackChainSection report={report} />
         <TimelineSection report={report} />
         <UnknownsSection report={report} />
-        <RemediationSection report={report} />
+        <RemediationSection report={report} onRunRemediation={onRunRemediation} />
       </div>
     </div>
   )

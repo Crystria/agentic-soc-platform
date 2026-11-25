@@ -49,6 +49,7 @@ type RecordRow = Record<string, unknown>
 type RecordTabRenderOptions = {
     onOpenResource?: (resourceKey: string, rowId: string | number, options?: OpenResourceOptions) => void
     onChanged?: () => void
+    onRefresh?: () => void
 }
 
 const lucideIconProps = {size: '1em', strokeWidth: 2}
@@ -147,10 +148,12 @@ const llmTags = (items: unknown) => {
 const playbookJobStatusTag = (v: unknown) => {
     const status = String(v || '')
     const options = [
+        {label: 'Awaiting Approval', value: 'Awaiting Approval', color: 'gold'},
         {label: 'Success', value: 'Success', color: 'green'},
         {label: 'Failed', value: 'Failed', color: 'red'},
         {label: 'Pending', value: 'Pending', color: 'gold'},
         {label: 'Running', value: 'Running', color: 'processing'},
+        {label: 'Rejected', value: 'Rejected', color: 'red'},
     ]
     const option = options.find((item) => item.value === status)
     const color = markerColor(option?.color)
@@ -291,7 +294,13 @@ const emptyTabs = {
             key: 'investigation',
             label: 'Investigation',
             icon: <FileTextOutlined/>,
-            render: (record: RecordRow) => <CaseInvestigationView caseId={String(record.id || '')}/>,
+            render: (record: RecordRow, options?: RecordTabRenderOptions) => (
+                <CaseInvestigationView
+                    caseId={String(record.id || '')}
+                    hasSummary={Boolean(record.summary)}
+                    onRefresh={options?.onRefresh}
+                />
+            ),
         },
     ],
     alert: [
@@ -374,8 +383,9 @@ const caseStatusIcon = (status: string) => {
     return <UserOutlined/>
 }
 const playbookJobStatusIcon = (status: string) => {
+    if (status === 'Awaiting Approval') return <PauseCircleOutlined/>
     if (status === 'Success') return <CheckCircleOutlined/>
-    if (status === 'Failed') return <StopOutlined/>
+    if (status === 'Failed' || status === 'Rejected') return <StopOutlined/>
     if (status === 'Pending') return <PauseCircleOutlined/>
     if (status === 'Running') return <SyncOutlined spin/>
     return <PlayCircleOutlined/>
@@ -394,6 +404,27 @@ const caseStatusSelectLabel = (raw: unknown) => {
         </span>
     )
 }
+const caseSeverityOptions = [
+    {label: 'Unknown', value: 'Unknown', color: 'default'},
+    {label: 'Informational', value: 'Informational', color: 'blue'},
+    {label: 'Low', value: 'Low', color: 'cyan'},
+    {label: 'Medium', value: 'Medium', color: 'gold'},
+    {label: 'High', value: 'High', color: 'volcano'},
+    {label: 'Critical', value: 'Critical', color: 'red'},
+]
+const caseImpactPriorityOptions = [
+    {label: 'Unknown', value: 'Unknown', color: 'default'},
+    {label: 'Low', value: 'Low', color: 'cyan'},
+    {label: 'Medium', value: 'Medium', color: 'gold'},
+    {label: 'High', value: 'High', color: 'volcano'},
+    {label: 'Critical', value: 'Critical', color: 'red'},
+]
+const caseConfidenceOptions = [
+    {label: 'Unknown', value: 'Unknown', color: 'default'},
+    {label: 'Low', value: 'Low', color: 'cyan'},
+    {label: 'Medium', value: 'Medium', color: 'gold'},
+    {label: 'High', value: 'High', color: 'volcano'},
+]
 const caseVerdictOptions = [
     {label: 'Unknown', value: 'Unknown', color: 'default'},
     {label: 'False Positive', value: 'False Positive', color: 'green'},
@@ -491,6 +522,10 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
         ],
         editableFields: [
             {key: 'status', type: 'select', options: caseStatusOptions},
+            {key: 'severity', type: 'select', options: caseSeverityOptions},
+            {key: 'impact', type: 'select', options: caseImpactPriorityOptions},
+            {key: 'priority', type: 'select', options: caseImpactPriorityOptions},
+            {key: 'confidence', type: 'select', options: caseConfidenceOptions},
             {key: 'acknowledged_time', type: 'datetime', emptyValue: null},
             {key: 'closed_time', type: 'datetime', emptyValue: null},
             {key: 'assignee', type: 'user', emptyValue: null},
@@ -498,7 +533,13 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
             {key: 'summary', type: 'markdown'},
         ],
         detailHeaderActions: CasePlaybookAction,
-        basicView: (record, options) => <CaseBasicView record={record} fieldController={options?.fieldController}/>,
+        basicView: (record, options) => (
+            <CaseBasicView
+                record={record}
+                fieldController={options?.fieldController}
+                onRefresh={options?.onRefresh}
+            />
+        ),
         basicSections: [
             {
                 key: 'summary',
@@ -862,6 +903,7 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
             column('playbook_id', 'Playbook ID', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
             column('name', 'Name', L360, {required: true, defaultVisible: true, fixed: 'left'}),
             column('job_status', 'Status', L160, {defaultVisible: true, sorter: true, render: playbookJobStatusTag}),
+            column('risk_level', 'Risk Level', L132, {defaultVisible: true, render: (v) => severityTag(String(v || ''))}),
             column('case_title', 'Case', L160, {
                 defaultVisible: true,
                 render: (_v, r) => upperStringValue(r, 'case_readable_id'),
@@ -897,6 +939,7 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
             <PlaybookBasicView
                 record={record}
                 onOpenResource={options?.onOpenResource}
+                onRefresh={options?.onRefresh}
                 renderStatus={playbookJobStatusTag}
             />
         ),

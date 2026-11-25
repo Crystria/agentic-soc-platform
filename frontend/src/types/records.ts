@@ -155,6 +155,7 @@ export interface RecordTab<RecordType = Record<string, unknown>> {
   render: (record: RecordType, options?: {
     onOpenResource?: (resourceKey: string, rowId: string | number, options?: OpenResourceOptions) => void
     onChanged?: () => void
+    onRefresh?: () => void
   }) => ReactNode
 }
 
@@ -180,6 +181,7 @@ export interface ResourceConfig<RecordType = Record<string, unknown>> {
   basicView?: (record: RecordType, options?: {
     onOpenResource?: (resourceKey: string, rowId: string | number, options?: OpenResourceOptions) => void
     onChanged?: () => void
+    onRefresh?: () => void
     fieldController?: FieldEditingController
   }) => ReactNode
   detailHeaderActions?: ComponentType<DetailHeaderActionProps<RecordType>>

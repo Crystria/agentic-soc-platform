@@ -27,6 +27,8 @@ interface CasePlaybookActionProps {
 interface CasePlaybookRunModalProps {
   open: boolean
   caseId: string
+  initialPlaybookName?: string
+  initialUserInput?: string
   onClose: () => void
   onSubmitted?: () => void
 }
@@ -62,11 +64,18 @@ function PlaybookTags({ tags }: { tags: unknown }) {
   return <OverflowTags items={normalizeTags(tags)} getColor={(tag) => PLAYBOOK_TAG_COLORS[tag] || 'blue'} />
 }
 
-function CasePlaybookRunModal({ open, caseId, onClose, onSubmitted }: CasePlaybookRunModalProps) {
+export function CasePlaybookRunModal({
+  open,
+  caseId,
+  initialPlaybookName,
+  initialUserInput,
+  onClose,
+  onSubmitted,
+}: CasePlaybookRunModalProps) {
   const { token } = theme.useToken()
   const [definitions, setDefinitions] = useState<PlaybookDefinition[]>([])
-  const [selectedName, setSelectedName] = useState('')
-  const [userInput, setUserInput] = useState('')
+  const [selectedName, setSelectedName] = useState(initialPlaybookName || '')
+  const [userInput, setUserInput] = useState(initialUserInput || '')
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [loadError, setLoadError] = useState('')
@@ -190,12 +199,16 @@ function CasePlaybookRunModal({ open, caseId, onClose, onSubmitted }: CasePlaybo
     if (!selectedDefinition || !caseId) return
     setSubmitting(true)
     try {
-      await client.post('/playbooks/run/', {
+      const { data } = await client.post<{ job_status?: string }>('/playbooks/run/', {
         name: selectedDefinition.name,
         case: caseId,
         user_input: userInput,
       })
-      message.success('Playbook submitted')
+      if (data?.job_status === 'Awaiting Approval') {
+        message.warning('Playbook submitted and is awaiting approval before execution')
+      } else {
+        message.success('Playbook submitted')
+      }
       onClose()
       onSubmitted?.()
     } catch (error) {
@@ -278,6 +291,14 @@ function CasePlaybookRunModal({ open, caseId, onClose, onSubmitted }: CasePlaybo
               <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>
                 {selectedDefinition.description || 'No description.'}
               </Typography.Paragraph>
+              {(selectedDefinition.risk_level === 'High' || selectedDefinition.risk_level === 'Critical') && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  title={`${selectedDefinition.risk_level} risk playbook`}
+                  description="Submitting this playbook will create a run in Awaiting Approval status until reviewed by an analyst."
+                />
+              )}
               <div style={{ marginTop: 'auto' }}>
                 <Typography.Text strong>User input</Typography.Text>
                 <Input.TextArea

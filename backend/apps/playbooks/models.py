@@ -8,22 +8,33 @@ from apps.common.readable_ids import save_with_readable_id
 
 
 class PlaybookJobStatus(models.TextChoices):
-    SUCCESS = "Success"
-    FAILED = "Failed"
+    AWAITING_APPROVAL = "Awaiting Approval"
     PENDING = "Pending"
     RUNNING = "Running"
+    SUCCESS = "Success"
+    FAILED = "Failed"
+    REJECTED = "Rejected"
 
 
 class Playbook(BaseModel):
     playbook_id = models.CharField(max_length=32, unique=True, editable=False, db_index=True, blank=True, default="", help_text="Record ID e.g. playbook_000001 (记录 ID e.g. playbook_000001)")
     case = models.ForeignKey("cases.Case", on_delete=models.CASCADE, related_name="playbooks", help_text="Trigger source record ID e.g. case_000001(触发源记录 ID e.g. case_0000001)")
     name = models.CharField(max_length=255, blank=True, default="", help_text="Executed playbook name (执行剧本名称)")
+    risk_level = models.CharField(max_length=20, blank=True, default="", help_text="Playbook risk level at submission (提交时的剧本风险等级)")
+    requires_approval = models.BooleanField(default=False, help_text="Whether manual approval is required before execution (执行前是否需要人工审批)")
     user_input = models.TextField(blank=True, default="", help_text="Initial or follow-up user input (初始或后续用户输入)")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="playbooks",
         help_text="Playbook requester (剧本请求者)",
     )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="approved_playbooks",
+        help_text="Analyst who approved or rejected the playbook run (审批或拒绝剧本执行的分析师)",
+    )
+    approved_at = models.DateTimeField(null=True, blank=True, help_text="Approval or rejection time (审批或拒绝时间)")
+    approval_note = models.TextField(blank=True, default="", help_text="Approval or rejection rationale (审批或拒绝说明)")
     job_status = models.CharField(
         max_length=20, choices=PlaybookJobStatus, blank=True, default="",
         help_text="Background job status (后台任务状态)",

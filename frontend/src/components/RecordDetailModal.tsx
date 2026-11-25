@@ -92,6 +92,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
   const [railExpanded, setRailExpanded] = useState(false)
   const [activityDrawer, setActivityDrawer] = useState<ActivityDrawerKey | null>(null)
   const [changedSinceOpen, setChangedSinceOpen] = useState(false)
+  const [refreshTick, setRefreshTick] = useState(0)
   const requestIdRef = useRef(0)
 
   const loadedCurrentRecord = loadedRowId === rowId ? record : null
@@ -184,8 +185,9 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
   const requestRefresh = useCallback(() => {
     if (rowId === null || rowId === undefined) return
     clearFieldEditing()
-    loadRecord(rowId, { reset: false })
-  }, [clearFieldEditing, loadRecord, rowId])
+    setRefreshing(true)
+    setRefreshTick((tick) => tick + 1)
+  }, [clearFieldEditing, rowId])
 
   const markChanged = useCallback(() => {
     setChangedSinceOpen(true)
@@ -356,6 +358,46 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
     }
   }, [clearFieldEditing, open, rowId, config.tabs, initialTabKey, loadRecord])
 
+  useEffect(() => {
+    if (!open || rowId === null || rowId === undefined || refreshTick === 0) return
+    const requestId = requestIdRef.current + 1
+    requestIdRef.current = requestId
+
+    client.get(`${config.endpoint}${rowId}/`)
+      .then(({ data }) => {
+        if (requestId !== requestIdRef.current) return
+        setRecord(data)
+        setLoadedRowId(rowId)
+        clearFieldEditing()
+      })
+      .catch((error) => {
+        if (requestId !== requestIdRef.current) return
+        const status = apiStatus(error)
+        if (status === 404) {
+          clearFieldEditing()
+          message.warning('Record not found or has been deleted')
+          onClose()
+          return
+        }
+        if (status === 403) {
+          clearFieldEditing()
+          message.error('You do not have permission to view this record')
+          onClose()
+          return
+        }
+        message.error('Failed to refresh record')
+      })
+      .finally(() => {
+        if (requestId === requestIdRef.current) {
+          setRefreshing(false)
+        }
+      })
+
+    return () => {
+      requestIdRef.current += 1
+    }
+  }, [clearFieldEditing, config.endpoint, onClose, open, refreshTick, rowId])
+
   const contentTabs = useMemo(() => [
     {
       key: 'basic',
@@ -365,12 +407,13 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
         ? config.basicView(currentRecord, {
           onOpenResource,
           onChanged: markChanged,
+          onRefresh: refreshAfterMutation,
           fieldController,
         })
         : <RecordBasicView config={config} record={currentRecord} onOpenResource={onOpenResource} />,
     },
     ...config.tabs,
-  ], [config, fieldController, markChanged, onOpenResource])
+  ], [config, fieldController, markChanged, onOpenResource, refreshAfterMutation])
 
   const content = contentTabs.find((tab) => tab.key === activeTab)
   const objectId = loadedCurrentRecord ? String(loadedCurrentRecord.id || '') : ''
@@ -531,7 +574,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {loading ? <Spin style={{ margin: 32 }} /> : loadedCurrentRecord ? content?.render(loadedCurrentRecord, { onOpenResource, onChanged: markChanged }) : <Empty style={{ margin: 32 }} description="No record loaded" />}
+              {loading ? <Spin style={{ margin: 32 }} /> : loadedCurrentRecord ? content?.render(loadedCurrentRecord, { onOpenResource, onChanged: markChanged, onRefresh: refreshAfterMutation }) : <Empty style={{ margin: 32 }} description="No record loaded" />}
             </div>
             {showActivity && activityDrawer && objectId && (
               <div style={{ width: 420, borderLeft: dividerBorder, display: 'flex', flexDirection: 'column', background: '#0f0f0f', minHeight: 0 }}>

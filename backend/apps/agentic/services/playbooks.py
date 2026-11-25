@@ -136,21 +136,88 @@ def find_playbook_class(name, *, scripts_dir=None):
 
 
 @transaction.atomic
-def create_pending_playbook_run(*, name, case, user=None, user_input=""):
-    known_names = {item["name"] for item in list_playbook_definitions()}
-    if name not in known_names:
+def create_pending_playbook_run(*, name, case, user=None, user_input="", require_approval=None):
+    definitions = {item["name"]: item for item in list_playbook_definitions()}
+    if name not in definitions:
         raise ValueError(f"Unknown playbook definition: {name}")
+
+    risk_level = definitions[name].get("risk_level") or "Low"
+    needs_approval = (
+        risk_level in {"High", "Critical"}
+        if require_approval is None
+        else bool(require_approval)
+    )
+    initial_status = (
+        PlaybookJobStatus.AWAITING_APPROVAL
+        if needs_approval
+        else PlaybookJobStatus.PENDING
+    )
 
     playbook = Playbook(
         case=case,
         name=name,
+        risk_level=risk_level,
+        requires_approval=needs_approval,
         user=user if getattr(user, "is_authenticated", False) else None,
         user_input=user_input or "",
-        job_status=PlaybookJobStatus.PENDING,
+        job_status=initial_status,
     )
     playbook.full_clean()
     playbook.save()
     return playbook
+
+
+@transaction.atomic
+def approve_playbook_run(playbook, *, user=None, note=""):
+    """Approve an awaiting playbook run so workers can claim and execute it."""
+    locked = Playbook.objects.select_for_update().get(pk=playbook.pk)
+    if locked.job_status != PlaybookJobStatus.AWAITING_APPROVAL:
+        raise ValueError(
+            f"Playbook run must be Awaiting Approval before approval, got {locked.job_status}"
+        )
+    locked.job_status = PlaybookJobStatus.PENDING
+    locked.approved_by = user if getattr(user, "is_authenticated", False) else None
+    locked.approved_at = timezone.now()
+    locked.approval_note = _sanitize_visible_text(note, max_length=MAX_RUN_REMARK_LENGTH)
+    locked.save(
+        update_fields=[
+            "job_status",
+            "approved_by",
+            "approved_at",
+            "approval_note",
+            "updated_at",
+        ]
+    )
+    return locked
+
+
+@transaction.atomic
+def reject_playbook_run(playbook, *, user=None, note=""):
+    """Reject an awaiting playbook run without executing it."""
+    locked = Playbook.objects.select_for_update().get(pk=playbook.pk)
+    if locked.job_status != PlaybookJobStatus.AWAITING_APPROVAL:
+        raise ValueError(
+            f"Playbook run must be Awaiting Approval before rejection, got {locked.job_status}"
+        )
+    clean_note = _sanitize_visible_text(note, max_length=MAX_RUN_REMARK_LENGTH)
+    locked.job_status = PlaybookJobStatus.REJECTED
+    locked.approved_by = user if getattr(user, "is_authenticated", False) else None
+    locked.approved_at = timezone.now()
+    locked.finished_at = locked.approved_at
+    locked.approval_note = clean_note
+    locked.remark = clean_note or "Rejected by analyst before execution."
+    locked.save(
+        update_fields=[
+            "job_status",
+            "approved_by",
+            "approved_at",
+            "finished_at",
+            "approval_note",
+            "remark",
+            "updated_at",
+        ]
+    )
+    return locked
 
 
 @transaction.atomic

@@ -1,6 +1,9 @@
+import uuid
+
 from django.conf import settings
 from django.core.validators import MaxLengthValidator
 from django.db import models
+from django.utils import timezone
 
 from apps.common.models import BaseModel
 from apps.common.readable_ids import save_with_readable_id
@@ -191,3 +194,90 @@ class CaseRelationship(BaseModel):
 
     def __str__(self):
         return f"{self.source_case.case_id} {self.relationship_type} {self.target_case.case_id}"
+
+
+class AiQualityCoverageState(models.TextChoices):
+    EVALUATED = "Evaluated"
+    NO_PREDICTION = "No prediction"
+    INVALID_PREDICTION = "Invalid prediction"
+
+
+class AiQualityDirection(models.TextChoices):
+    MATCH = "match"
+    OVERESTIMATE = "overestimate"
+    UNDERESTIMATE = "underestimate"
+
+
+class AiQualityEvaluation(models.Model):
+    """Snapshot comparing final human Case labels with the last pre-close AI prediction."""
+
+    # Inherit models.Model instead of BaseModel so AuditLog signals do not record evaluation rebuilds.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    case = models.OneToOneField(
+        Case,
+        on_delete=models.CASCADE,
+        related_name="ai_quality_evaluation",
+    )
+    reference_job = models.ForeignKey(
+        "agentic.CaseAnalysisJob",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ai_quality_evaluations",
+    )
+    coverage_state = models.CharField(
+        max_length=24,
+        choices=AiQualityCoverageState,
+        db_index=True,
+    )
+
+    ai_verdict = models.CharField(max_length=30, blank=True, default="")
+    human_verdict = models.CharField(max_length=30, blank=True, default="")
+    verdict_agrees = models.BooleanField(null=True, blank=True)
+
+    ai_severity = models.CharField(max_length=20, blank=True, default="")
+    human_severity = models.CharField(max_length=20, blank=True, default="", db_index=True)
+    severity_agrees = models.BooleanField(null=True, blank=True)
+    severity_distance = models.PositiveSmallIntegerField(null=True, blank=True)
+    severity_direction = models.CharField(max_length=16, choices=AiQualityDirection, blank=True, default="")
+
+    ai_impact = models.CharField(max_length=20, blank=True, default="")
+    human_impact = models.CharField(max_length=20, blank=True, default="")
+    impact_agrees = models.BooleanField(null=True, blank=True)
+    impact_distance = models.PositiveSmallIntegerField(null=True, blank=True)
+    impact_direction = models.CharField(max_length=16, choices=AiQualityDirection, blank=True, default="")
+
+    ai_priority = models.CharField(max_length=20, blank=True, default="")
+    human_priority = models.CharField(max_length=20, blank=True, default="")
+    priority_agrees = models.BooleanField(null=True, blank=True)
+    priority_distance = models.PositiveSmallIntegerField(null=True, blank=True)
+    priority_direction = models.CharField(max_length=16, choices=AiQualityDirection, blank=True, default="")
+
+    ai_confidence = models.CharField(max_length=20, blank=True, default="")
+    human_confidence = models.CharField(max_length=20, blank=True, default="")
+    confidence_agrees = models.BooleanField(null=True, blank=True)
+    confidence_distance = models.PositiveSmallIntegerField(null=True, blank=True)
+    confidence_direction = models.CharField(max_length=16, choices=AiQualityDirection, blank=True, default="")
+
+    category_snapshot = models.CharField(max_length=30, blank=True, default="", db_index=True)
+    assignee_snapshot = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ai_quality_evaluations",
+    )
+    closed_at = models.DateTimeField(db_index=True)
+    evaluated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "ai_quality_evaluations"
+        ordering = ["-closed_at"]
+        indexes = [
+            models.Index(fields=["closed_at", "coverage_state"], name="ai_qual_closed_cov_idx"),
+            models.Index(fields=["category_snapshot", "closed_at"], name="ai_qual_cat_closed_idx"),
+            models.Index(fields=["assignee_snapshot", "closed_at"], name="ai_qual_assignee_closed_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.case.case_id} ({self.coverage_state})"
