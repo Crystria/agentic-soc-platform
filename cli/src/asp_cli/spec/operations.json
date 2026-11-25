@@ -399,6 +399,116 @@
       "capabilities": ["dev.stream.read"],
       "aliases": ["read_stream_message_by_id"],
       "examples": ["asp dev stream read custom-module-events 0-1 --output json"]
+    },
+    {
+      "id": "case.report",
+      "cli_path": "case report",
+      "method": "GET",
+      "endpoint": "/api/agent/v1/cases/{case_id}/report/",
+      "permission": "authenticated",
+      "capabilities": ["case.report"],
+      "aliases": [],
+      "examples": ["asp case report case_000001", "asp case report case_000001 --output json"]
+    },
+    {
+      "id": "case.analyze",
+      "cli_path": "case analyze",
+      "method": "POST",
+      "endpoint": "/api/agent/v1/cases/{case_id}/analyze/",
+      "permission": "business_writer",
+      "capabilities": ["case.analyze"],
+      "aliases": [],
+      "examples": ["asp case analyze case_000001 --wait"]
+    },
+    {
+      "id": "case.decide",
+      "cli_path": "case decide",
+      "method": "POST",
+      "endpoint": "/api/agent/v1/cases/{case_id}/decide/",
+      "permission": "business_writer",
+      "capabilities": ["case.decide"],
+      "aliases": [],
+      "examples": ["asp case decide case_000001 --accept-ai --apply-digest --note \"Verified\""]
+    },
+    {
+      "id": "playbook.approve",
+      "cli_path": "playbook approve",
+      "method": "POST",
+      "endpoint": "/api/agent/v1/playbooks/{playbook_id}/approve/",
+      "permission": "business_writer",
+      "capabilities": ["playbook.approve"],
+      "aliases": [],
+      "examples": ["asp playbook approve playbook_000001 --note \"Confirmed C2\""]
+    },
+    {
+      "id": "playbook.reject",
+      "cli_path": "playbook reject",
+      "method": "POST",
+      "endpoint": "/api/agent/v1/playbooks/{playbook_id}/reject/",
+      "permission": "business_writer",
+      "capabilities": ["playbook.reject"],
+      "aliases": [],
+      "examples": ["asp playbook reject playbook_000001 --note \"False positive\""]
+    },
+    {
+      "id": "agent.overview",
+      "cli_path": "agent overview",
+      "method": "GET",
+      "endpoint": "/api/agent/v1/agent/overview/",
+      "permission": "admin",
+      "capabilities": ["agent.overview"],
+      "aliases": [],
+      "examples": ["asp agent overview"]
+    },
+    {
+      "id": "agent.jobs.list",
+      "cli_path": "agent jobs list",
+      "method": "GET",
+      "endpoint": "/api/agent/v1/agent/jobs/",
+      "permission": "admin",
+      "capabilities": ["agent.jobs.list"],
+      "aliases": [],
+      "examples": ["asp agent jobs list --status Failed --output json"]
+    },
+    {
+      "id": "agent.jobs.show",
+      "cli_path": "agent jobs show",
+      "method": "GET",
+      "endpoint": "/api/agent/v1/agent/jobs/{job_id}/",
+      "permission": "admin",
+      "capabilities": ["agent.jobs.show"],
+      "aliases": [],
+      "examples": ["asp agent jobs show <job_uuid>"]
+    },
+    {
+      "id": "agent.jobs.retry",
+      "cli_path": "agent jobs retry",
+      "method": "POST",
+      "endpoint": "/api/agent/v1/agent/jobs/{job_id}/retry/",
+      "permission": "admin",
+      "capabilities": ["agent.jobs.retry"],
+      "aliases": [],
+      "examples": ["asp agent jobs retry <job_uuid>"]
+    },
+    {
+      "id": "agent.jobs.cancel",
+      "cli_path": "agent jobs cancel",
+      "method": "POST",
+      "endpoint": "/api/agent/v1/agent/jobs/{job_id}/cancel/",
+      "permission": "admin",
+      "capabilities": ["agent.jobs.cancel"],
+      "aliases": [],
+      "examples": ["asp agent jobs cancel <job_uuid>"]
+    },
+    {
+      "id": "tui",
+      "cli_path": "tui",
+      "method": "interactive",
+      "endpoint": "/api/agent/v1/",
+      "permission": "authenticated",
+      "capabilities": ["case.list", "alert.list", "playbook.list"],
+      "aliases": [],
+      "examples": ["asp tui", "asp tui --mode rich"]
     }
   ]
 }

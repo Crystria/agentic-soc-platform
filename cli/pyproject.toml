@@ -29,6 +29,11 @@ dependencies = [
     "typer>=0.20.0",
 ]
 
+[project.optional-dependencies]
+tui = [
+    "textual>=1.0.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/FunnyWolf/agentic-soc-platform"
 Repository = "https://github.com/FunnyWolf/agentic-soc-platform"

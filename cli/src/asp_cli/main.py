@@ -29,7 +29,15 @@ from .config import (
 )
 from .errors import CliError, EXIT_AUTH, EXIT_CONFIG, EXIT_NETWORK, EXIT_USAGE
 from .api_client import AspClient
+from .agent_commands import (
+    build_decision_payload,
+    render_agent_overview,
+    render_case_report,
+    tail_agent_jobs,
+    wait_for_analysis_job,
+)
 from .output import OutputFormat, emit_error, emit_success, key_value_table
+from .tui import launch_tui
 
 console = Console()
 err_console = Console(stderr=True)
@@ -66,6 +74,8 @@ ti_app = typer.Typer(no_args_is_help=True, help="Query threat intelligence provi
 cmdb_app = typer.Typer(no_args_is_help=True, help="Look up asset context from CMDB providers.")
 dev_app = typer.Typer(no_args_is_help=True, help="Advanced developer and debugging commands.")
 dev_stream_app = typer.Typer(no_args_is_help=True, help="Inspect Redis streams.")
+agent_app = typer.Typer(no_args_is_help=True, help="Monitor and control ASP AI Agents.")
+agent_jobs_app = typer.Typer(no_args_is_help=True, help="Inspect, retry, cancel, and tail CaseAnalysisJob queue.")
 
 app.add_typer(auth_app, name="auth")
 app.add_typer(config_app, name="config")
@@ -88,6 +98,8 @@ app.add_typer(ti_app, name="ti")
 app.add_typer(cmdb_app, name="cmdb")
 dev_app.add_typer(dev_stream_app, name="stream")
 app.add_typer(dev_app, name="dev")
+agent_app.add_typer(agent_jobs_app, name="jobs")
+app.add_typer(agent_app, name="agent")
 
 
 @app.callback()
@@ -244,6 +256,70 @@ def case_update_ai(
             verdict_ai=verdict_ai,
             summary=summary,
             summary_file=summary_file,
+        ),
+    )
+
+
+@case_app.command("report")
+def case_report(
+    ctx: typer.Context,
+    case_id: Annotated[str, typer.Argument(help="Case ID, for example case_000001.")],
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(ctx, "case.report", output, lambda runtime, out: _show_case_report(runtime, out, case_id))
+
+
+@case_app.command("analyze")
+def case_analyze(
+    ctx: typer.Context,
+    case_id: Annotated[str, typer.Argument(help="Case ID, for example case_000001.")],
+    wait: Annotated[bool, typer.Option("--wait", help="Poll job status until completion.")] = False,
+    interval: Annotated[float, typer.Option("--interval", min=0.5, help="Polling interval seconds.")] = 2.0,
+    timeout: Annotated[float, typer.Option("--timeout", min=1.0, help="Maximum seconds to wait.")] = 120.0,
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(
+        ctx,
+        "case.analyze",
+        output,
+        lambda runtime, out: _analyze_case(runtime, out, case_id, wait=wait, interval=interval, timeout=timeout),
+    )
+
+
+@case_app.command("decide")
+def case_decide(
+    ctx: typer.Context,
+    case_id: Annotated[str, typer.Argument(help="Case ID, for example case_000001.")],
+    accept_ai: Annotated[bool, typer.Option("--accept-ai", help="Copy all AI assessment fields into analyst fields.")] = False,
+    fields: Annotated[str | None, typer.Option("--fields", help="Comma-separated AI fields to copy: verdict,severity,impact,priority,confidence.")] = None,
+    verdict: Annotated[str | None, typer.Option("--verdict", help="Override analyst verdict.")] = None,
+    severity: Annotated[str | None, typer.Option("--severity", help="Override analyst severity.")] = None,
+    impact: Annotated[str | None, typer.Option("--impact", help="Override analyst impact.")] = None,
+    priority: Annotated[str | None, typer.Option("--priority", help="Override analyst priority.")] = None,
+    confidence: Annotated[str | None, typer.Option("--confidence", help="Override analyst confidence.")] = None,
+    status: Annotated[str | None, typer.Option("--status", help="Update case status.")] = None,
+    apply_digest: Annotated[bool, typer.Option("--apply-digest", help="Copy AI digest into Case summary.")] = False,
+    note: Annotated[str | None, typer.Option("--note", help="Analyst decision note recorded in comments.")] = None,
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(
+        ctx,
+        "case.decide",
+        output,
+        lambda runtime, out: _decide_case(
+            runtime,
+            out,
+            case_id,
+            accept_ai=accept_ai,
+            fields_csv=fields,
+            verdict=verdict,
+            severity=severity,
+            impact=impact,
+            priority=priority,
+            confidence=confidence,
+            status=status,
+            apply_digest=apply_digest,
+            note=note,
         ),
     )
 
@@ -570,6 +646,26 @@ def playbook_run(
     )
 
 
+@playbook_app.command("approve")
+def playbook_approve(
+    ctx: typer.Context,
+    playbook_id: Annotated[str, typer.Argument(help="Playbook run ID, for example playbook_000001.")],
+    note: Annotated[str, typer.Option("--note", help="Approval rationale.")] = "",
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(ctx, "playbook.approve", output, lambda runtime, out: _approve_playbook(runtime, out, playbook_id, note))
+
+
+@playbook_app.command("reject")
+def playbook_reject(
+    ctx: typer.Context,
+    playbook_id: Annotated[str, typer.Argument(help="Playbook run ID, for example playbook_000001.")],
+    note: Annotated[str, typer.Option("--note", help="Rejection rationale.")] = "",
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(ctx, "playbook.reject", output, lambda runtime, out: _reject_playbook(runtime, out, playbook_id, note))
+
+
 @siem_schema_app.command("list")
 def siem_schema_list(
     ctx: typer.Context,
@@ -712,6 +808,78 @@ def dev_stream_read(
     output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
 ) -> None:
     run_command(ctx, "dev.stream.read", output, lambda runtime, out: _dev_stream_read(runtime, out, stream_name, message_id))
+
+
+@agent_app.command("overview")
+def agent_overview(
+    ctx: typer.Context,
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(ctx, "agent.overview", output, _agent_overview)
+
+
+@agent_jobs_app.command("list")
+def agent_jobs_list(
+    ctx: typer.Context,
+    status: Annotated[str | None, typer.Option("--status", help="Job status filter: Pending,Running,Success,Failed.")] = None,
+    case_id: Annotated[str | None, typer.Option("--case-id", help="Linked case ID.")] = None,
+    search: Annotated[str | None, typer.Option("--search", help="Search case, model, or error.")] = None,
+    cursor: Annotated[str | None, typer.Option("--cursor", help="Pagination cursor.")] = None,
+    page_size: Annotated[int | None, typer.Option("--page-size", min=1, max=100, help="Page size.")] = None,
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(
+        ctx,
+        "agent.jobs.list",
+        output,
+        lambda runtime, out: _agent_jobs_list(runtime, out, status=status, case_id=case_id, search=search, cursor=cursor, page_size=page_size),
+    )
+
+
+@agent_jobs_app.command("show")
+def agent_jobs_show(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="CaseAnalysisJob UUID.")],
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(ctx, "agent.jobs.show", output, lambda runtime, out: _agent_jobs_show(runtime, out, job_id))
+
+
+@agent_jobs_app.command("retry")
+def agent_jobs_retry(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="CaseAnalysisJob UUID.")],
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(ctx, "agent.jobs.retry", output, lambda runtime, out: _agent_jobs_retry(runtime, out, job_id))
+
+
+@agent_jobs_app.command("cancel")
+def agent_jobs_cancel(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="Pending CaseAnalysisJob UUID.")],
+    output: Annotated[OutputFormat | None, typer.Option("--output", help="Output format.")] = None,
+) -> None:
+    run_command(ctx, "agent.jobs.cancel", output, lambda runtime, out: _agent_jobs_cancel(runtime, out, job_id))
+
+
+@agent_jobs_app.command("tail")
+def agent_jobs_tail(
+    ctx: typer.Context,
+    status: Annotated[str | None, typer.Option("--status", help="Job status filter.")] = None,
+    case_id: Annotated[str | None, typer.Option("--case-id", help="Linked case ID.")] = None,
+    interval: Annotated[float, typer.Option("--interval", min=1.0, help="Refresh interval seconds.")] = 3.0,
+) -> None:
+    run_command(ctx, "agent.jobs.tail", OutputFormat.human, lambda runtime, _out: _agent_jobs_tail(runtime, status=status, case_id=case_id, interval=interval))
+
+
+@app.command("tui")
+def tui(
+    ctx: typer.Context,
+    mode: Annotated[str, typer.Option("--mode", help="Textmode UI backend: auto, textual, or rich.")] = "auto",
+    refresh: Annotated[float, typer.Option("--refresh", min=0.0, help="Auto-refresh interval in seconds (Textual mode).")] = 5.0,
+) -> None:
+    run_command(ctx, "tui", OutputFormat.human, lambda runtime, _out: _launch_tui(runtime, mode=mode, refresh=refresh))
 
 
 @completion_app.command("powershell")
@@ -958,6 +1126,39 @@ def _update_case_ai(runtime: RuntimeOptions, output: OutputFormat, case_id: str,
     ))
 
 
+def _show_case_report(runtime: RuntimeOptions, output: OutputFormat, case_id: str) -> None:
+    payload = _agent_get(runtime, f"/api/agent/v1/cases/{case_id}/report/", {})
+    if output == OutputFormat.human:
+        render_case_report(console, payload.get("data") or {})
+        return
+    emit_runtime_success(runtime, output=output, operation="case.report", data=payload.get("data"), meta=payload.get("meta"))
+
+
+def _analyze_case(runtime: RuntimeOptions, output: OutputFormat, case_id: str, *, wait: bool, interval: float, timeout: float) -> None:
+    payload = _agent_request(runtime, "POST", f"/api/agent/v1/cases/{case_id}/analyze/")
+    job = payload.get("data") or {}
+    if wait:
+        config = _require_config(runtime)
+        client = AspClient(api_url=config.api_url or "", api_key=config.api_key, verbose=runtime.verbose, console=err_console)
+        job = wait_for_analysis_job(client, console, job, interval=interval, timeout=timeout)
+        payload = {**payload, "data": job}
+    _emit_agent_payload(runtime, output, "case.analyze", payload, lambda data, _meta: _detail_table(
+        "ASP case AI analysis job",
+        data,
+        ["id", "case_readable_id", "status", "trigger", "model_name", "latency_ms", "total_tokens", "error"],
+    ))
+
+
+def _decide_case(runtime: RuntimeOptions, output: OutputFormat, case_id: str, **opts) -> None:
+    body = build_decision_payload(**opts)
+    payload = _agent_request(runtime, "POST", f"/api/agent/v1/cases/{case_id}/decide/", json=body)
+    _emit_agent_payload(runtime, output, "case.decide", payload, lambda data, _meta: _detail_table(
+        f"Updated Case Decision ({', '.join(data.get('applied_fields') or [])})",
+        data.get("case") or {},
+        ["case_id", "status", "verdict", "severity", "impact", "priority", "confidence", "verdict_ai", "severity_ai"],
+    ))
+
+
 def _list_alerts(runtime: RuntimeOptions, output: OutputFormat, **filters) -> None:
     payload = _agent_get(runtime, "/api/agent/v1/alerts/", _clean_params(filters))
     _emit_agent_payload(runtime, output, "alert.list", payload, lambda data, meta: _list_table(
@@ -1173,8 +1374,83 @@ def _run_playbook(runtime: RuntimeOptions, output: OutputFormat, name: str, case
     _emit_agent_payload(runtime, output, "playbook.run", payload, lambda data, _meta: _detail_table(
         "ASP playbook queued",
         data,
-        ["playbook_id", "case_id", "name", "job_status", "created_at"],
+        ["playbook_id", "case_id", "name", "risk_level", "job_status", "created_at"],
     ))
+
+
+def _approve_playbook(runtime: RuntimeOptions, output: OutputFormat, playbook_id: str, note: str) -> None:
+    payload = _agent_request(runtime, "POST", f"/api/agent/v1/playbooks/{playbook_id}/approve/", json={"note": note})
+    _emit_agent_payload(runtime, output, "playbook.approve", payload, lambda data, _meta: _detail_table(
+        "ASP playbook approved",
+        data,
+        ["playbook_id", "case_id", "name", "risk_level", "job_status", "approved_by", "approved_at"],
+    ))
+
+
+def _reject_playbook(runtime: RuntimeOptions, output: OutputFormat, playbook_id: str, note: str) -> None:
+    payload = _agent_request(runtime, "POST", f"/api/agent/v1/playbooks/{playbook_id}/reject/", json={"note": note})
+    _emit_agent_payload(runtime, output, "playbook.reject", payload, lambda data, _meta: _detail_table(
+        "ASP playbook rejected",
+        data,
+        ["playbook_id", "case_id", "name", "risk_level", "job_status", "approved_by", "approval_note"],
+    ))
+
+
+def _agent_overview(runtime: RuntimeOptions, output: OutputFormat) -> None:
+    payload = _agent_get(runtime, "/api/agent/v1/agent/overview/", {})
+    if output == OutputFormat.human:
+        render_agent_overview(console, payload.get("data") or {})
+        return
+    emit_runtime_success(runtime, output=output, operation="agent.overview", data=payload.get("data"), meta=payload.get("meta"))
+
+
+def _agent_jobs_list(runtime: RuntimeOptions, output: OutputFormat, **filters) -> None:
+    payload = _agent_get(runtime, "/api/agent/v1/agent/jobs/", _clean_params(filters))
+    _emit_agent_payload(runtime, output, "agent.jobs.list", payload, lambda data, meta: _list_table(
+        "ASP Agent Analysis Jobs",
+        ["id", "case_readable_id", "status", "trigger", "model_name", "latency_ms", "total_tokens", "verdict_ai", "created_at"],
+        data,
+        meta,
+    ))
+
+
+def _agent_jobs_show(runtime: RuntimeOptions, output: OutputFormat, job_id: str) -> None:
+    payload = _agent_get(runtime, f"/api/agent/v1/agent/jobs/{job_id}/", {})
+    _emit_agent_payload(runtime, output, "agent.jobs.show", payload, lambda data, _meta: _detail_table(
+        "ASP Agent Analysis Job",
+        data,
+        ["id", "case_readable_id", "status", "trigger", "provider_name", "model_name", "latency_ms", "input_tokens", "output_tokens", "total_tokens", "knowledge_keywords_count", "knowledge_records_count", "error", "created_at", "completed_at"],
+    ))
+
+
+def _agent_jobs_retry(runtime: RuntimeOptions, output: OutputFormat, job_id: str) -> None:
+    payload = _agent_request(runtime, "POST", f"/api/agent/v1/agent/jobs/{job_id}/retry/")
+    _emit_agent_payload(runtime, output, "agent.jobs.retry", payload, lambda data, _meta: _detail_table(
+        "ASP Agent Job Retry Queued",
+        data,
+        ["id", "case_readable_id", "status", "trigger", "scheduled_at"],
+    ))
+
+
+def _agent_jobs_cancel(runtime: RuntimeOptions, output: OutputFormat, job_id: str) -> None:
+    payload = _agent_request(runtime, "POST", f"/api/agent/v1/agent/jobs/{job_id}/cancel/")
+    _emit_agent_payload(runtime, output, "agent.jobs.cancel", payload, lambda data, _meta: _detail_table(
+        "ASP Agent Job Cancelled",
+        data,
+        ["id", "case_readable_id", "status", "error", "completed_at"],
+    ))
+
+
+def _agent_jobs_tail(runtime: RuntimeOptions, *, status: str | None, case_id: str | None, interval: float) -> None:
+    config = _require_config(runtime)
+    client = AspClient(api_url=config.api_url or "", api_key=config.api_key, verbose=runtime.verbose, console=err_console)
+    tail_agent_jobs(client, console, status_filter=status, case_id=case_id, interval=interval)
+
+
+def _launch_tui(runtime: RuntimeOptions, *, mode: str, refresh: float) -> None:
+    config = _require_config(runtime)
+    client = AspClient(api_url=config.api_url or "", api_key=config.api_key, verbose=runtime.verbose, console=err_console)
+    launch_tui(client, mode=mode, refresh_seconds=refresh, console=console)
 
 
 def _siem_schema(runtime: RuntimeOptions, output: OutputFormat, target_index: str | None) -> None:

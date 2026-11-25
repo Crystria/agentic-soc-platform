@@ -10,12 +10,31 @@ from rest_framework import parsers, permissions, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsBusinessWriterOrReadOnly
+from apps.accounts.permissions import IsAdmin, IsBusinessWriterOrReadOnly
 from apps.accounts.models import UserApiKey
+from apps.agentic.models import CaseAnalysisJob
+from apps.agentic.services.agent_monitor import (
+    build_agentic_overview,
+    serialize_job_detail,
+    serialize_job_list_item,
+)
+from apps.agentic.services.cases import (
+    cancel_case_analysis_job,
+    request_case_analysis,
+    retry_case_analysis_job,
+)
+from apps.agentic.services.playbooks import (
+    approve_playbook_run,
+    create_pending_playbook_run,
+    list_playbook_definitions,
+    reject_playbook_run,
+)
 from apps.alerts.models import Alert
 from apps.artifacts.models import Artifact
 from apps.attachments.models import Attachment
 from apps.audit.context import audit_actor
+from apps.cases.ai_decision import apply_ai_assessment
+from apps.cases.ai_quality import get_case_ai_quality_payload
 from apps.cases.models import Case
 from apps.cases.services import (
     relationship_for_case_payload,
@@ -29,7 +48,6 @@ from apps.common.operation_timeout import run_with_operation_timeout
 from apps.common.redis_stream import RedisStreamClient
 from apps.enrichments.models import Enrichment, EnrichmentProvider
 from apps.knowledge.models import Knowledge
-from apps.agentic.services.playbooks import create_pending_playbook_run, list_playbook_definitions
 from apps.playbooks.models import Playbook
 from integrations.cmdb.service import lookup_artifact_context
 from integrations.siem import service as siem_service
@@ -66,6 +84,9 @@ FOUNDATION_CAPABILITIES = [
     "case.list",
     "case.show",
     "case.update_ai",
+    "case.report",
+    "case.analyze",
+    "case.decide",
     "case.relationships",
     "case.relationship_suggestions",
     "alert.list",
@@ -85,6 +106,13 @@ FOUNDATION_CAPABILITIES = [
     "playbook.list",
     "playbook.show",
     "playbook.run",
+    "playbook.approve",
+    "playbook.reject",
+    "agent.overview",
+    "agent.jobs.list",
+    "agent.jobs.show",
+    "agent.jobs.retry",
+    "agent.jobs.cancel",
     "siem.schema",
     "siem.search.keyword",
     "siem.query.adaptive",
@@ -183,6 +211,95 @@ class CaseAIAnalysisView(APIView):
             case.full_clean()
             case.save(update_fields=[*updates.keys(), "updated_at"])
         return agent_response(request, operation="case.update_ai", data=serialize_case(case, include_related=True), status=status.HTTP_200_OK)
+
+
+class CaseInvestigationReportView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, case_id):
+        case = _find_case(case_id)
+        raw = case.investigation_report_ai_json or ""
+        try:
+            parsed = json.loads(raw) if raw else {}
+        except ValueError:
+            parsed = {"raw": raw}
+        data = {
+            "case_id": case.case_id,
+            "title": case.title,
+            "status": case.status,
+            "investigation_report": parsed,
+            "ai_quality": get_case_ai_quality_payload(case),
+        }
+        return agent_response(request, operation="case.report", data=data)
+
+
+class CaseTriggerAnalysisView(APIView):
+    permission_classes = [IsBusinessWriterOrReadOnly]
+
+    def post(self, request, case_id):
+        case = _find_case(case_id)
+        job = request_case_analysis(case=case, trigger="cli")
+        return agent_response(
+            request,
+            operation="case.analyze",
+            data=serialize_job_list_item(job),
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class CaseDecisionView(APIView):
+    permission_classes = [IsBusinessWriterOrReadOnly]
+
+    def post(self, request, case_id):
+        case = _find_case(case_id)
+        accept_ai = bool(request.data.get("accept_ai", False))
+        raw_fields = request.data.get("fields", None)
+        apply_digest = bool(request.data.get("apply_digest_to_summary", False))
+        decision_note = str(request.data.get("decision_note") or "")
+        applied_fields = []
+
+        if raw_fields is not None and not isinstance(raw_fields, list):
+            raise ValidationError({"fields": "fields must be a list of assessment field names."})
+
+        if accept_ai or raw_fields is not None or apply_digest:
+            case, applied_fields = apply_ai_assessment(
+                case,
+                fields=raw_fields,
+                apply_digest_to_summary=apply_digest,
+                decision_note=decision_note,
+                actor=request.user,
+            )
+
+        override_allowed = {"verdict", "severity", "impact", "priority", "confidence", "status", "summary"}
+        overrides = {field: request.data[field] for field in override_allowed if field in request.data and request.data[field] not in (None, "")}
+        if overrides:
+            for field, value in overrides.items():
+                setattr(case, field, value)
+            with audit_actor(request.user):
+                case.full_clean()
+                case.save(update_fields=[*overrides.keys(), "updated_at"])
+            applied_fields = list(dict.fromkeys([*applied_fields, *overrides.keys()]))
+
+        if not applied_fields:
+            raise ValidationError({"detail": "Provide accept_ai=true, fields, or at least one decision override field."})
+
+        if decision_note.strip() and not (accept_ai or raw_fields is not None or apply_digest):
+            Comment.objects.create(
+                content_type=_content_type_for_record(case),
+                object_id=str(case.pk),
+                author=request.user if request.user.is_authenticated else None,
+                body=f"[AI Decision] {decision_note.strip()}",
+            )
+
+        refreshed = Case.objects.prefetch_related("alerts").get(pk=case.pk)
+        return agent_response(
+            request,
+            operation="case.decide",
+            data={
+                "applied_fields": applied_fields,
+                "case": serialize_case(refreshed, include_related=True),
+            },
+        )
 
 
 class CaseRelationshipListView(APIView):
@@ -478,6 +595,8 @@ class PlaybookRunView(APIView):
             raise ValidationError({"name": "This field is required."})
         if not case_id:
             raise ValidationError({"case_id": "This field is required."})
+        raw_require_approval = request.data.get("require_approval", None)
+        require_approval = bool(raw_require_approval) if raw_require_approval is not None else None
         try:
             with audit_actor(request.user):
                 playbook = create_pending_playbook_run(
@@ -485,11 +604,111 @@ class PlaybookRunView(APIView):
                     case=_find_case(case_id),
                     user=request.user,
                     user_input=request.data.get("user_input", ""),
+                    require_approval=require_approval,
                 )
         except ValueError as exc:
             logger.info("Invalid agent playbook run request", exc_info=True)
             raise ValidationError({"detail": "Unknown playbook definition."}) from exc
         return agent_response(request, operation="playbook.run", data=serialize_playbook(playbook), status=status.HTTP_201_CREATED)
+
+
+class PlaybookApproveView(APIView):
+    permission_classes = [IsBusinessWriterOrReadOnly]
+
+    def post(self, request, playbook_id):
+        playbook = _find_playbook(playbook_id)
+        try:
+            with audit_actor(request.user):
+                updated = approve_playbook_run(
+                    playbook,
+                    user=request.user,
+                    note=request.data.get("note", ""),
+                )
+        except ValueError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return agent_response(request, operation="playbook.approve", data=serialize_playbook(updated))
+
+
+class PlaybookRejectView(APIView):
+    permission_classes = [IsBusinessWriterOrReadOnly]
+
+    def post(self, request, playbook_id):
+        playbook = _find_playbook(playbook_id)
+        try:
+            with audit_actor(request.user):
+                updated = reject_playbook_run(
+                    playbook,
+                    user=request.user,
+                    note=request.data.get("note", ""),
+                )
+        except ValueError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return agent_response(request, operation="playbook.reject", data=serialize_playbook(updated))
+
+
+class AgentMonitorOverviewView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        return agent_response(request, operation="agent.overview", data=build_agentic_overview())
+
+
+class AgentMonitorJobListView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        queryset = CaseAnalysisJob.objects.select_related("case").all()
+        if statuses := list_param(request.query_params, "status"):
+            queryset = queryset.filter(status__in=statuses)
+        if case_id := request.query_params.get("case_id"):
+            queryset = queryset.filter(case__case_id=_record_id(case_id))
+        if search := request.query_params.get("search"):
+            queryset = queryset.filter(
+                Q(case__case_id__icontains=search)
+                | Q(case__title__icontains=search)
+                | Q(model_name__icontains=search)
+                | Q(error__icontains=search)
+            )
+        page = paginate_created_at_cursor(queryset, request)
+        data = [serialize_job_list_item(job) for job in page.results]
+        return agent_response(request, operation="agent.jobs.list", data=data, pagination=pagination_meta(page))
+
+
+class AgentMonitorJobDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request, job_id):
+        job = _find_analysis_job(job_id)
+        return agent_response(request, operation="agent.jobs.show", data=serialize_job_detail(job))
+
+
+class AgentMonitorJobRetryView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def post(self, request, job_id):
+        job = _find_analysis_job(job_id)
+        try:
+            queued = retry_case_analysis_job(job, trigger="cli_retry")
+        except ValueError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return agent_response(
+            request,
+            operation="agent.jobs.retry",
+            data=serialize_job_list_item(queued),
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class AgentMonitorJobCancelView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def post(self, request, job_id):
+        job = _find_analysis_job(job_id)
+        try:
+            cancelled = cancel_case_analysis_job(job)
+        except ValueError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return agent_response(request, operation="agent.jobs.cancel", data=serialize_job_list_item(cancelled))
 
 
 class SIEMSchemaView(APIView):
@@ -656,9 +875,16 @@ def _find_knowledge(knowledge_id):
 
 def _find_playbook(playbook_id):
     try:
-        return Playbook.objects.select_related("case").get(playbook_id=_record_id(playbook_id))
+        return Playbook.objects.select_related("case", "approved_by").get(playbook_id=_record_id(playbook_id))
     except Playbook.DoesNotExist as exc:
         raise NotFound(f"Playbook not found: {playbook_id}") from exc
+
+
+def _find_analysis_job(job_id):
+    try:
+        return CaseAnalysisJob.objects.select_related("case").get(pk=job_id)
+    except (CaseAnalysisJob.DoesNotExist, ValueError) as exc:
+        raise NotFound(f"CaseAnalysisJob not found: {job_id}") from exc
 
 
 def _find_attachment(file_key):

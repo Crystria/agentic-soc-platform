@@ -28,6 +28,19 @@ pipx install asp-cli==0.5.0 --force
 asp auth login --api-url https://asp.example.com --api-key asp_xxx
 asp doctor
 asp case list
+asp case report case_000001
+asp case analyze case_000001 --wait
+asp case decide case_000001 --accept-ai --apply-digest
+asp playbook approve playbook_000001 --note "Verified"
+asp agent overview
+asp agent jobs tail
+asp tui
+```
+
+Optional full-screen Textual TUI dependency:
+
+```powershell
+pip install "asp-cli[tui]"
 ```
 
 `asp auth login` verifies the API URL and API key against the ASP server before writing local settings.
