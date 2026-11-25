@@ -75,7 +75,7 @@ def save_case_analysis_record(*, case, record):
 
 
 @transaction.atomic
-def complete_case_analysis_job(job, *, result_json):
+def complete_case_analysis_job(job, *, result_json, telemetry=None):
     locked = CaseAnalysisJob.objects.select_for_update().get(pk=job.pk)
     if locked.status != AgenticJobStatus.RUNNING:
         raise ValueError(f"CaseAnalysisJob must be Running before complete, got {locked.status}")
@@ -84,8 +84,50 @@ def complete_case_analysis_job(job, *, result_json):
     locked.completed_at = timezone.now()
     locked.result_json = result_json
     locked.error = ""
-    locked.save(update_fields=["status", "completed_at", "result_json", "error", "updated_at"])
+    update_fields = ["status", "completed_at", "result_json", "error", "updated_at"]
+
+    if isinstance(telemetry, dict):
+        telemetry_fields = (
+            ("provider_name", ""),
+            ("model_name", ""),
+            ("prompt_version", ""),
+            ("latency_ms", None),
+            ("input_tokens", None),
+            ("output_tokens", None),
+            ("total_tokens", None),
+            ("knowledge_keywords_count", 0),
+            ("knowledge_records_count", 0),
+        )
+        for field_name, default_value in telemetry_fields:
+            if field_name in telemetry:
+                value = telemetry[field_name]
+                setattr(locked, field_name, default_value if value is None and default_value is not None else value)
+                update_fields.append(field_name)
+
+    locked.save(update_fields=update_fields)
     return locked
+
+
+@transaction.atomic
+def cancel_case_analysis_job(job):
+    """Cancel a Pending CaseAnalysisJob before a worker picks it up."""
+    locked = CaseAnalysisJob.objects.select_for_update().get(pk=job.pk)
+    if locked.status != AgenticJobStatus.PENDING:
+        raise ValueError(f"Only Pending jobs can be cancelled, got {locked.status}")
+    locked.status = AgenticJobStatus.FAILED
+    locked.completed_at = timezone.now()
+    locked.error = "Cancelled by administrator."
+    locked.save(update_fields=["status", "completed_at", "error", "updated_at"])
+    return locked
+
+
+@transaction.atomic
+def retry_case_analysis_job(job, *, trigger="manual_retry"):
+    """Schedule a fresh Pending CaseAnalysisJob for the job's Case."""
+    locked = CaseAnalysisJob.objects.select_for_update().get(pk=job.pk)
+    if locked.status in {AgenticJobStatus.PENDING, AgenticJobStatus.RUNNING}:
+        raise ValueError(f"Cannot retry a job in {locked.status} status.")
+    return request_case_analysis(case=locked.case, trigger=trigger, scheduled_at=timezone.now())
 
 
 @transaction.atomic

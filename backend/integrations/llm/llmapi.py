@@ -40,6 +40,14 @@ class LLMAPI:
 
         raise ValueError(f"No LLM configuration found matching tag(s): {tag}")
 
+    def resolve_config_metadata(self, tag=None):
+        """Return safe provider and model metadata without exposing secrets."""
+        config = self.select_config(tag=tag)
+        return {
+            "provider_name": str(config.get("name") or ""),
+            "model_name": str(config.get("model") or ""),
+        }
+
     def get_model(self, tag=None, **kwargs):
         config = self.select_config(tag=tag)
         params = {

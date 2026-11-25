@@ -10,6 +10,7 @@ import EnrichmentList from './pages/EnrichmentList'
 import PlaybookList from './pages/PlaybookList'
 import KnowledgeList from './pages/KnowledgeList'
 import Dashboard from './pages/Dashboard'
+import AgentMonitor from './pages/AgentMonitor'
 import SystemSettings from './pages/SystemSettings'
 import CustomDefinitions from './pages/CustomDefinitions'
 import {useAuthStore} from './stores/auth'
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="playbooks/:rowId" element={<ResourceDetailRoute resourceKey="playbooks" />} />
         <Route path="knowledge" element={<KnowledgeList />} />
         <Route path="knowledge/:rowId" element={<ResourceDetailRoute resourceKey="knowledge" />} />
+        <Route path="agents" element={<PermissionRoute permission="admin"><AgentMonitor /></PermissionRoute>} />
         <Route path="custom" element={<PermissionRoute permission="admin"><CustomDefinitions /></PermissionRoute>} />
         <Route path="system" element={<PermissionRoute permission="admin"><SystemSettings /></PermissionRoute>} />
         <Route path="system/users" element={<Navigate to="/system" replace />} />

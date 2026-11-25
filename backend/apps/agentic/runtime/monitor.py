@@ -53,6 +53,7 @@ def run_case_analysis_once():
         complete_case_analysis_job(
             running_job,
             result_json=result.analysis_record,
+            telemetry=result.telemetry,
         )
     except Exception as exc:
         fail_case_analysis_job(running_job, str(exc))

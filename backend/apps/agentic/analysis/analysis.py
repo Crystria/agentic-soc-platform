@@ -1,11 +1,15 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from django.utils import timezone
 
 from apps.agentic.analysis.knowledge import build_knowledge_context
 from apps.agentic.analysis.profiles import AI_PROFILE_VERSION, serialize_case_for_investigation
-from apps.agentic.analysis.prompts import INVESTIGATION_SYSTEM_PROMPT, invoke_structured_llm
+from apps.agentic.analysis.prompts import (
+    INVESTIGATION_SYSTEM_PROMPT,
+    invoke_structured_llm,
+    invoke_structured_llm_with_telemetry,
+)
 from apps.agentic.analysis.schemas import AnalysisRecord, InvestigationReport
 from apps.agentic.services.cases import save_case_analysis_record
 
@@ -22,6 +26,7 @@ class CaseAnalysisRequest:
 class AnalysisResult:
     report: InvestigationReport
     analysis_record: dict
+    telemetry: dict = field(default_factory=dict)
 
 
 def generate_investigation_report(analysis_input):
@@ -50,14 +55,23 @@ class CaseAnalysisRunner:
             user_input=request.user_input,
         )
 
-        report = generate_investigation_report(analysis_input)
+        report, telemetry = invoke_structured_llm_with_telemetry(
+            prompt_id=INVESTIGATION_SYSTEM_PROMPT,
+            payload=analysis_input,
+            output_schema=InvestigationReport,
+        )
+        telemetry.update({
+            "prompt_version": AI_PROFILE_VERSION,
+            "knowledge_keywords_count": len(knowledge_context.keywords),
+            "knowledge_records_count": len(knowledge_context.records),
+        })
         record = self._build_analysis_record(
             request=request,
             knowledge_context=knowledge_context,
             report=report,
         )
         save_case_analysis_record(case=request.case, record=record)
-        return AnalysisResult(report=report, analysis_record=record.model_dump())
+        return AnalysisResult(report=report, analysis_record=record.model_dump(), telemetry=telemetry)
 
     def _build_analysis_input(self, *, case_payload, knowledge_context, user_input):
         analysis_input = {
