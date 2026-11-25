@@ -20,6 +20,7 @@
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-d9d9d9"></a>
   <a href="./README_ZH.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-d9d9d9"></a>
+  <a href="./README_BAO_CAO_HE_THONG.md"><img alt="Báo cáo hệ thống Tiếng Việt" src="https://img.shields.io/badge/Tiếng_Việt-d9d9d9"></a>
 </p>
 
 **Agentic SOC Platform** is an open-source security operations platform built on Agentic AI, enabling agents to proactively participate in triage, investigation, enrichment, and knowledge accumulation so security teams can move from alert fatigue to AI-assisted decision-making.

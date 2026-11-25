@@ -273,8 +273,24 @@
   grid-template-columns: repeat(6, minmax(112px, 1fr));
 }
 
+.dashboard-grid.posture-kpis.compact-3 {
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+}
+
 .dashboard-grid.posture-mean-times {
   grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.dashboard-grid.operations-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.dashboard-grid.landscape-triage {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .dashboard-grid.landscape {
@@ -1015,6 +1031,137 @@
   font-weight: 800;
 }
 
+/* Compact Hero styling */
+.dashboard-hero.compact {
+  padding: 16px 20px;
+  border-radius: 16px;
+}
+
+.dashboard-hero.compact .dashboard-eyebrow {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.dashboard-hero.compact .dashboard-title {
+  font-size: 24px;
+}
+
+.dashboard-hero.compact .dashboard-command-summary {
+  margin-top: 8px;
+  padding: 6px 12px;
+}
+
+.dashboard-hero.compact .dashboard-command-strip {
+  margin-top: 14px;
+  gap: 8px;
+}
+
+.dashboard-hero.compact .dashboard-command-pill {
+  padding: 8px 10px;
+}
+
+.dashboard-hero.compact .dashboard-command-pill strong {
+  font-size: 16px;
+}
+
+.dashboard-hero.compact .dashboard-command-pill.emphasis strong {
+  font-size: 19px;
+}
+
+/* Streamlined Operations Grid & Scrollable Feed */
+.dashboard-trend-card .dashboard-panel-body {
+  min-height: 250px;
+}
+
+.dashboard-stream-card .ant-card-body {
+  padding: 14px;
+}
+
+.dashboard-event-stream-container {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.dashboard-event-stream-container::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-event-stream-container::-webkit-scrollbar-track {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dashboard-event-stream-container::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(105, 177, 255, 0.22);
+}
+
+.dashboard-event-stream-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(105, 177, 255, 0.4);
+}
+
+.dashboard-card-badge {
+  padding: 3px 10px;
+  border: 1px solid rgba(22, 119, 255, 0.3);
+  border-radius: 999px;
+  color: #69b1ff;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(22, 119, 255, 0.12);
+}
+
+/* Tabs styling in Deep Dive */
+.dashboard-deepdive-card .ant-card-body {
+  padding: 8px 20px 20px;
+}
+
+.dashboard-tabs .ant-tabs-nav {
+  margin-bottom: 16px;
+}
+
+.dashboard-tabs .ant-tabs-tab {
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.dashboard-tabs .ant-tabs-tab:hover {
+  color: #69b1ff;
+}
+
+.dashboard-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #f5faff !important;
+  text-shadow: 0 0 12px rgba(22, 119, 255, 0.6);
+}
+
+.dashboard-tabs .ant-tabs-ink-bar {
+  background: linear-gradient(90deg, #1677ff, #13c2c2);
+  box-shadow: 0 0 10px rgba(22, 119, 255, 0.8);
+}
+
+.dashboard-deepdive-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 4px 0;
+}
+
+.dashboard-subheading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 @media (max-width: 1380px) {
   .dashboard-posture-grid {
     grid-template-columns: minmax(300px, 0.9fr) minmax(520px, 1.8fr);
@@ -1024,19 +1171,23 @@
     grid-template-columns: repeat(3, minmax(160px, 1fr));
   }
 
-  .dashboard-grid.operations {
-    grid-template-columns: repeat(2, minmax(260px, 1fr));
+  .dashboard-grid.operations-main {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 1180px) {
   .dashboard-posture-grid,
+  .dashboard-grid.operations-main,
+  .dashboard-grid.landscape-triage,
   .dashboard-grid.landscape,
   .dashboard-grid.operations,
   .dashboard-grid.advanced,
   .dashboard-grid.focus,
   .dashboard-grid.posture-kpis,
-  .dashboard-grid.posture-mean-times {
+  .dashboard-grid.posture-kpis.compact-3,
+  .dashboard-grid.posture-mean-times,
+  .dashboard-deepdive-grid {
     grid-template-columns: 1fr;
   }
 

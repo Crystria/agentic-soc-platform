@@ -1,9 +1,34 @@
 import {useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode} from 'react'
 import {Area, Gauge, Radar as RadarChart} from '@ant-design/charts'
-import {Alert, Badge, Button, Card, Progress, Segmented, Skeleton, Space, Statistic, Tag, Tooltip, Typography} from 'antd'
+import {Alert, Badge, Button, Card, Progress, Segmented, Skeleton, Space, Statistic, Tabs, Tag, Tooltip, Typography} from 'antd'
 import {InfoCircleOutlined, ReloadOutlined} from '@ant-design/icons'
-import {ChartSpline, GaugeIcon, Kanban, PackageSearch, Radar as RadarIcon, RadioTower, ScanSearch, ShieldAlert, Target, TextSearch, TriangleAlert, Workflow} from 'lucide-react'
-import {fetchDashboardOverview, type DashboardHighlight, type DashboardKeyword, type DashboardLabelValue, type DashboardMeanTime, type DashboardMitreSeverityCell, type DashboardOverview, type DashboardRiskArtifact, type DashboardWindow} from '../api/dashboard'
+import {
+  Activity,
+  BookOpen,
+  ChartSpline,
+  GaugeIcon,
+  Kanban,
+  PackageSearch,
+  Radar as RadarIcon,
+  RadioTower,
+  ScanSearch,
+  ShieldAlert,
+  Target,
+  TextSearch,
+  TriangleAlert,
+  Workflow,
+} from 'lucide-react'
+import {
+  fetchDashboardOverview,
+  type DashboardHighlight,
+  type DashboardKeyword,
+  type DashboardLabelValue,
+  type DashboardMeanTime,
+  type DashboardMitreSeverityCell,
+  type DashboardOverview,
+  type DashboardRiskArtifact,
+  type DashboardWindow,
+} from '../api/dashboard'
 import {severityColors} from '../theme'
 import './Dashboard.css'
 
@@ -142,7 +167,7 @@ function eventAccentColor(item: DashboardHighlight) {
 
 function generatedAtLabel(value: string | undefined) {
   if (!value) return 'Waiting for telemetry'
-  return `Data generated ${new Date(value).toLocaleString()}`
+  return `Generated ${new Date(value).toLocaleTimeString()}`
 }
 
 function cacheAgeLabel(seconds: number) {
@@ -314,9 +339,9 @@ function signalColor(index: number) {
   return ['#69b1ff', '#13c2c2', '#b37feb', '#597ef7', '#36cfc9', '#9254de'][index % 6]
 }
 
-function ChartPanel({ title, children, compact = false, className = '' }: { title: ReactNode; children: ReactNode; compact?: boolean; className?: string }) {
+function ChartPanel({ title, extra, children, compact = false, className = '' }: { title: ReactNode; extra?: ReactNode; children: ReactNode; compact?: boolean; className?: string }) {
   return (
-    <CyberCard title={title} className={className}>
+    <CyberCard title={title} extra={extra} className={className}>
       <div className={`dashboard-panel-body${compact ? ' compact' : ''}`}>{children}</div>
     </CyberCard>
   )
@@ -327,7 +352,7 @@ function AlertTrend({ data }: { data: DashboardLabelValue[] }) {
     data,
     xField: 'label',
     yField: 'value',
-    height: 190,
+    height: 230,
     autoFit: true,
     smooth: true,
     colorField: 'value',
@@ -436,7 +461,7 @@ function ProductCategorySignals({ data }: { data: DashboardLabelValue[] }) {
 }
 
 function ThreatKeywordCloud({ data }: { data: DashboardKeyword[] }) {
-  const visibleData = data.slice(0, 28)
+  const visibleData = data.slice(0, 32)
   const values = visibleData.map((item) => item.value)
   const minValue = Math.min(...values)
   const maxValue = Math.max(...values)
@@ -481,7 +506,7 @@ function SecurityDomainRadar({ data }: { data: DashboardLabelValue[] }) {
     data: radarData,
     xField: 'label',
     yField: 'value',
-    height: 220,
+    height: 240,
     autoFit: true,
     theme: chartTheme,
     coordinateType: 'polar' as const,
@@ -613,9 +638,10 @@ function CoveragePanel({ data }: { data: DashboardOverview }) {
           <Progress percent={row.value || 0} showInfo={false} strokeColor={row.color} railColor="rgba(255,255,255,0.08)" />
         </div>
       ))}
-      <div className="dashboard-chip"><span>Knowledge extracted</span><span>{data.coverage.knowledge_records}</span></div>
-      <div className="dashboard-chip"><span>Artifacts observed</span><span>{data.coverage.artifact_records}</span></div>
-      <div className="dashboard-chip"><span>Enrichments produced</span><span>{data.coverage.enrichment_records}</span></div>
+      <div className="dashboard-chip"><span>Total cases in scope</span><span>{formatNumber(data.summary.total_cases)}</span></div>
+      <div className="dashboard-chip"><span>Distinct artifacts observed</span><span>{formatNumber(data.summary.total_artifacts)}</span></div>
+      <div className="dashboard-chip"><span>Knowledge records</span><span>{formatNumber(data.summary.total_knowledge)}</span></div>
+      <div className="dashboard-chip"><span>Enrichments produced</span><span>{formatNumber(data.summary.total_enrichments)}</span></div>
     </div>
   )
 }
@@ -625,7 +651,7 @@ function RiskArtifacts({ artifacts }: { artifacts: DashboardRiskArtifact[] }) {
 
   return (
     <div className="dashboard-artifact-grid">
-      {artifacts.map((artifact) => (
+      {artifacts.slice(0, 6).map((artifact) => (
         <div className="dashboard-artifact-card" key={artifact.id}>
           <div className="dashboard-artifact-value" title={artifact.value}>{artifact.value || 'Unknown artifact'}</div>
           <div className="dashboard-artifact-meta">
@@ -644,35 +670,37 @@ function HighlightStream({ highlights }: { highlights: DashboardHighlight[] }) {
   if (highlights.length === 0) return <CyberEmpty title="No High-Severity Events" description="Critical and high signals are quiet in this window." />
 
   return (
-    <div className="dashboard-event-stream">
-      {highlights.map((item) => {
-        const timestamp = eventTimeParts(item.timestamp)
-        const eventAccent = eventAccentColor(item)
-        return (
-          <div
-            className="dashboard-event"
-            key={`${item.kind}-${item.id}`}
-            style={{ '--event-color': eventAccent, '--severity-color': severityColor(item.severity) } as CSSProperties}
-          >
-            <div className="dashboard-event-time">
-              <span>{timestamp.time}</span>
-              <small>{timestamp.date}</small>
-            </div>
-            <div className="dashboard-event-body">
-              <div className="dashboard-event-title">
-                <strong title={item.title}>{item.title || item.readable_id}</strong>
-                <Badge color={severityColor(item.severity)} text={item.severity || 'Unknown'} />
+    <div className="dashboard-event-stream-container">
+      <div className="dashboard-event-stream">
+        {highlights.map((item) => {
+          const timestamp = eventTimeParts(item.timestamp)
+          const eventAccent = eventAccentColor(item)
+          return (
+            <div
+              className="dashboard-event"
+              key={`${item.kind}-${item.id}`}
+              style={{ '--event-color': eventAccent, '--severity-color': severityColor(item.severity) } as CSSProperties}
+            >
+              <div className="dashboard-event-time">
+                <span>{timestamp.time}</span>
+                <small>{timestamp.date}</small>
               </div>
-              <div className="dashboard-event-meta">
-                <span>{item.kind.toUpperCase()}</span>
-                <span>{item.readable_id}</span>
-                <span>{item.status || 'Unknown'}</span>
-                <span>{item.subtitle}</span>
+              <div className="dashboard-event-body">
+                <div className="dashboard-event-title">
+                  <strong title={item.title}>{item.title || item.readable_id}</strong>
+                  <Badge color={severityColor(item.severity)} text={item.severity || 'Unknown'} />
+                </div>
+                <div className="dashboard-event-meta">
+                  <span>{item.kind.toUpperCase()}</span>
+                  <span>{item.readable_id}</span>
+                  <span>{item.status || 'Unknown'}</span>
+                  <span>{item.subtitle}</span>
+                </div>
               </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -727,10 +755,11 @@ export default function Dashboard() {
   return (
     <div className="dashboard-page">
       <div className="dashboard-shell">
-        <section className="dashboard-hero">
+        {/* Compact Hero Section */}
+        <section className="dashboard-hero compact">
           <div className="dashboard-hero-content">
             <div className="dashboard-hero-copy">
-              <div className="dashboard-eyebrow"><RadioTower size={14} /> Cyber Command Center</div>
+              <div className="dashboard-eyebrow"><RadioTower size={13} /> Cyber Command Center</div>
               <h1 className="dashboard-title">Security Posture Dashboard</h1>
               <div className="dashboard-command-summary" style={{ '--posture-color': riskLevel.color } as CSSProperties}>
                 <span className="dashboard-command-state">{riskLevel.band}</span>
@@ -743,7 +772,7 @@ export default function Dashboard() {
                 <Alert
                   className="dashboard-soft-alert"
                   type="warning"
-                  title={`Dashboard data is stale. Last successful refresh was ${cacheAgeLabel(data.cache.age_seconds)} ago.`}
+                  title={`Dashboard data is stale. Last refresh was ${cacheAgeLabel(data.cache.age_seconds)} ago.`}
                   showIcon
                 />
               )}
@@ -768,20 +797,41 @@ export default function Dashboard() {
             <CommandSignalPill label="Critical Cases" value={formatNumber(summary?.open_critical_cases)} color="#ff4d4f" />
             <CommandSignalPill label="Critical/High Alerts" value={formatNumber(summary?.critical_high_alerts)} color="#fa8c16" />
             <CommandSignalPill label="Automation" value={formatPercent(summary?.automation_success_rate)} color={summary?.failed_playbooks ? '#ff4d4f' : '#52c41a'} />
-            <CommandSignalPill label="Window" value={selectedWindow.toUpperCase()} color="#69b1ff" />
+            <CommandSignalPill label="Scope Window" value={selectedWindow.toUpperCase()} color="#69b1ff" />
           </div>
         </section>
 
+        {/* Posture Section: Risk Gauge + Key KPIs & Response Clocks */}
         <div className="dashboard-posture-grid">
           <RiskPostureCard data={data} loading={loading} />
           <div className="dashboard-posture-stack">
-            <div className="dashboard-grid posture-kpis">
-              <MetricCard title="Open Critical Cases" value={formatNumber(summary?.open_critical_cases)} accent="#ff4d4f" category="Primary Risk" tone="critical" priority sub={`${formatNumber(summary?.open_cases)} open cases`} />
-              <MetricCard title="Critical / High Alerts" value={formatNumber(summary?.critical_high_alerts)} accent="#fa8c16" category="Primary Risk" tone="warning" priority sub={`${formatNumber(summary?.total_alerts)} alerts observed`} />
-              <MetricCard title="Automation Success" value={formatPercent(summary?.automation_success_rate)} accent={summary?.failed_playbooks ? '#ff4d4f' : '#52c41a'} category="Response Capacity" tone={automationTone(summary)} sub={`${formatNumber(summary?.running_playbooks)} running · ${formatNumber(summary?.failed_playbooks)} failed`} />
-              <MetricCard title="Cases In Window" value={formatNumber(summary?.total_cases)} accent="#1677ff" category="Operating Volume" tone="signal" sub={`${selectedWindow} operating window`} />
-              <MetricCard title="Artifacts In Scope" value={formatNumber(summary?.total_artifacts)} accent="#722ed1" category="Entity Surface" tone="intel" sub="Distinct entities linked to alerts" />
-              <MetricCard title="Knowledge Signals" value={formatNumber(summary?.total_knowledge)} accent="#13c2c2" category="Intel Depth" tone="intel" sub={`${formatNumber(summary?.total_enrichments)} enrichments`} />
+            <div className="dashboard-grid posture-kpis compact-3">
+              <MetricCard
+                title="Open Critical Cases"
+                value={formatNumber(summary?.open_critical_cases)}
+                accent="#ff4d4f"
+                category="Primary Risk"
+                tone="critical"
+                priority
+                sub={`${formatNumber(summary?.open_cases)} open / ${formatNumber(summary?.total_cases)} total`}
+              />
+              <MetricCard
+                title="Critical / High Alerts"
+                value={formatNumber(summary?.critical_high_alerts)}
+                accent="#fa8c16"
+                category="Primary Risk"
+                tone="warning"
+                priority
+                sub={`${formatNumber(summary?.total_alerts)} alerts observed`}
+              />
+              <MetricCard
+                title="Automation Success"
+                value={formatPercent(summary?.automation_success_rate)}
+                accent={summary?.failed_playbooks ? '#ff4d4f' : '#52c41a'}
+                category="Response Capacity"
+                tone={automationTone(summary)}
+                sub={`${formatNumber(summary?.running_playbooks)} running · ${formatNumber(summary?.failed_playbooks)} failed`}
+              />
             </div>
             <div className="dashboard-grid posture-mean-times">
               <MeanTimeCard
@@ -806,10 +856,25 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="dashboard-grid landscape">
-          <ChartPanel title={<><PackageSearch {...lucideIconProps} /> Product Category Signals</>} compact>
-            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <ProductCategorySignals data={data?.product_category_distribution || []} />}
+        {/* Incident Operations: Telemetry Trend + Real-Time Incident Stream */}
+        <div className="dashboard-grid operations-main">
+          <ChartPanel title={<><ChartSpline {...lucideIconProps} /> Alert Telemetry Trend</>} className="dashboard-trend-card">
+            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <AlertTrend data={data?.alert_trend || []} />}
           </ChartPanel>
+          <CyberCard
+            title={<><TriangleAlert {...lucideIconProps} /> High-Severity Event Stream</>}
+            className="dashboard-stream-card"
+            extra={<span className="dashboard-card-badge">{data?.recent_highlights?.length ?? 0} events</span>}
+          >
+            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <HighlightStream highlights={data?.recent_highlights || []} />}
+          </CyberCard>
+        </div>
+
+        {/* Entity Risk & Triage Context */}
+        <div className="dashboard-grid landscape-triage">
+          <CyberCard title={<><ScanSearch {...lucideIconProps} /> Entity Risk Focus</>}>
+            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <RiskArtifacts artifacts={data?.top_risk_artifacts || []} />}
+          </CyberCard>
           <ChartPanel title={<><GaugeIcon {...lucideIconProps} /> Severity Pressure</>} compact>
             {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <SeverityPressure data={data?.severity_distribution || []} />}
           </ChartPanel>
@@ -818,39 +883,83 @@ export default function Dashboard() {
           </ChartPanel>
         </div>
 
-        <div className="dashboard-grid operations">
-          <ChartPanel title={<><ChartSpline {...lucideIconProps} /> Alert Telemetry Trend</>} className="dashboard-trend-card">
-            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <AlertTrend data={data?.alert_trend || []} />}
-          </ChartPanel>
-          <ChartPanel title={<><Workflow {...lucideIconProps} /> Automation State</>}>
-            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <AutomationPanel data={data?.automation || []} />}
-          </ChartPanel>
-          <CyberCard title={<><RadarIcon {...lucideIconProps} /> Intelligence Coverage</>}>
-            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : data ? <CoveragePanel data={data} /> : <CyberEmpty title="No Coverage Telemetry" />}
-          </CyberCard>
-        </div>
-
-        <div className="dashboard-grid advanced">
-          <ChartPanel title={<><TextSearch {...lucideIconProps} /> Threat Keyword Cloud</>} className="dashboard-keyword-card">
-            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <ThreatKeywordCloud data={data?.threat_keywords || []} />}
-          </ChartPanel>
-          <ChartPanel title={<><RadarIcon {...lucideIconProps} /> MITRE Tactic Radar</>}>
-            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <SecurityDomainRadar data={data?.mitre_tactics || []} />}
-          </ChartPanel>
-          <ChartPanel title={<><Target {...lucideIconProps} /> MITRE Severity Matrix</>} className="dashboard-mitre-card">
-            {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <MitreSeverityMatrix data={data?.mitre_severity_heatmap || []} />}
-          </ChartPanel>
-        </div>
-
-        <div className="dashboard-grid focus">
-          <CyberCard title={<><ScanSearch {...lucideIconProps} /> Entity Risk Focus</>}>
-            {loading && !data ? <Skeleton active paragraph={{ rows: 8 }} /> : <RiskArtifacts artifacts={data?.top_risk_artifacts || []} />}
-          </CyberCard>
-          <CyberCard title={<><TriangleAlert {...lucideIconProps} /> High-Severity Event Stream</>}>
-            {loading && !data ? <Skeleton active paragraph={{ rows: 8 }} /> : <HighlightStream highlights={data?.recent_highlights || []} />}
-          </CyberCard>
-        </div>
-
+        {/* Deep Dive Telemetry & Intelligence (Organized into Clean Tabs) */}
+        <CyberCard
+          title={<><Activity {...lucideIconProps} /> Deep-Dive Telemetry & Intelligence</>}
+          className="dashboard-deepdive-card"
+        >
+          <Tabs
+            defaultActiveKey="mitre-matrix"
+            className="dashboard-tabs"
+            items={[
+              {
+                key: 'mitre-matrix',
+                label: (
+                  <Space size={6}>
+                    <Target size={14} />
+                    <span>MITRE Severity Heatmap</span>
+                  </Space>
+                ),
+                children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <MitreSeverityMatrix data={data?.mitre_severity_heatmap || []} />,
+              },
+              {
+                key: 'threat-keywords',
+                label: (
+                  <Space size={6}>
+                    <TextSearch size={14} />
+                    <span>Threat Keywords</span>
+                  </Space>
+                ),
+                children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <ThreatKeywordCloud data={data?.threat_keywords || []} />,
+              },
+              {
+                key: 'mitre-radar',
+                label: (
+                  <Space size={6}>
+                    <RadarIcon size={14} />
+                    <span>MITRE Tactic Radar</span>
+                  </Space>
+                ),
+                children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <SecurityDomainRadar data={data?.mitre_tactics || []} />,
+              },
+              {
+                key: 'products',
+                label: (
+                  <Space size={6}>
+                    <PackageSearch size={14} />
+                    <span>Product Signals</span>
+                  </Space>
+                ),
+                children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <ProductCategorySignals data={data?.product_category_distribution || []} />,
+              },
+              {
+                key: 'coverage-automation',
+                label: (
+                  <Space size={6}>
+                    <BookOpen size={14} />
+                    <span>Coverage & Automation</span>
+                  </Space>
+                ),
+                children: loading && !data ? (
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                ) : data ? (
+                  <div className="dashboard-deepdive-grid">
+                    <div>
+                      <h4 className="dashboard-subheading"><Workflow size={14} /> Automation Execution</h4>
+                      <AutomationPanel data={data.automation || []} />
+                    </div>
+                    <div>
+                      <h4 className="dashboard-subheading"><BookOpen size={14} /> Intel & Surface Coverage</h4>
+                      <CoveragePanel data={data} />
+                    </div>
+                  </div>
+                ) : (
+                  <CyberEmpty title="No Telemetry" />
+                ),
+              },
+            ]}
+          />
+        </CyberCard>
       </div>
     </div>
   )
