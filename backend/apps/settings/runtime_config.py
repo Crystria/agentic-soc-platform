@@ -3,9 +3,10 @@ from functools import lru_cache
 
 @lru_cache(maxsize=1)
 def get_llm_configs():
+    from .env_sync import collect_env_llm_specs
     from .models import LLMProviderConfig
 
-    return [
+    db_configs = [
         {
             "name": provider.name,
             "api_key": provider.api_key,
@@ -15,6 +16,21 @@ def get_llm_configs():
             "tags": provider.tags or [],
         }
         for provider in LLMProviderConfig.objects.filter(enabled=True).order_by("priority", "name", "created_at")
+    ]
+    if db_configs:
+        return db_configs
+
+    return [
+        {
+            "name": item["name"],
+            "api_key": item["api_key"],
+            "base_url": item["base_url"],
+            "model": item["model"],
+            "proxy": item["proxy"],
+            "tags": item["tags"],
+        }
+        for item in collect_env_llm_specs()
+        if item.get("enabled", True)
     ]
 
 

@@ -67,4 +67,5 @@ class AnalysisRecord(BaseModel):
     generated_at: str
     knowledge_keywords: list[str] = Field(default_factory=list)
     knowledge_records: list[dict] = Field(default_factory=list)
+    knowledge_retrieval: dict = Field(default_factory=dict)
     report: InvestigationReport

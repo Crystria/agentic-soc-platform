@@ -15,7 +15,7 @@ export default function RecordBasicView({ config, record, onOpenResource }: Reco
   return (
     <div style={{ padding: '20px 20px 16px', overflow: 'auto', height: '100%', boxSizing: 'border-box' }}>
       <div style={{ ...typography.secondary, color: token.colorTextTertiary, marginBottom: 8 }}>
-        {config.label.slice(0, -1) || config.label}
+        {config.label}
       </div>
       <h1 style={{ ...typography.detailTitle, color: token.colorTextHeading, margin: '0 0 24px' }}>
         {String(record.title || record.name || record.username || record.value || record.id || '—')}

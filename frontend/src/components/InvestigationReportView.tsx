@@ -13,6 +13,7 @@ import {
     ThunderboltOutlined,
     ToolOutlined,
 } from '@ant-design/icons'
+import {DISPLAY_DATE_LOCALE, localizeChoiceLabel} from '../utils/i18n'
 import {fontFamilyMono} from '../utils/typography'
 
 type RecordMap = Record<string, unknown>
@@ -107,10 +108,10 @@ function rawPreview(value: unknown) {
 }
 
 function formatLocalTime(value: unknown) {
-  if (!value) return 'N/A'
+  if (!value) return 'Chưa có'
   const date = new Date(String(value))
   if (Number.isNaN(date.getTime())) return String(value)
-  return date.toLocaleString()
+  return date.toLocaleString(DISPLAY_DATE_LOCALE)
 }
 
 function translucent(hex: string, alpha: number) {
@@ -171,25 +172,25 @@ function MetaLine({ raw }: { raw: RecordMap }) {
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 24px', color: c.textMuted, fontSize: 12, lineHeight: '18px', fontFamily: fontFamilyMono, flexShrink: 0 }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         <PlayCircleOutlined style={{ fontSize: 14 }} />
-        Started: {formatLocalTime(startedAt)}
+        Bắt đầu: {formatLocalTime(startedAt)}
       </span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         <CheckCircleOutlined style={{ fontSize: 14 }} />
-        Completed: {formatLocalTime(completedAt)}
+        Hoàn tất: {formatLocalTime(completedAt)}
       </span>
-      {raw.trigger ? <span>Trigger: {String(raw.trigger)}</span> : null}
-      {raw.profile_version ? <span>Profile: {String(raw.profile_version)}</span> : null}
+      {raw.trigger ? <span>Nguồn kích hoạt: {String(raw.trigger)}</span> : null}
+      {raw.profile_version ? <span>Hồ sơ: {String(raw.profile_version)}</span> : null}
     </div>
   )
 }
 
 function RiskBadges({ report }: { report: RecordMap }) {
   const items = [
-    { label: 'Verdict', value: stringValue(report, 'verdict'), color: verdictColor(report.verdict) },
-    { label: 'Severity', value: stringValue(report, 'severity'), color: severityColor(report.severity) },
-    { label: 'Impact', value: stringValue(report, 'impact'), color: severityColor(report.impact) },
-    { label: 'Priority', value: stringValue(report, 'priority'), color: severityColor(report.priority) },
-    { label: 'Confidence', value: stringValue(report, 'confidence'), color: severityColor(report.confidence) },
+    { label: 'Phán quyết', value: localizeChoiceLabel(stringValue(report, 'verdict')), color: verdictColor(report.verdict) },
+    { label: 'Mức nghiêm trọng', value: localizeChoiceLabel(stringValue(report, 'severity')), color: severityColor(report.severity) },
+    { label: 'Tác động', value: localizeChoiceLabel(stringValue(report, 'impact')), color: severityColor(report.impact) },
+    { label: 'Độ ưu tiên', value: localizeChoiceLabel(stringValue(report, 'priority')), color: severityColor(report.priority) },
+    { label: 'Độ tin cậy', value: localizeChoiceLabel(stringValue(report, 'confidence')), color: severityColor(report.confidence) },
   ]
 
   return (
@@ -218,7 +219,7 @@ function SectionTitle({ icon, title, color }: { icon: ReactNode; title: string; 
 }
 
 function EmptySection() {
-  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span style={{ color: c.textMuted }}>No data</span>} />
+  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span style={{ color: c.textMuted }}>Không có dữ liệu</span>} />
 }
 
 function Chip({ children, color = c.gray, withBorder = false }: { children: ReactNode; color?: string; withBorder?: boolean }) {
@@ -240,7 +241,7 @@ function MonoEvidence({ children, emphasized = false }: { children: ReactNode; e
 function DigestSection({ report }: { report: RecordMap }) {
   return (
     <div style={{ background: c.panel, padding: 20, borderRadius: 8, border: `1px solid ${c.border}`, flexShrink: 0 }}>
-      <SectionTitle icon={<FileTextOutlined />} title="Incident Digest" color={c.gray} />
+      <SectionTitle icon={<FileTextOutlined />} title="Tóm tắt sự cố" color={c.gray} />
       <p style={{ margin: '14px 0 0', color: c.text, fontSize: 15, lineHeight: '26px', textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
         {stringValue(report, 'digest')}
       </p>
@@ -252,11 +253,11 @@ function AffectedAssetsSection({ report }: { report: RecordMap }) {
   const assets = recordArray(report.affected_assets)
   return (
     <div style={sectionStyle}>
-      <SectionTitle icon={<CloudServerOutlined />} title="Affected Assets" color={c.blue} />
+      <SectionTitle icon={<CloudServerOutlined />} title="Tài sản bị ảnh hưởng" color={c.blue} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {!assets.length ? <EmptySection /> : assets.map((asset, index) => (
           <div key={`${stringValue(asset, 'asset_type')}:${stringValue(asset, 'asset_value')}:${index}`} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: 12, background: c.item, borderRadius: 6, border: `1px solid ${c.border}` }}>
-            <Chip color={c.gray} withBorder>{stringValue(asset, 'asset_type')}</Chip>
+            <Chip color={c.gray} withBorder>{localizeChoiceLabel(stringValue(asset, 'asset_type'))}</Chip>
             <span style={{ color: c.text, fontFamily: fontFamilyMono, fontSize: 12, lineHeight: '18px', overflowWrap: 'anywhere', textAlign: 'right' }}>
               {stringValue(asset, 'asset_value')}
             </span>
@@ -271,12 +272,12 @@ function IocSection({ report }: { report: RecordMap }) {
   const iocs = recordArray(report.ioc_indicators)
   return (
     <div style={sectionStyle}>
-      <SectionTitle icon={<AimOutlined />} title="IOC Indicators" color={c.red} />
+      <SectionTitle icon={<AimOutlined />} title="Chỉ báo IOC" color={c.red} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {!iocs.length ? <EmptySection /> : iocs.map((ioc, index) => (
           <div key={`${stringValue(ioc, 'value')}:${index}`} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, background: 'rgba(239,68,68,0.05)', borderRadius: 6, border: '1px solid rgba(239,68,68,0.20)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Chip color={c.red}>{stringValue(ioc, 'indicator_type')}</Chip>
+              <Chip color={c.red}>{localizeChoiceLabel(stringValue(ioc, 'indicator_type'))}</Chip>
               <MonoEvidence emphasized>{stringValue(ioc, 'value')}</MonoEvidence>
             </div>
             <span style={{ color: 'rgba(252,165,165,0.72)', fontSize: 12, lineHeight: '18px' }}>
@@ -293,7 +294,7 @@ function EvidenceFindingsSection({ report }: { report: RecordMap }) {
   const findings = recordArray(report.evidence_findings)
   return (
     <div style={{ ...sectionStyle, paddingTop: 8 }}>
-      <SectionTitle icon={<SearchOutlined />} title="Evidence Findings" color={c.cyan} />
+      <SectionTitle icon={<SearchOutlined />} title="Bằng chứng & Phát hiện" color={c.cyan} />
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
         {!findings.length ? <EmptySection /> : findings.map((finding, index) => (
           <div key={`${stringValue(finding, 'title')}:${index}`} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, background: c.item, borderRadius: 8, border: `1px solid ${c.border}` }}>
@@ -303,15 +304,15 @@ function EvidenceFindingsSection({ report }: { report: RecordMap }) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, lineHeight: '18px' }}>
               <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ ...smallTypeStyle(), flexShrink: 0, width: 82 }}>Subject:</span>
+                <span style={{ ...smallTypeStyle(), flexShrink: 0, width: 92 }}>Đối tượng:</span>
                 <span style={{ color: c.text }}>{stringValue(finding, 'subject')}</span>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ ...smallTypeStyle(), flexShrink: 0, width: 82 }}>Evidence:</span>
+                <span style={{ ...smallTypeStyle(), flexShrink: 0, width: 92 }}>Bằng chứng:</span>
                 <MonoEvidence>{stringValue(finding, 'evidence')}</MonoEvidence>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <span style={{ ...smallTypeStyle(), flexShrink: 0, width: 82 }}>Conclusion:</span>
+                <span style={{ ...smallTypeStyle(), flexShrink: 0, width: 92 }}>Kết luận:</span>
                 <span style={{ color: c.text, fontWeight: 500, lineHeight: '20px' }}>{stringValue(finding, 'conclusion')}</span>
               </div>
             </div>
@@ -326,12 +327,12 @@ function AttackChainSection({ report }: { report: RecordMap }) {
   const chain = recordArray(report.attack_chain)
   return (
     <div style={{ ...sectionStyle, paddingTop: 8 }}>
-      <SectionTitle icon={<BranchesOutlined />} title="Attack Chain" color={c.indigo} />
+      <SectionTitle icon={<BranchesOutlined />} title="Chuỗi tấn công" color={c.indigo} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {!chain.length ? <EmptySection /> : chain.map((step, index) => (
           <div key={`${stringValue(step, 'attack_stage')}:${index}`} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: 'rgba(99,102,241,0.05)', borderRadius: 8, border: '1px solid rgba(99,102,241,0.20)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Chip color={c.indigo}>Stage</Chip>
+              <Chip color={c.indigo}>Giai đoạn</Chip>
               <span style={{ color: '#a5b4fc', fontSize: 14, lineHeight: '20px', fontWeight: 700 }}>{stringValue(step, 'attack_stage')}</span>
             </div>
             <p style={{ margin: 0, color: c.gray, fontSize: 14, lineHeight: '22px', textAlign: 'justify' }}>{stringValue(step, 'description')}</p>
@@ -346,7 +347,7 @@ function TimelineSection({ report }: { report: RecordMap }) {
   const events = recordArray(report.attack_timeline)
   return (
     <div style={{ ...sectionStyle, paddingTop: 8 }}>
-      <SectionTitle icon={<ClockCircleOutlined />} title="Timeline" color={c.purple} />
+      <SectionTitle icon={<ClockCircleOutlined />} title="Dòng thời gian tấn công" color={c.purple} />
       {!events.length ? <EmptySection /> : (
         <div style={{ position: 'relative', marginLeft: 12, padding: '8px 0 8px 20px', borderLeft: '2px solid rgba(168,85,247,0.30)', display: 'flex', flexDirection: 'column', gap: 32 }}>
           {events.map((event, index) => (
@@ -367,7 +368,7 @@ function UnknownsSection({ report }: { report: RecordMap }) {
   const unknowns = stringArray(report.unknowns)
   return (
     <div style={{ ...sectionStyle, paddingTop: 8 }}>
-      <SectionTitle icon={<QuestionCircleOutlined />} title="Unknowns" color={c.orange} />
+      <SectionTitle icon={<QuestionCircleOutlined />} title="Thông tin chưa xác định" color={c.orange} />
       {!unknowns.length ? <EmptySection /> : (
         <div style={{ background: 'rgba(249,115,22,0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(249,115,22,0.20)' }}>
           <ul style={{ margin: 0, paddingInlineStart: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -391,7 +392,7 @@ function RemediationSection({
   const remediations = recordArray(report.remediations)
   return (
     <div style={{ ...sectionStyle, paddingTop: 8 }}>
-      <SectionTitle icon={<ToolOutlined />} title="Remediation Recommendations" color={c.green} />
+      <SectionTitle icon={<ToolOutlined />} title="Khuyến nghị khắc phục" color={c.green} />
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         {!remediations.length ? <EmptySection /> : remediations.map((rec, index) => (
           <div key={`${stringValue(rec, 'action_type')}:${index}`} style={{ display: 'flex', gap: 16, padding: 16, background: 'rgba(34,197,94,0.05)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.20)' }}>
@@ -401,7 +402,7 @@ function RemediationSection({
                 <span style={{ color: '#4ade80', fontSize: 14, lineHeight: '20px', fontWeight: 700 }}>{stringValue(rec, 'action_type')}</span>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ ...smallTypeStyle(severityColor(rec.priority)), padding: '2px 8px', borderRadius: 4, border: `1px solid ${translucent(severityColor(rec.priority), 0.35)}`, background: translucent(severityColor(rec.priority), 0.1), textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                    {stringValue(rec, 'priority')}
+                    {localizeChoiceLabel(stringValue(rec, 'priority'))}
                   </span>
                   {onRunRemediation && (
                     <Button
@@ -409,7 +410,7 @@ function RemediationSection({
                       icon={<ThunderboltOutlined />}
                       onClick={() => onRunRemediation(rec)}
                     >
-                      Run Playbook
+                      Chạy Playbook
                     </Button>
                   )}
                 </div>
@@ -430,7 +431,7 @@ function RawReportFallback({ raw }: { raw: unknown }) {
 export default function InvestigationReportView({ value, onRunRemediation }: InvestigationReportViewProps) {
   const parsed = parseReport(value)
 
-  if (parsed.status === 'empty') return <div style={reportRootStyle}><div style={{ color: c.textMuted, textAlign: 'center', fontFamily: fontFamilyMono }}>No data</div></div>
+  if (parsed.status === 'empty') return <div style={reportRootStyle}><div style={{ color: c.textMuted, textAlign: 'center', fontFamily: fontFamilyMono }}>Chưa có dữ liệu</div></div>
   if (parsed.status === 'fallback') return <RawReportFallback raw={parsed.raw} />
 
   const { raw, report } = parsed.data

@@ -91,7 +91,7 @@ function SplunkSettings() {
       })
       form.setFieldsValue({ ...splunkInitialValues(), ...data })
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to load Splunk configuration'))
+      message.error(apiErrorMessage(error, 'Không thể tải cấu hình Splunk'))
     } finally {
       setLoading(false)
     }
@@ -111,9 +111,9 @@ function SplunkSettings() {
         password: values.password || '',
       })
       form.setFieldsValue({ ...splunkInitialValues(), ...data, password: values.password || '' })
-      message.success('Splunk configuration saved')
+      message.success('Đã lưu cấu hình Splunk')
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save Splunk configuration'))
+      message.error(apiErrorMessage(error, 'Lưu cấu hình Splunk thất bại'))
     } finally {
       setSaving(false)
     }
@@ -129,51 +129,55 @@ function SplunkSettings() {
       })
       showTestResult(data)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to test Splunk configuration'))
+      message.error(apiErrorMessage(error, 'Kiểm tra cấu hình Splunk thất bại'))
     } finally {
       setTesting(false)
     }
   }
 
+  const actionButtons = (
+    <Space>
+      <Button onClick={testConfig} loading={testing}>Kiểm tra</Button>
+      <Button type="primary" onClick={saveConfig} loading={saving}>Lưu</Button>
+    </Space>
+  )
+
   return (
-    <Card title="Splunk" loading={loading}>
+    <Card title="Splunk" extra={actionButtons} loading={loading}>
       <Form form={form} layout="vertical" initialValues={splunkInitialValues()}>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="host" label="Host" rules={[{ required: true, message: 'Host is required' }]}>
+            <Form.Item name="host" label="Máy chủ (Host)" rules={[{ required: true, message: 'Host là bắt buộc' }]}>
               <Input placeholder="splunk.example.com" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="port" label="Port" rules={[{ required: true, message: 'Port is required' }]}>
+            <Form.Item name="port" label="Cổng (Port)" rules={[{ required: true, message: 'Cổng là bắt buộc' }]}>
               <InputNumber min={1} max={65535} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="username" label="Username" rules={[{ required: true, message: 'Username is required' }]}>
+            <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true, message: 'Tên đăng nhập là bắt buộc' }]}>
               <Input />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Password is required' }]}>
+            <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Mật khẩu là bắt buộc' }]}>
               <Input.Password autoComplete="new-password" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="scheme" label="Scheme" rules={[{ required: true }]}>
+            <Form.Item name="scheme" label="Giao thức" rules={[{ required: true }]}>
               <Select options={[{ label: 'https', value: 'https' }, { label: 'http', value: 'http' }]} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="verify" label="Verify TLS" valuePropName="checked">
+            <Form.Item name="verify" label="Xác minh TLS" valuePropName="checked">
               <Switch />
             </Form.Item>
           </Col>
         </Row>
-        <Space>
-          <Button onClick={testConfig} loading={testing}>Test</Button>
-          <Button type="primary" onClick={saveConfig} loading={saving}>Save</Button>
-        </Space>
+        {actionButtons}
       </Form>
     </Card>
   )
@@ -194,7 +198,7 @@ function ElkSettings() {
       })
       form.setFieldsValue({ ...elkInitialValues(), ...data })
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to load ELK configuration'))
+      message.error(apiErrorMessage(error, 'Không thể tải cấu hình ELK'))
     } finally {
       setLoading(false)
     }
@@ -214,9 +218,9 @@ function ElkSettings() {
         api_key: values.api_key || '',
       })
       form.setFieldsValue({ ...elkInitialValues(), ...data, api_key: values.api_key || '' })
-      message.success('ELK configuration saved')
+      message.success('Đã lưu cấu hình ELK')
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save ELK configuration'))
+      message.error(apiErrorMessage(error, 'Lưu cấu hình ELK thất bại'))
     } finally {
       setSaving(false)
     }
@@ -232,37 +236,44 @@ function ElkSettings() {
       })
       showTestResult(data)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to test ELK configuration'))
+      message.error(apiErrorMessage(error, 'Kiểm tra cấu hình ELK thất bại'))
     } finally {
       setTesting(false)
     }
   }
 
+  const actionButtons = (
+    <Space>
+      <Button onClick={testConfig} loading={testing}>Kiểm tra</Button>
+      <Button type="primary" onClick={saveConfig} loading={saving}>Lưu</Button>
+    </Space>
+  )
+
   return (
-    <Card title="ELK" loading={loading}>
+    <Card title="ELK" extra={actionButtons} loading={loading}>
       <Form form={form} layout="vertical" initialValues={elkInitialValues()}>
-        <Form.Item name="host" label="Host" rules={[{ required: true, message: 'Host is required' }, { type: 'url' }]}>
+        <Form.Item name="host" label="Máy chủ (Host)" rules={[{ required: true, message: 'Host là bắt buộc' }, { type: 'url' }]}>
           <Input placeholder="https://elk.example.com:9200" />
         </Form.Item>
-        <Form.Item name="api_key" label="API Key" rules={[{ required: true, message: 'API key is required' }]}>
+        <Form.Item name="api_key" label="API Key" rules={[{ required: true, message: 'API key là bắt buộc' }]}>
           <Input.Password autoComplete="new-password" />
         </Form.Item>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="verify_certs" label="Verify Certs" valuePropName="checked">
+            <Form.Item name="verify_certs" label="Xác minh chứng chỉ" valuePropName="checked">
               <Switch />
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item name="process_alert_from_index_enabled" label="Process Alert From Index" valuePropName="checked">
+            <Form.Item name="process_alert_from_index_enabled" label="Xử lý cảnh báo từ Index" valuePropName="checked">
               <Switch />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="action_index"
-              label="Action Index"
-              rules={processAlertFromIndexEnabled ? [{ required: true, message: 'Action index is required' }] : []}
+              label="Index hành động"
+              rules={processAlertFromIndexEnabled ? [{ required: true, message: 'Index hành động là bắt buộc' }] : []}
             >
               <Input placeholder="siem-alert" />
             </Form.Item>
@@ -270,8 +281,8 @@ function ElkSettings() {
           <Col span={12}>
             <Form.Item
               name="action_poll_interval_seconds"
-              label="Action Poll Interval Seconds"
-              rules={processAlertFromIndexEnabled ? [{ required: true, message: 'Action poll interval is required' }] : []}
+              label="Chu kỳ lấy mẫu (giây)"
+              rules={processAlertFromIndexEnabled ? [{ required: true, message: 'Chu kỳ lấy mẫu là bắt buộc' }] : []}
             >
               <InputNumber min={1} max={3600} style={{ width: '100%' }} />
             </Form.Item>
@@ -279,17 +290,14 @@ function ElkSettings() {
           <Col span={12}>
             <Form.Item
               name="action_size"
-              label="Action Size"
-              rules={processAlertFromIndexEnabled ? [{ required: true, message: 'Action size is required' }] : []}
+              label="Số lượng mỗi lần lấy"
+              rules={processAlertFromIndexEnabled ? [{ required: true, message: 'Số lượng mỗi lần lấy là bắt buộc' }] : []}
             >
               <InputNumber min={1} max={10000} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
         </Row>
-        <Space>
-          <Button onClick={testConfig} loading={testing}>Test</Button>
-          <Button type="primary" onClick={saveConfig} loading={saving}>Save</Button>
-        </Space>
+        {actionButtons}
       </Form>
     </Card>
   )
@@ -297,7 +305,7 @@ function ElkSettings() {
 
 export default function SIEMSettings() {
   return (
-    <div style={{ height: '100%', minHeight: 0, overflow: 'auto' }}>
+    <div style={{ height: '100%', minHeight: 0, overflow: 'auto', paddingBottom: 24 }}>
       <Tabs
         defaultActiveKey="splunk"
         items={[

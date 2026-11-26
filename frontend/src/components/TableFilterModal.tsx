@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import type {AdvancedFilterCondition, AdvancedFilterFieldConfig, ChoiceOption, ResourceMetadata, SavedTableFilter, TableFilterState} from '../types/records'
 import client from '../api/client'
 import {createSavedTableFilter, deleteSavedTableFilter, fetchSavedTableFilters, updateSavedTableFilter} from '../api/preferences'
+import {localizeChoiceOptions} from '../utils/i18n'
 import {comfortableCheckableTagGroupProps, comfortableTagProps} from '../utils/tagStyles'
 
 const { RangePicker } = DatePicker
@@ -26,52 +27,52 @@ interface TableFilterModalProps {
 
 const operatorOptions = {
   text: [
-    { label: 'Equals', value: 'eq' },
-    { label: 'Does not equal', value: 'neq' },
-    { label: 'Contains', value: 'contains' },
-    { label: 'Contains all', value: 'contains_all' },
-    { label: 'Does not contain', value: 'not_contains' },
-    { label: 'Is empty', value: 'is_empty' },
-    { label: 'Is not empty', value: 'is_not_empty' },
+    { label: 'Bằng', value: 'eq' },
+    { label: 'Không bằng', value: 'neq' },
+    { label: 'Chứa', value: 'contains' },
+    { label: 'Chứa tất cả', value: 'contains_all' },
+    { label: 'Không chứa', value: 'not_contains' },
+    { label: 'Trống', value: 'is_empty' },
+    { label: 'Không trống', value: 'is_not_empty' },
   ],
   select: [
-    { label: 'Is', value: 'is' },
-    { label: 'Is not', value: 'is_not' },
-    { label: 'Is one of', value: 'is_one_of' },
-    { label: 'Is not any of', value: 'is_not_any_of' },
-    { label: 'Is empty', value: 'is_empty' },
-    { label: 'Is not empty', value: 'is_not_empty' },
+    { label: 'Là', value: 'is' },
+    { label: 'Không phải', value: 'is_not' },
+    { label: 'Thuộc một trong', value: 'is_one_of' },
+    { label: 'Không thuộc', value: 'is_not_any_of' },
+    { label: 'Trống', value: 'is_empty' },
+    { label: 'Không trống', value: 'is_not_empty' },
   ],
   tag: [
-    { label: 'Contains any', value: 'contains_any' },
-    { label: 'Does not contain any', value: 'not_contains_any' },
-    { label: 'Contains all', value: 'contains_all' },
-    { label: 'Is empty', value: 'is_empty' },
-    { label: 'Is not empty', value: 'is_not_empty' },
+    { label: 'Chứa bất kỳ', value: 'contains_any' },
+    { label: 'Không chứa bất kỳ', value: 'not_contains_any' },
+    { label: 'Chứa tất cả', value: 'contains_all' },
+    { label: 'Trống', value: 'is_empty' },
+    { label: 'Không trống', value: 'is_not_empty' },
   ],
   date: [
-    { label: 'Equals', value: 'eq' },
-    { label: 'Does not equal', value: 'neq' },
-    { label: 'Before', value: 'lt' },
-    { label: 'After', value: 'gt' },
-    { label: 'On or before', value: 'lte' },
-    { label: 'On or after', value: 'gte' },
-    { label: 'Between', value: 'between' },
-    { label: 'Not between', value: 'not_between' },
-    { label: 'Is empty', value: 'is_empty' },
-    { label: 'Is not empty', value: 'is_not_empty' },
+    { label: 'Bằng', value: 'eq' },
+    { label: 'Không bằng', value: 'neq' },
+    { label: 'Trước', value: 'lt' },
+    { label: 'Sau', value: 'gt' },
+    { label: 'Trước hoặc bằng', value: 'lte' },
+    { label: 'Sau hoặc bằng', value: 'gte' },
+    { label: 'Trong khoảng', value: 'between' },
+    { label: 'Ngoài khoảng', value: 'not_between' },
+    { label: 'Trống', value: 'is_empty' },
+    { label: 'Không trống', value: 'is_not_empty' },
   ],
   number: [
-    { label: 'Equals', value: 'eq' },
-    { label: 'Does not equal', value: 'neq' },
-    { label: 'Greater than', value: 'gt' },
-    { label: 'Greater than or equal to', value: 'gte' },
-    { label: 'Less than', value: 'lt' },
-    { label: 'Less than or equal to', value: 'lte' },
-    { label: 'Between', value: 'between' },
-    { label: 'Not between', value: 'not_between' },
-    { label: 'Is empty', value: 'is_empty' },
-    { label: 'Is not empty', value: 'is_not_empty' },
+    { label: 'Bằng', value: 'eq' },
+    { label: 'Không bằng', value: 'neq' },
+    { label: 'Lớn hơn', value: 'gt' },
+    { label: 'Lớn hơn hoặc bằng', value: 'gte' },
+    { label: 'Nhỏ hơn', value: 'lt' },
+    { label: 'Nhỏ hơn hoặc bằng', value: 'lte' },
+    { label: 'Trong khoảng', value: 'between' },
+    { label: 'Ngoài khoảng', value: 'not_between' },
+    { label: 'Trống', value: 'is_empty' },
+    { label: 'Không trống', value: 'is_not_empty' },
   ],
 }
 
@@ -102,7 +103,7 @@ function defaultOperator(field: AdvancedFilterFieldConfig) {
 
 function conditionSummary(state: TableFilterState) {
   const advancedCount = state.advanced.filter((item) => item.field && item.operator).length
-  return `${advancedCount} condition(s)`
+  return `${advancedCount} điều kiện`
 }
 
 function savedStateFrom(advanced: AdvancedFilterCondition[]): TableFilterState {
@@ -144,7 +145,7 @@ export default function TableFilterModal({
       .then(setSavedFilters)
       .catch(() => {
         setSavedFilters([])
-        message.error('Failed to load saved filters')
+        message.error('Không thể tải bộ lọc đã lưu')
       })
       .finally(() => setSavedFiltersLoading(false))
   }
@@ -153,7 +154,7 @@ export default function TableFilterModal({
     const base: AdvancedFilterFieldConfig[] = advancedFilters || []
     return base.map((field) => ({
       ...field,
-      options: field.options || metadata?.choices?.[field.key],
+      options: localizeChoiceOptions(field.options || metadata?.choices?.[field.key]),
     }))
   }, [advancedFilters, metadata])
 
@@ -205,7 +206,7 @@ export default function TableFilterModal({
   const saveAsFilter = async () => {
     const trimmedName = saveName.trim()
     if (!trimmedName) {
-      message.warning('Please enter a filter name')
+      message.warning('Vui lòng nhập tên bộ lọc')
       return
     }
     try {
@@ -216,24 +217,24 @@ export default function TableFilterModal({
         visibility: saveVisibility,
       })
       setSavedFilters((previous) => [created, ...previous])
-      message.success('Filter saved')
+      message.success('Đã lưu bộ lọc')
       setLoadedSavedFilterId(null)
       setSaveName('')
       setSaveVisibility('private')
     } catch {
-      message.error('Failed to save filter')
+      message.error('Không thể lưu bộ lọc')
     }
   }
   const updateLoadedFilter = async () => {
     if (!loadedSavedFilterId) return
     const loadedFilter = savedFilters.find((item) => item.id === loadedSavedFilterId)
     if (!loadedFilter?.can_edit) {
-      message.warning('You can only update filters you own')
+      message.warning('Bạn chỉ có thể cập nhật bộ lọc do mình tạo')
       return
     }
     const trimmedName = saveName.trim()
     if (!trimmedName) {
-      message.warning('Please enter a filter name')
+      message.warning('Vui lòng nhập tên bộ lọc')
       return
     }
     try {
@@ -243,14 +244,14 @@ export default function TableFilterModal({
         visibility: saveVisibility,
       })
       setSavedFilters((previous) => previous.map((item) => item.id === updated.id ? updated : item))
-      message.success('Filter updated')
+      message.success('Đã cập nhật bộ lọc')
     } catch {
-      message.error('Failed to update filter')
+      message.error('Không thể cập nhật bộ lọc')
     }
   }
   const deleteSavedFilter = async (item: SavedTableFilter) => {
     if (!item.can_edit) {
-      message.warning('You can only delete filters you own')
+      message.warning('Bạn chỉ có thể xóa bộ lọc do mình tạo')
       return
     }
     try {
@@ -262,7 +263,7 @@ export default function TableFilterModal({
         setSaveVisibility('private')
       }
     } catch {
-      message.error('Failed to delete filter')
+      message.error('Không thể xóa bộ lọc')
     }
   }
   const loadSavedFilter = (item: SavedTableFilter) => {
@@ -312,7 +313,7 @@ export default function TableFilterModal({
       return (
         <Select
           mode="tags"
-          placeholder="Please enter tags"
+          placeholder="Vui lòng nhập thẻ (tag)"
           style={{ width: '100%' }}
           options={options}
           tagRender={({ label, value, closable, onClose }) => (
@@ -344,7 +345,7 @@ export default function TableFilterModal({
       return (
         <Select
           mode={multiple ? 'multiple' : undefined}
-          placeholder="Select users"
+          placeholder="Chọn người dùng"
           showSearch
           style={{ width: '100%' }}
           options={userOptions}
@@ -388,7 +389,7 @@ export default function TableFilterModal({
     }
     return (
       <Input
-        placeholder="Please enter"
+        placeholder="Vui lòng nhập giá trị"
         value={Array.isArray(condition.value) ? condition.value.join(', ') : condition.value}
         onChange={(event) => updateCondition(condition.id, { value: event.target.value })}
       />
@@ -408,18 +409,18 @@ export default function TableFilterModal({
                 <div>
                   {index === 0 ? (
                     <div style={{ width: 64, display: 'flex', alignItems: 'center', paddingInlineStart: 15 }}>
-                      <Typography.Text type="secondary">Where</Typography.Text>
+                      <Typography.Text type="secondary">Khi</Typography.Text>
                     </div>
                   ) : (
                     <Dropdown
                       trigger={['click']}
                       menu={{
-                        items: [{ key: 'and', label: 'And' }, { key: 'or', label: 'Or' }],
+                        items: [{ key: 'and', label: 'Và' }, { key: 'or', label: 'Hoặc' }],
                         onClick: ({ key }) => updateCondition(condition.id, { connector: key === 'or' ? 'or' : 'and' }),
                       }}
                     >
                       <Button type="text">
-                        {condition.connector === 'or' ? 'Or' : 'And'}
+                        {condition.connector === 'or' ? 'Hoặc' : 'Và'}
                       </Button>
                     </Dropdown>
                   )}
@@ -451,26 +452,26 @@ export default function TableFilterModal({
               onClick: ({ key }) => addCondition(String(key)),
             }}
           >
-            <Button icon={<PlusOutlined />}>Add filter</Button>
+            <Button icon={<PlusOutlined />}>Thêm điều kiện</Button>
           </Dropdown>
-          <Input placeholder="Filter name" value={saveName} onChange={(event) => setSaveName(event.target.value)} style={{ width: 240, flexShrink: 0 }} />
+          <Input placeholder="Tên bộ lọc" value={saveName} onChange={(event) => setSaveName(event.target.value)} style={{ width: 240, flexShrink: 0 }} />
           <Select
            value={saveVisibility}
            style={{ width: 112, flexShrink: 0 }}
-           options={[{ label: 'Private', value: 'private' }, { label: 'Shared', value: 'shared' }]}
+           options={[{ label: 'Riêng tư', value: 'private' }, { label: 'Chia sẻ', value: 'shared' }]}
            onChange={(next: SavedTableFilter['visibility']) => setSaveVisibility(next)}
           />
-          {loadedSavedFilterId && <Button icon={<SaveOutlined />} disabled={!savedFilters.find((item) => item.id === loadedSavedFilterId)?.can_edit} onClick={updateLoadedFilter} style={{ flexShrink: 0 }}>Update</Button>}
-          <Button icon={<SaveOutlined />} onClick={saveAsFilter} style={{ flexShrink: 0 }}>Save as</Button>
-          <Button icon={<ClearOutlined />} onClick={clearFilters} style={{ flexShrink: 0 }}>Clear</Button>
-          <Button type="primary" icon={<SearchOutlined />} onClick={applyFilters} style={{ flexShrink: 0 }}>Search</Button>
+          {loadedSavedFilterId && <Button icon={<SaveOutlined />} disabled={!savedFilters.find((item) => item.id === loadedSavedFilterId)?.can_edit} onClick={updateLoadedFilter} style={{ flexShrink: 0 }}>Cập nhật</Button>}
+          <Button icon={<SaveOutlined />} onClick={saveAsFilter} style={{ flexShrink: 0 }}>Lưu thành</Button>
+          <Button icon={<ClearOutlined />} onClick={clearFilters} style={{ flexShrink: 0 }}>Xóa</Button>
+          <Button type="primary" icon={<SearchOutlined />} onClick={applyFilters} style={{ flexShrink: 0 }}>Tìm kiếm</Button>
         </Space>
       </div>
     </Space>
   )
 
   const savedPanel = savedFiltersLoading ? (
-    <Empty description="Loading saved filters..." />
+    <Empty description="Đang tải bộ lọc đã lưu..." />
   ) : savedFilters.length ? (
     <Space vertical size={8} style={{ width: '100%' }}>
       {savedFilters.map((item) => (
@@ -487,7 +488,7 @@ export default function TableFilterModal({
             {item.name}
           </Typography.Text>
           <Typography.Text type="secondary" ellipsis style={{ display: 'block', maxWidth: '100%', fontSize: 12 }}>
-           {item.visibility === 'shared' ? `Shared by ${item.owner_username}` : 'Private'}
+           {item.visibility === 'shared' ? `Chia sẻ bởi ${item.owner_username}` : 'Riêng tư'}
           </Typography.Text>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto max-content', alignItems: 'center', gap: 8, marginTop: 6 }}>
            <Space size={4} wrap>
@@ -495,18 +496,18 @@ export default function TableFilterModal({
                {conditionSummary(item.state)}
              </Tag>
              <Tag {...comfortableTagProps} color={item.visibility === 'shared' ? 'green' : 'default'} style={{ marginInlineEnd: 0 }}>
-               {item.visibility}
+               {item.visibility === 'shared' ? 'Chia sẻ' : 'Riêng tư'}
              </Tag>
            </Space>
            <Space size={4} wrap={false}>
-             <Button size="small" type="link" onClick={() => loadSavedFilter(item)}>Load</Button>
-             <Button size="small" type="link" danger disabled={!item.can_edit} onClick={() => deleteSavedFilter(item)}>Delete</Button>
+             <Button size="small" type="link" onClick={() => loadSavedFilter(item)}>Nạp</Button>
+             <Button size="small" type="link" danger disabled={!item.can_edit} onClick={() => deleteSavedFilter(item)}>Xóa</Button>
            </Space>
           </div>
         </div>
       ))}
     </Space>
-  ) : <Empty description="No saved filters" />
+  ) : <Empty description="Chưa có bộ lọc nào được lưu" />
 
   return (
     <Modal
@@ -521,11 +522,11 @@ export default function TableFilterModal({
     >
       <div style={{ display: 'grid', gridTemplateColumns: `${CURRENT_FILTER_PANEL_WIDTH}px ${SAVED_FILTER_PANEL_WIDTH}px`, gap: 20, minHeight: 420 }}>
         <section style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <Typography.Title level={5} style={{ marginTop: 0 }}>Current filters</Typography.Title>
+          <Typography.Title level={5} style={{ marginTop: 0 }}>Bộ lọc hiện tại</Typography.Title>
           {currentFilterPanel}
         </section>
         <section style={{ borderLeft: '1px solid #303030', paddingLeft: 16, minWidth: 0 }}>
-          <Typography.Title level={5} style={{ marginTop: 0 }}>Saved filters</Typography.Title>
+          <Typography.Title level={5} style={{ marginTop: 0 }}>Bộ lọc đã lưu</Typography.Title>
           <Divider style={{ margin: '8px 0 16px' }} />
           {savedPanel}
         </section>

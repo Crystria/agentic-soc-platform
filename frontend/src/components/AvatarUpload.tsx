@@ -19,7 +19,7 @@ export default function AvatarUpload({ user, endpoint, onChange, disabled }: Ava
   const uploadAvatar: UploadProps['customRequest'] = async ({ file, onError, onSuccess }) => {
     const uploadFile = file as File
     if (!uploadFile.type.startsWith('image/')) {
-      const error = new Error('Please select an image file')
+      const error = new Error('Vui lòng chọn tệp hình ảnh')
       message.error(error.message)
       onError?.(error)
       return
@@ -29,10 +29,10 @@ export default function AvatarUpload({ user, endpoint, onChange, disabled }: Ava
       const attachment = await uploadAttachment(uploadFile)
       const { data } = await client.put<AuthUser>(endpoint, { attachment_id: attachment.id })
       onChange(data)
-      message.success('Avatar updated')
+      message.success('Đã cập nhật ảnh đại diện')
       onSuccess?.(data)
     } catch (error) {
-      message.error('Failed to update avatar')
+      message.error('Không thể cập nhật ảnh đại diện')
       onError?.(error as Error)
     }
   }
@@ -43,8 +43,9 @@ export default function AvatarUpload({ user, endpoint, onChange, disabled }: Ava
       showReset
       aspect={1}
       cropShape="round"
-      modalTitle="Crop Avatar"
-      modalOk="Save"
+      modalTitle="Cắt ảnh đại diện"
+      modalOk="Lưu"
+      modalCancel="Hủy"
     >
       <Upload accept="image/*" showUploadList={false} customRequest={uploadAvatar} disabled={disabled}>
         <span className={`avatar-upload-trigger${disabled ? ' avatar-upload-trigger-disabled' : ''}`}>

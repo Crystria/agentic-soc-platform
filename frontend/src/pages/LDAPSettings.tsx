@@ -67,7 +67,7 @@ export default function LDAPSettings() {
       })
       form.setFieldsValue({ ...initialValues(), ...data })
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to load LDAP configuration'))
+      message.error(apiErrorMessage(error, 'Không thể tải cấu hình LDAP'))
     } finally {
       setLoading(false)
     }
@@ -92,9 +92,9 @@ export default function LDAPSettings() {
         user_login_attr: values.user_login_attr || 'uid',
       })
       form.setFieldsValue({ ...initialValues(), ...data, bind_password: values.bind_password || '' })
-      message.success('LDAP configuration saved')
+      message.success('Đã lưu cấu hình LDAP')
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save LDAP configuration'))
+      message.error(apiErrorMessage(error, 'Lưu cấu hình LDAP thất bại'))
     } finally {
       setSaving(false)
     }
@@ -118,7 +118,7 @@ export default function LDAPSettings() {
       if (data.success) message.success(data.detail)
       else message.error(data.detail)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to test LDAP configuration'))
+      message.error(apiErrorMessage(error, 'Kiểm tra cấu hình LDAP thất bại'))
     } finally {
       setTesting(false)
     }
@@ -128,24 +128,24 @@ export default function LDAPSettings() {
     <div style={{ height: '100%', minHeight: 0, overflow: 'auto' }}>
       <Card title="LDAP" loading={loading}>
         <Form form={form} layout="vertical" initialValues={initialValues()} style={{ maxWidth: 920 }}>
-          <Form.Item name="enabled" label="Enabled" valuePropName="checked">
+          <Form.Item name="enabled" label="Bật" valuePropName="checked">
             <Switch />
           </Form.Item>
           <Form.Item
             name="server_uri"
-            label="Server URI"
-            rules={enabled ? [{ required: true, message: 'Server URI is required' }] : []}
+            label="URI máy chủ"
+            rules={enabled ? [{ required: true, message: 'URI máy chủ là bắt buộc' }] : []}
           >
             <Input placeholder="ldap://ldap.example.com:389" />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="domain" label="Domain">
+              <Form.Item name="domain" label="Tên miền (Domain)">
                 <Input placeholder="example.com" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="user_login_attr" label="User Login Attribute" rules={[{ required: true, message: 'User login attribute is required' }]}>
+              <Form.Item name="user_login_attr" label="Thuộc tính đăng nhập" rules={[{ required: true, message: 'Thuộc tính đăng nhập là bắt buộc' }]}>
                 <Input placeholder="uid" />
               </Form.Item>
             </Col>
@@ -155,29 +155,29 @@ export default function LDAPSettings() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="bind_password" label="Bind Password">
+              <Form.Item name="bind_password" label="Mật khẩu Bind DN">
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
             </Col>
             <Col span={24}>
-              <Form.Item name="user_search_base_dn" label="User Search Base DN">
+              <Form.Item name="user_search_base_dn" label="Base DN tìm kiếm người dùng">
                 <Input placeholder="ou=users,dc=example,dc=com" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="test_username" label="Test Username">
+              <Form.Item name="test_username" label="Tên đăng nhập kiểm tra">
                 <Input />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="test_password" label="Test Password">
+              <Form.Item name="test_password" label="Mật khẩu kiểm tra">
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
             </Col>
           </Row>
           <Space>
-            <Button onClick={testConfig} loading={testing}>Test</Button>
-            <Button type="primary" onClick={saveConfig} loading={saving}>Save</Button>
+            <Button onClick={testConfig} loading={testing}>Kiểm tra</Button>
+            <Button type="primary" onClick={saveConfig} loading={saving}>Lưu</Button>
           </Space>
         </Form>
       </Card>

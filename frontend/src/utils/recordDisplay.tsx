@@ -1,5 +1,19 @@
 import {Tag} from 'antd'
 import {severityTagColors} from '../theme'
+import {
+  ALERT_ACTION_LABELS,
+  ALERT_ANALYTIC_TYPE_LABELS,
+  ALERT_DISPOSITION_LABELS,
+  ARTIFACT_ROLE_LABELS,
+  CASE_STATUS_LABELS,
+  DISPLAY_DATE_LOCALE,
+  ENRICHMENT_TYPE_LABELS,
+  KNOWLEDGE_SOURCE_LABELS,
+  PRODUCT_CATEGORY_LABELS,
+  SEVERITY_LABELS,
+  VERDICT_LABELS,
+  localizeWithMap,
+} from './i18n'
 import {comfortableTagProps} from './tagStyles'
 
 export function emptyValueNode() {
@@ -13,7 +27,7 @@ export function emptyValue(value: unknown): string {
 
 export function formatDateTime(value: string | null | undefined) {
   if (!value) return emptyValueNode()
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString(DISPLAY_DATE_LOCALE)
 }
 
 export function formatDurationSeconds(value: unknown) {
@@ -30,10 +44,10 @@ export function formatDurationSeconds(value: unknown) {
   const minutes = Math.floor(remaining / 60)
   const restSeconds = remaining % 60
   const parts = [
-    days ? `${days}d` : '',
-    hours ? `${hours}h` : '',
-    minutes ? `${minutes}m` : '',
-    restSeconds || (!days && !hours && !minutes) ? `${restSeconds}s` : '',
+    days ? `${days}ng` : '',
+    hours ? `${hours}g` : '',
+    minutes ? `${minutes}ph` : '',
+    restSeconds || (!days && !hours && !minutes) ? `${restSeconds}gi` : '',
   ].filter(Boolean)
 
   return `${sign}${parts.slice(0, 2).join(' ')}`
@@ -42,6 +56,17 @@ export function formatDurationSeconds(value: unknown) {
 export function choiceTag(value: string | null | undefined, color?: string) {
   const display = emptyValue(value)
   if (display === '—') return emptyValueNode()
+  return <Tag {...comfortableTagProps} color={color}>{display}</Tag>
+}
+
+export function localizedChoiceTag(
+  value: string | null | undefined,
+  lookup: Record<string, string>,
+  color?: string,
+) {
+  const raw = emptyValue(value)
+  if (raw === '—') return emptyValueNode()
+  const display = localizeWithMap(raw, lookup, raw)
   return <Tag {...comfortableTagProps} color={color}>{display}</Tag>
 }
 
@@ -72,13 +97,16 @@ const caseCategoryOptions = [
   { value: 'Cloud', label: 'Cloud' },
   { value: 'SIEM', label: 'SIEM' },
   { value: 'WAF', label: 'WAF' },
-  { value: 'Other', label: 'Other' },
+  { value: 'Other', label: 'Khác' },
 ]
 
 export function rotatingColorTag(value: string | null | undefined, options: { value: string; label?: string }[]) {
   const display = emptyValue(value)
   if (display === '—') return choiceTag(value)
-  if (display === 'Unknown' || display === 'Other') return choiceTag(value, 'default')
+  if (display === 'Unknown' || display === 'Other') {
+    const label = options.find((option) => option.value === display)?.label || display
+    return choiceTag(label, 'default')
+  }
 
   const index = options.findIndex((option) => option.value === display)
   if (index === -1) return choiceTag(value, 'default')
@@ -92,7 +120,7 @@ export function caseCategoryTag(value: string | null | undefined) {
 }
 
 export function severityTag(value: string | null | undefined) {
-  return choiceTag(value, value ? severityTagColors[value] : undefined)
+  return localizedChoiceTag(value, SEVERITY_LABELS, value ? severityTagColors[value] : undefined)
 }
 
 export function statusTag(value: string | null | undefined) {
@@ -102,8 +130,11 @@ export function statusTag(value: string | null | undefined) {
     'On Hold': 'gold',
     Resolved: 'green',
     Closed: 'default',
+    Suppressed: 'default',
+    Archived: 'default',
+    Deleted: 'red',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, CASE_STATUS_LABELS, value ? colors[value] : undefined)
 }
 
 export function verdictTag(value: string | null | undefined) {
@@ -121,25 +152,11 @@ export function verdictTag(value: string | null | undefined) {
     Duplicate: 'cyan',
     Other: 'default',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, VERDICT_LABELS, value ? colors[value] : undefined)
 }
 
 export function dispositionTag(value: string | null | undefined) {
-  const colors: Record<string, string> = {
-    Unknown: 'default',
-    'False Positive': 'green',
-    'True Positive': 'red',
-    Disregard: 'default',
-    Suspicious: 'orange',
-    Benign: 'green',
-    Test: 'purple',
-    'Insufficient Data': 'gold',
-    'Security Risk': 'volcano',
-    'Managed Externally': 'blue',
-    Duplicate: 'cyan',
-    Other: 'default',
-  }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return verdictTag(value)
 }
 
 export function alertDispositionTag(value: string | null | undefined) {
@@ -174,7 +191,7 @@ export function alertDispositionTag(value: string | null | undefined) {
     Error: 'red',
     Other: 'default',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, ALERT_DISPOSITION_LABELS, value ? colors[value] : undefined)
 }
 
 export function alertActionTag(value: string | null | undefined) {
@@ -186,7 +203,7 @@ export function alertActionTag(value: string | null | undefined) {
     Modified: 'orange',
     Other: 'default',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, ALERT_ACTION_LABELS, value ? colors[value] : undefined)
 }
 
 export function alertAnalyticTypeTag(value: string | null | undefined) {
@@ -205,7 +222,7 @@ export function alertAnalyticTypeTag(value: string | null | undefined) {
     'Indexed Data Match': 'cyan',
     Other: 'default',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, ALERT_ANALYTIC_TYPE_LABELS, value ? colors[value] : undefined)
 }
 
 export function productCategoryTag(value: string | null | undefined) {
@@ -224,7 +241,7 @@ export function productCategoryTag(value: string | null | undefined) {
     WAF: 'red',
     Other: 'default',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, PRODUCT_CATEGORY_LABELS, value ? colors[value] : undefined)
 }
 
 export function knowledgeSourceTag(value: string | null | undefined) {
@@ -232,7 +249,7 @@ export function knowledgeSourceTag(value: string | null | undefined) {
     Manual: 'purple',
     Case: 'blue',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, KNOWLEDGE_SOURCE_LABELS, value ? colors[value] : undefined)
 }
 
 export function artifactRoleTag(value: string | null | undefined) {
@@ -244,7 +261,7 @@ export function artifactRoleTag(value: string | null | undefined) {
     Related: 'blue',
     Other: 'default',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, ARTIFACT_ROLE_LABELS, value ? colors[value] : undefined)
 }
 
 export function enrichmentTypeTag(value: string | null | undefined) {
@@ -275,7 +292,7 @@ export function enrichmentTypeTag(value: string | null | undefined) {
     Observation: 'lime',
     'External Ticket': 'gold',
   }
-  return choiceTag(value, value ? colors[value] : undefined)
+  return localizedChoiceTag(value, ENRICHMENT_TYPE_LABELS, value ? colors[value] : undefined)
 }
 
 export function jsonPreview(value: unknown): string {

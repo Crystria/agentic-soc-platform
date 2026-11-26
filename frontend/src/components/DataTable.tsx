@@ -269,7 +269,7 @@ function SortableColumnSetting({
         onClick={(event) => event.stopPropagation()}
       />
       <Button
-        aria-label={pinned ? 'Unpin from left' : 'Pin to left'}
+        aria-label={pinned ? 'Bỏ ghim khỏi bên trái' : 'Ghim sang bên trái'}
         type="text"
         size="small"
         icon={pinned ? <PushpinFilled /> : <PushpinOutlined />}
@@ -302,7 +302,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
   metadata,
   onRowClick,
   onOpenResource,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = 'Tìm kiếm...',
   searchPlacement = 'start',
   filterActions,
   actions,
@@ -391,7 +391,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
         setPageSize(20)
         setPage(1)
         setLoadedPreferenceKey(preferenceScopeKey)
-        message.error('Failed to load table preferences')
+        message.error('Không thể tải tùy chọn bảng')
       })
 
     return () => {
@@ -429,7 +429,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
       setSelectedRows([])
     } catch {
       if (!mountedRef.current || requestId !== requestIdRef.current) return
-      message.error('Failed to load table data')
+      message.error('Không thể tải dữ liệu bảng')
     } finally {
       if (mountedRef.current && requestId === requestIdRef.current) {
         setLoading(false)
@@ -478,15 +478,15 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
   const handleDelete = useCallback(async (record: RecordType) => {
     const recordId = record[rowKey]
     if (recordId === undefined || recordId === null) {
-      message.error('Cannot delete row without an ID')
+      message.error('Không thể xóa bản ghi không có ID')
       return
     }
     try {
       await client.delete(`${endpoint}${recordId}/`)
-      message.success('Record deleted')
+      message.success('Đã xóa bản ghi')
       fetchData()
     } catch {
-      message.error('Failed to delete record')
+      message.error('Không thể xóa bản ghi')
     }
   }, [endpoint, fetchData, rowKey])
 
@@ -496,18 +496,18 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
       .filter((recordId) => recordId !== undefined && recordId !== null)
 
     if (recordIds.length !== selectedRows.length) {
-      message.error('Cannot delete selected rows without IDs')
+      message.error('Không thể xóa các bản ghi đã chọn không có ID')
       return
     }
 
     try {
       await Promise.all(recordIds.map((recordId) => client.delete(`${endpoint}${recordId}/`)))
-      message.success(`${recordIds.length} record(s) deleted`)
+      message.success(`Đã xóa ${recordIds.length} bản ghi`)
       setSelectedRowKeys([])
       setSelectedRows([])
       fetchData()
     } catch {
-      message.error('Failed to delete selected records')
+      message.error('Không thể xóa các bản ghi đã chọn')
     }
   }, [endpoint, fetchData, rowKey, selectedRows])
 
@@ -576,16 +576,17 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
 
     const actionColumn = {
       key: '__actions',
-      title: 'Actions',
+      title: 'Thao tác',
       width: actionColumnWidth,
       fixed: 'right',
       align: 'center',
       render: (_value: unknown, record: RecordType) => {
         const deleteAction = readOnly ? null : (
           <Popconfirm
-            title="Delete record?"
-            description="This action cannot be undone."
-            okText="Delete"
+            title="Xóa bản ghi này?"
+            description="Hành động này không thể hoàn tác."
+            okText="Xóa"
+            cancelText="Hủy"
             okButtonProps={{ danger: true }}
             onConfirm={(event) => {
               event?.stopPropagation()
@@ -651,7 +652,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
     setColumnOrder(nextOrder)
     updateTablePreference(resolvedTableKey, {
       column_settings: columnSettingsPayload(next, nextOrder, nextFixedLeft),
-    }).catch(() => message.error('Failed to save table preferences'))
+    }).catch(() => message.error('Không thể lưu tùy chọn bảng'))
   }
 
   const togglePinnedColumn = (key: string) => {
@@ -675,7 +676,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
     setColumnOrder(nextOrder)
     updateTablePreference(resolvedTableKey, {
       column_settings: columnSettingsPayload(nextVisible, nextOrder, nextFixedLeft),
-    }).catch(() => message.error('Failed to save table preferences'))
+    }).catch(() => message.error('Không thể lưu tùy chọn bảng'))
   }
 
   const sensors = useSensors(useSensor(PointerSensor, {
@@ -693,7 +694,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
     setColumnOrder(next)
     updateTablePreference(resolvedTableKey, {
       column_settings: columnSettingsPayload(visibleColumns, next, fixedLeftColumns),
-    }).catch(() => message.error('Failed to save table preferences'))
+    }).catch(() => message.error('Không thể lưu tùy chọn bảng'))
   }
 
   const columnSettingsContent = (
@@ -732,7 +733,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
     setPage(nextPage)
     setPageSize(nextPageSize)
     updateTablePreference(resolvedTableKey, { page_size: nextPageSize })
-      .catch(() => message.error('Failed to save table preferences'))
+      .catch(() => message.error('Không thể lưu tùy chọn bảng'))
   }
   const hasActiveConditions = Boolean(
     search ||
@@ -773,7 +774,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
   }
   const toolbarGap = dense ? 12 : 16
   const activeFilterCount = filterState.advanced.filter(isActiveAdvancedFilter).length
-  const filterSummary = savedFilterName || (activeFilterCount > 0 ? `${activeFilterCount} filter(s)` : '')
+  const filterSummary = savedFilterName || (activeFilterCount > 0 ? `${activeFilterCount} bộ lọc` : '')
   const renderedActions = typeof actions === 'function' ? actions({ params: tableParams }) : actions
   const tableStyle: CSSProperties & {'--asp-table-body-height': string} = {
     '--asp-table-body-height': `${tableBodyHeight}px`,
@@ -854,15 +855,15 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
           ))}
           {filterActions}
           {searchPlacement === 'afterFilters' && searchControl}
-          <Tooltip title="Clear search, filters, and sorting">
+          <Tooltip title="Xóa tìm kiếm, bộ lọc và sắp xếp">
             <Button icon={<ClearOutlined />} disabled={!hasActiveConditions} onClick={clearAllConditions} />
           </Tooltip>
-          <Tooltip title="Filters">
+          <Tooltip title="Bộ lọc nâng cao">
             <Button ref={filterButtonRef} icon={<FilterOutlined />} type={hasActiveFilters ? 'primary' : 'default'} onClick={openFilterModal}>
               {filterSummary}
             </Button>
           </Tooltip>
-          <Tooltip title="Column settings">
+          <Tooltip title="Cài đặt cột">
             <Popover trigger="click" placement="bottomRight" content={columnSettingsContent}>
               <Button icon={<SettingOutlined />} />
             </Popover>
@@ -872,14 +873,15 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
           {showRowSelection && selectedRowKeys.length > 0 && (
             <>
               <Divider vertical style={{ alignSelf: 'center' }} />
-              <Tooltip title="Clear selection">
+              <Tooltip title="Bỏ chọn">
                 <Button icon={<CloseOutlined />} onClick={clearSelection} />
               </Tooltip>
-              <Tooltip title="Delete selected">
+              <Tooltip title="Xóa các mục đã chọn">
                 <Popconfirm
-                  title={`Delete ${selectedRowKeys.length} selected record(s)?`}
-                  description="This action cannot be undone."
-                  okText="Delete"
+                  title={`Xóa ${selectedRowKeys.length} bản ghi đã chọn?`}
+                  description="Hành động này không thể hoàn tác."
+                  okText="Xóa"
+                  cancelText="Hủy"
                   okButtonProps={{ danger: true }}
                   onConfirm={handleBulkDelete}
                 >
@@ -896,7 +898,7 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
           total={total}
           showSizeChanger
           pageSizeOptions={PAGE_SIZE_OPTIONS.map(String)}
-          showTotal={(count) => `${count} row(s)`}
+          showTotal={(count) => `${count} dòng`}
           size="small"
           onChange={handlePageChange}
           style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}
@@ -928,8 +930,8 @@ export default function DataTable<RecordType extends Record<string, unknown> = R
       <Popover
         trigger="click"
         placement="topRight"
-        title="Table tips"
-        content={<div style={{ maxWidth: 260 }}>Wide tables: hold Shift and use the mouse wheel to scroll horizontally.</div>}
+        title="Mẹo thao tác bảng"
+        content={<div style={{ maxWidth: 260 }}>Bảng nhiều cột: giữ phím Shift và cuộn chuột để cuộn ngang.</div>}
       >
         <Button
           className="asp-table-floating-help"

@@ -1,0 +1,148 @@
+name: "logs-*"
+backend: ELK
+description: Elastic Agent live telemetry logs (Windows Event Log, System, Security, Endpoint).
+
+fields:
+  - name: "@timestamp"
+    type: date
+    description: Event timestamp (UTC)
+    is_key_field: false
+    sample_values: ["2026-11-26T04:00:00Z"]
+
+  - name: agent.name
+    type: keyword
+    description: Elastic Agent host name
+    is_key_field: true
+    sample_values: ["DESKTOP-WIN11", "srv-app-01"]
+
+  - name: agent.type
+    type: keyword
+    description: Elastic Agent integration type
+    is_key_field: false
+    sample_values: ["winlogbeat", "endpoint", "filebeat", "system"]
+
+  - name: data_stream.dataset
+    type: keyword
+    description: Elastic data stream dataset
+    is_key_field: true
+    sample_values: ["windows.security", "system.auth", "endpoint.events.process"]
+
+  - name: event.action
+    type: keyword
+    description: Normalized ECS event action
+    is_key_field: true
+    sample_values: ["logged-in", "logon-failed", "process_started", "file_created"]
+
+  - name: event.category
+    type: keyword
+    description: ECS event category
+    is_key_field: true
+    sample_values: ["authentication", "process", "network", "file"]
+
+  - name: event.code
+    type: keyword
+    description: OS or application event ID (e.g. Windows Event ID)
+    is_key_field: true
+    sample_values: ["4624", "4625", "4688", "4104", "7045"]
+
+  - name: event.module
+    type: keyword
+    description: Integration module name
+    is_key_field: false
+    sample_values: ["windows", "system", "endpoint"]
+
+  - name: event.outcome
+    type: keyword
+    description: Event outcome (success, failure, unknown)
+    is_key_field: true
+    sample_values: ["success", "failure"]
+
+  - name: host.name
+    type: keyword
+    description: Hostname where event occurred
+    is_key_field: true
+    sample_values: ["DESKTOP-WIN11"]
+
+  - name: host.ip
+    type: ip
+    description: Host IP address
+    is_key_field: false
+    sample_values: ["192.168.1.10"]
+
+  - name: host.os.name
+    type: keyword
+    description: Operating system name
+    is_key_field: false
+    sample_values: ["Windows", "Linux"]
+
+  - name: user.name
+    type: keyword
+    description: Account user name
+    is_key_field: true
+    sample_values: ["Administrator", "SYSTEM"]
+
+  - name: user.domain
+    type: keyword
+    description: Account domain or workgroup
+    is_key_field: false
+    sample_values: ["WORKGROUP", "NT AUTHORITY"]
+
+  - name: source.ip
+    type: ip
+    description: Source IP address
+    is_key_field: true
+    sample_values: ["10.0.0.50", "203.0.113.10"]
+
+  - name: destination.ip
+    type: ip
+    description: Destination IP address
+    is_key_field: false
+    sample_values: ["192.168.1.10"]
+
+  - name: process.name
+    type: keyword
+    description: Process binary name
+    is_key_field: true
+    sample_values: ["powershell.exe", "cmd.exe", "svchost.exe"]
+
+  - name: process.executable
+    type: keyword
+    description: Full executable path
+    is_key_field: false
+    sample_values: ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"]
+
+  - name: process.command_line
+    type: keyword
+    description: Full process command line
+    is_key_field: false
+    sample_values: ["powershell.exe -NoProfile -ExecutionPolicy Bypass"]
+
+  - name: process.parent.name
+    type: keyword
+    description: Parent process name
+    is_key_field: false
+    sample_values: ["explorer.exe", "services.exe"]
+
+  - name: file.path
+    type: keyword
+    description: File path
+    is_key_field: false
+    sample_values: ["C:\\Users\\Public\\payload.exe"]
+
+  - name: file.hash.sha256
+    type: keyword
+    description: File SHA-256 hash
+    is_key_field: false
+    sample_values: ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"]
+
+  - name: winlog.event_id
+    type: keyword
+    description: Windows Event Log ID
+    is_key_field: true
+    sample_values: ["4624", "4625", "4688", "4104"]
+
+  - name: message
+    type: text
+    description: Raw or formatted log message
+    is_key_field: false
+    sample_values: ["An account failed to log on."]

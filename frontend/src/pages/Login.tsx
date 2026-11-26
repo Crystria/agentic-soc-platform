@@ -22,7 +22,7 @@ export default function Login() {
       const { data } = await login(values.username, values.password, values.auth_type)
       setAuth(data.access, data.user)
       navigate(nextPath, { replace: true })
-    } catch { message.error('Invalid credentials') }
+    } catch { message.error('Thông tin đăng nhập không hợp lệ') }
     finally { setLoading(false) }
   }
 
@@ -35,15 +35,15 @@ export default function Login() {
             <img src="/favicon.svg" alt="" />
           </span>
           <div>
-            <div className="login-kicker">Ready for response</div>
+            <div className="login-kicker">Sẵn sàng ứng phó</div>
             <h1>Agentic SOC Platform</h1>
-            <p>Security operations workspace</p>
+            <p>Không gian vận hành an ninh mạng</p>
           </div>
         </div>
         <div className="login-signal-panel" aria-hidden="true">
           <div className="login-signal-head">
-            <span>Signal posture</span>
-            <strong>online</strong>
+            <span>Trạng thái tín hiệu</span>
+            <strong>trực tuyến</strong>
           </div>
           <div className="login-signal-line wide" />
           <div className="login-signal-line" />
@@ -67,8 +67,8 @@ export default function Login() {
           <div className="login-card-header">
             <img src="/favicon.svg" alt="" />
             <div>
-              <h2>Sign in</h2>
-              <p>Use your platform or LDAP identity.</p>
+              <h2>Đăng nhập</h2>
+              <p>Sử dụng tài khoản nội bộ hoặc định danh LDAP.</p>
             </div>
           </div>
           <Form className="login-form" onFinish={onFinish} size="large" initialValues={{ auth_type: 'local' }}>
@@ -76,20 +76,20 @@ export default function Login() {
               <Segmented
                 className="login-auth-switch"
                 options={[
-                  { label: 'Platform', value: 'local' },
+                  { label: 'Nội bộ', value: 'local' },
                   { label: 'LDAP', value: 'ldap' },
                 ]}
                 block
               />
             </Form.Item>
             <Form.Item name="username" rules={[{ required: true }]}>
-              <Input prefix={<UserOutlined />} placeholder="Username" />
+              <Input prefix={<UserOutlined />} placeholder="Tên đăng nhập" />
             </Form.Item>
             <Form.Item name="password" rules={[{ required: true }]}>
-              <Input.Password prefix={<LockOutlined />} placeholder="Password" />
+              <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" />
             </Form.Item>
             <Form.Item>
-              <Button className="login-submit" type="primary" htmlType="submit" loading={loading} block>Log in</Button>
+              <Button className="login-submit" type="primary" htmlType="submit" loading={loading} block>Đăng nhập</Button>
             </Form.Item>
           </Form>
         </Card>

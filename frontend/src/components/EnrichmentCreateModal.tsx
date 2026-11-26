@@ -6,6 +6,7 @@ import client from '../api/client'
 import {fetchResourceMetadata} from '../api/metadata'
 import type {ChoiceOption} from '../types/records'
 import {DESCRIPTION_VALUE_HEIGHT} from './descriptionValueStyles'
+import {ENRICHMENT_TYPE_LABELS, localizeChoiceOptions} from '../utils/i18n'
 import {typography} from '../utils/typography'
 
 export type EnrichmentTargetType = 'case' | 'alert' | 'artifact'
@@ -29,7 +30,7 @@ interface EnrichmentCreateValues {
 function apiErrorMessage(error: unknown) {
   const response = error as { response?: { data?: unknown } }
   if (response.response?.data) return JSON.stringify(response.response.data)
-  return 'Failed to create enrichment'
+  return 'Tạo làm giàu dữ liệu thất bại'
 }
 
 const compactFormItemStyle = { marginBottom: 0 }
@@ -46,7 +47,7 @@ export default function EnrichmentCreateModal({ open, targetType, targetId, onCa
   useEffect(() => {
     if (!open) return
     fetchResourceMetadata()
-      .then((metadata) => setTypeOptions(metadata.resources.enrichments?.choices?.type || []))
+      .then((metadata) => setTypeOptions(localizeChoiceOptions(metadata.resources.enrichments?.choices?.type || [], ENRICHMENT_TYPE_LABELS)))
       .catch(() => setTypeOptions([]))
   }, [open])
 
@@ -69,7 +70,7 @@ export default function EnrichmentCreateModal({ open, targetType, targetId, onCa
         data: {},
         [targetType]: targetId,
       })
-      message.success('Enrichment created')
+      message.success('Đã tạo làm giàu dữ liệu')
       onCreated()
     } catch (error) {
       if ((error as { errorFields?: unknown }).errorFields) return
@@ -84,12 +85,12 @@ export default function EnrichmentCreateModal({ open, targetType, targetId, onCa
       title={(
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
           <ExperimentOutlined style={{ color: token.colorPrimary }} />
-          <span>Add Enrichment</span>
+          <span>Thêm làm giàu dữ liệu</span>
         </span>
       )}
       open={open}
       width={760}
-      okText="Create"
+      okText="Tạo"
       confirmLoading={saving}
       onOk={handleOk}
       onCancel={saving ? undefined : onCancel}
@@ -111,7 +112,7 @@ export default function EnrichmentCreateModal({ open, targetType, targetId, onCa
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
-            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Type</div>
+            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Loại</div>
             <Form.Item name="type" style={compactFormItemStyle}>
               <Select
                 allowClear
@@ -123,7 +124,7 @@ export default function EnrichmentCreateModal({ open, targetType, targetId, onCa
             </Form.Item>
           </div>
           <div>
-            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Name</div>
+            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Tên</div>
             <Form.Item name="name" style={compactFormItemStyle}>
               <Input variant="underlined" styles={inlineInputStyles} style={fieldControlStyle} />
             </Form.Item>
@@ -135,14 +136,14 @@ export default function EnrichmentCreateModal({ open, targetType, targetId, onCa
             </Form.Item>
           </div>
           <div>
-            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Value</div>
+            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Giá trị</div>
             <Form.Item name="value" style={compactFormItemStyle}>
               <Input variant="underlined" styles={inlineInputStyles} style={fieldControlStyle} />
             </Form.Item>
           </div>
         </div>
         <div style={{ marginTop: 16 }}>
-          <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Description</div>
+          <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Mô tả</div>
           <Form.Item name="desc" style={compactFormItemStyle}>
             <Input.TextArea
               variant="underlined"

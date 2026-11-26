@@ -58,7 +58,7 @@ function errorText(value: unknown) {
 function apiErrorMessage(data: unknown) {
   if (typeof data === 'string') return data
   if (isObjectRecord(data) && typeof data.detail === 'string') return data.detail
-  return 'Failed to update record'
+  return 'Không thể cập nhật bản ghi'
 }
 
 function extractFieldErrors(data: unknown, editableFieldKeys: Set<string>) {
@@ -145,13 +145,13 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
         const status = apiStatus(error)
         if (status === 404) {
           clearFieldEditing()
-          message.warning('Record not found or has been deleted')
+          message.warning('Không tìm thấy bản ghi hoặc bản ghi đã bị xóa')
           onClose()
           return
         }
         if (status === 403) {
           clearFieldEditing()
-          message.error('You do not have permission to view this record')
+          message.error('Bạn không có quyền xem bản ghi này')
           onClose()
           return
         }
@@ -159,7 +159,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
           setRecord(null)
           setLoadedRowId(null)
         }
-        message.error(options.reset ? 'Failed to load record detail' : 'Failed to refresh record')
+        message.error(options.reset ? 'Không thể tải chi tiết bản ghi' : 'Không thể làm mới bản ghi')
       })
       .finally(() => {
         if (requestId === requestIdRef.current) {
@@ -171,7 +171,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
 
   const requestClose = useCallback(() => {
     if (saving) {
-      message.warning('Please wait for save to finish')
+      message.warning('Vui lòng đợi quá trình lưu hoàn tất')
       return
     }
     clearFieldEditing()
@@ -201,7 +201,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
   const requestTabChange = useCallback((nextTab: string) => {
     if (nextTab === activeTab) return
     if (saving) {
-      message.warning('Please wait for save to finish')
+      message.warning('Vui lòng đợi quá trình lưu hoàn tất')
       return
     }
     setActiveTab(nextTab)
@@ -209,7 +209,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
 
   const saveFieldDrafts = useCallback(async () => {
     if (rowId === null || rowId === undefined) {
-      message.error('Cannot update record without an ID')
+      message.error('Không thể cập nhật bản ghi không có ID')
       return
     }
     if (!dirtyFieldKeys.length) return
@@ -232,12 +232,12 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
       setLoadedRowId(rowId)
       clearFieldEditing()
       markChanged()
-      message.success('Record updated')
+      message.success('Đã cập nhật bản ghi')
     } catch (error) {
       const status = apiStatus(error)
       if (status === 404) {
         clearFieldEditing()
-        message.warning('Record not found or has been deleted')
+        message.warning('Không tìm thấy bản ghi hoặc bản ghi đã bị xóa')
         onClose()
         return
       }
@@ -246,7 +246,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
       const nextFieldErrors = extractFieldErrors(data, dirtyFieldSet)
       if (Object.keys(nextFieldErrors).length) {
         setFieldErrors(nextFieldErrors)
-        message.error('Failed to update record')
+        message.error('Không thể cập nhật bản ghi')
       } else {
         message.error(apiErrorMessage(data))
       }
@@ -278,7 +278,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
     startFieldEdit: (key: string) => {
       const field = editableFieldMap.get(key)
       if (!field || !loadedCurrentRecord) {
-        message.error('Field is not editable')
+        message.error('Trường này không thể chỉnh sửa')
         return
       }
       setFieldErrors((previous) => removeFieldKey(previous, key))
@@ -294,7 +294,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
     setFieldDraftValue: (key: string, value: unknown) => {
       const field = editableFieldMap.get(key)
       if (!field) {
-        message.error('Field is not editable')
+        message.error('Trường này không thể chỉnh sửa')
         return
       }
       setFieldErrors((previous) => removeFieldKey(previous, key))
@@ -375,17 +375,17 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
         const status = apiStatus(error)
         if (status === 404) {
           clearFieldEditing()
-          message.warning('Record not found or has been deleted')
+          message.warning('Không tìm thấy bản ghi hoặc bản ghi đã bị xóa')
           onClose()
           return
         }
         if (status === 403) {
           clearFieldEditing()
-          message.error('You do not have permission to view this record')
+          message.error('Bạn không có quyền xem bản ghi này')
           onClose()
           return
         }
-        message.error('Failed to refresh record')
+        message.error('Không thể làm mới bản ghi')
       })
       .finally(() => {
         if (requestId === requestIdRef.current) {
@@ -401,7 +401,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
   const contentTabs = useMemo(() => [
     {
       key: 'basic',
-      label: 'Basic',
+      label: 'Thông tin cơ bản',
       icon: <FileTextOutlined />,
       render: (currentRecord: Record<string, unknown>) => config.basicView
         ? config.basicView(currentRecord, {
@@ -432,18 +432,18 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
   ), [config.key, rowId, showShare])
   const copyShareUrl = useCallback(async () => {
     if (!shareUrl) {
-      message.error('This record cannot be shared')
+      message.error('Không thể chia sẻ bản ghi này')
       return
     }
     if (!navigator.clipboard?.writeText) {
-      message.error('Clipboard is not available')
+      message.error('Trình duyệt không hỗ trợ sao chép Clipboard')
       return
     }
     try {
       await navigator.clipboard.writeText(shareUrl)
-      message.success('Share link copied')
+      message.success('Đã sao chép liên kết chia sẻ')
     } catch {
-      message.error('Failed to copy share link')
+      message.error('Không thể sao chép liên kết chia sẻ')
     }
   }, [shareUrl])
 
@@ -523,7 +523,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
                 </>
               )}
               {showShare && (
-                <Tooltip title="Copy share link">
+                <Tooltip title="Sao chép liên kết chia sẻ">
                   <Button
                     type="text"
                     size="large"
@@ -534,7 +534,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
                   />
                 </Tooltip>
               )}
-              <Tooltip title="Refresh record">
+              <Tooltip title="Làm mới bản ghi">
                 <Button
                   type="text"
                   size="large"
@@ -547,7 +547,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
               </Tooltip>
               {showActivity && (
                 <>
-                  <Tooltip title="Comments">
+                  <Tooltip title="Bình luận">
                     <Button
                       type={activityDrawer === 'comments' ? 'primary' : 'text'}
                       size="large"
@@ -557,7 +557,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
                       onClick={() => toggleActivityDrawer('comments')}
                     />
                   </Tooltip>
-                  <Tooltip title="Log">
+                  <Tooltip title="Nhật ký thay đổi">
                     <Button
                       type={activityDrawer === 'log' ? 'primary' : 'text'}
                       size="large"
@@ -574,7 +574,7 @@ export default function RecordDetailModal({ config, rowId, open, initialTabKey, 
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {loading ? <Spin style={{ margin: 32 }} /> : loadedCurrentRecord ? content?.render(loadedCurrentRecord, { onOpenResource, onChanged: markChanged, onRefresh: refreshAfterMutation }) : <Empty style={{ margin: 32 }} description="No record loaded" />}
+              {loading ? <Spin style={{ margin: 32 }} /> : loadedCurrentRecord ? content?.render(loadedCurrentRecord, { onOpenResource, onChanged: markChanged, onRefresh: refreshAfterMutation }) : <Empty style={{ margin: 32 }} description="Chưa tải được dữ liệu" />}
             </div>
             {showActivity && activityDrawer && objectId && (
               <div style={{ width: 420, borderLeft: dividerBorder, display: 'flex', flexDirection: 'column', background: '#0f0f0f', minHeight: 0 }}>

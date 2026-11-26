@@ -69,7 +69,7 @@ function AttachmentCard({
         <Typography.Text type="secondary" style={typography.compact}>{formatSize(attachment.size)}</Typography.Text>
       </div>
       {removable && (
-        <Tooltip title="Remove">
+        <Tooltip title="Xóa">
           <Button
             className="message-attachment-card-remove"
             type="text"
@@ -164,7 +164,7 @@ export default function MessageAttachments({ attachments, removable = false, com
           <Typography.Text type="secondary">({formatSize(attachment.size)})</Typography.Text>
           {removable && (
             <Button type="link" size="small" danger onClick={() => onRemove?.(attachment.id)}>
-              Remove
+              Xóa
             </Button>
           )}
         </Space>

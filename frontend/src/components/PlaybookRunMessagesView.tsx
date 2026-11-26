@@ -18,7 +18,7 @@ interface PaginatedMessages {
 
 function errorMessage(error: unknown) {
   const detail = (error as {response?: {data?: {detail?: unknown}}}).response?.data?.detail
-  return typeof detail === 'string' ? detail : 'Failed to load run messages'
+  return typeof detail === 'string' ? detail : 'Không thể tải thông báo thực thi'
 }
 
 export default function PlaybookRunMessagesView({
@@ -76,13 +76,13 @@ export default function PlaybookRunMessagesView({
       width: 88,
     },
     {
-      title: 'Time',
+      title: 'Thời gian',
       dataIndex: 'created_at',
       width: 220,
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: 'Message',
+      title: 'Thông báo',
       dataIndex: 'message',
       render: (value: string) => (
         <span style={{whiteSpace: 'pre-wrap', overflowWrap: 'anywhere'}}>{value}</span>
@@ -111,9 +111,9 @@ export default function PlaybookRunMessagesView({
           total,
           showSizeChanger: true,
           pageSizeOptions: [20, 50, 100],
-          showTotal: (count) => `${count} message${count === 1 ? '' : 's'}`,
+          showTotal: (count) => `${count} thông báo`,
         }}
-        locale={{emptyText: loading ? <span/> : <Empty description="No run messages"/>}}
+        locale={{emptyText: loading ? <span/> : <Empty description="Chưa có thông báo thực thi"/>}}
         scroll={{y: 320}}
       />
     </div>

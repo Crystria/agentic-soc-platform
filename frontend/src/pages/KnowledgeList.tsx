@@ -16,7 +16,7 @@ export default function KnowledgeList() {
       <ResourceListPage
         key={refreshKey}
         resourceKey="knowledge"
-        actions={<AddButton label="Add Knowledge" onClick={() => setCreateOpen(true)} />}
+        actions={<AddButton label="Thêm tri thức" onClick={() => setCreateOpen(true)} />}
       />
       <KnowledgeCreateModal
         open={createOpen}

@@ -22,6 +22,7 @@ import MessageAttachments from './MessageAttachments'
 import MessageComposer from './MessageComposer'
 import UserAvatar from './UserAvatar'
 import {tabularNumbersStyle, typography} from '../utils/typography'
+import {DISPLAY_DATE_LOCALE, INBOX_KIND_LABELS, localizeWithMap} from '../utils/i18n'
 import {useRealtime} from '../realtimeContext'
 
 dayjs.extend(relativeTime)
@@ -31,14 +32,14 @@ interface InboxDrawerProps {
 }
 
 function senderLabel(row: InboxMessage) {
-  if (row.kind === 'system') return 'System'
-  return row.sender_name || row.sender_username || 'Unknown user'
+  if (row.kind === 'system') return 'Hệ thống'
+  return row.sender_name || row.sender_username || 'Người dùng ẩn danh'
 }
 
 function messagePreview(row: InboxMessage) {
   if (row.body.trim()) return row.body
-  if (row.attachments.length) return `${row.attachments.length} attachment${row.attachments.length > 1 ? 's' : ''}`
-  return 'No content'
+  if (row.attachments.length) return `${row.attachments.length} tệp đính kèm`
+  return 'Không có nội dung'
 }
 
 function timeLabel(value: string) {
@@ -48,16 +49,16 @@ function timeLabel(value: string) {
 }
 
 function parentLabel(row: InboxMessage) {
-  return row.parent_author_name || row.parent_author_username || 'Unknown user'
+  return row.parent_author_name || row.parent_author_username || 'Người dùng ẩn danh'
 }
 
 function ReplyContext({ row }: { row: InboxMessage }) {
   if (!row.parent) return null
   return (
     <>
-      <span style={{ color: 'rgba(255,255,255,0.45)' }}> replied to </span>
+      <span style={{ color: 'rgba(255,255,255,0.45)' }}> đã trả lời </span>
       <span>{parentLabel(row)}</span>
-      <Tooltip title={row.parent_body || 'No text content'}>
+      <Tooltip title={row.parent_body || 'Không có nội dung văn bản'}>
         <MessageOutlined style={{ color: 'rgba(255,255,255,0.45)', fontSize: typography.compact.fontSize, marginInlineStart: 4 }} />
       </Tooltip>
     </>
@@ -66,13 +67,13 @@ function ReplyContext({ row }: { row: InboxMessage }) {
 
 function resourceName(resourceKey: string) {
   const names: Record<string, string> = {
-    cases: 'case',
-    alerts: 'alert',
-    artifacts: 'artifact',
-    enrichments: 'enrichment',
+    cases: 'vụ việc',
+    alerts: 'cảnh báo',
+    artifacts: 'thực thể',
+    enrichments: 'làm giàu dữ liệu',
     playbooks: 'playbook',
-    knowledge: 'knowledge',
-    users: 'user',
+    knowledge: 'tri thức',
+    users: 'người dùng',
   }
   return names[resourceKey] || resourceKey
 }
@@ -80,7 +81,7 @@ function resourceName(resourceKey: string) {
 function RecordLink({ message: row, onOpenResource }: { message: InboxMessage; onOpenResource?: (resourceKey: string, rowId: string | number) => void }) {
   if (!row.resource_key || !row.object_id) return null
   const canOpen = Boolean(onOpenResource)
-  const label = row.resource_label || 'related record'
+  const label = row.resource_label || 'bản ghi liên quan'
   return (
     <div style={{ ...typography.compact, marginTop: 6, color: 'rgba(255,255,255,0.68)', minWidth: 0 }}>
       <span>{resourceName(row.resource_key)}: </span>
@@ -117,14 +118,14 @@ function DeleteMessageAction({ onDelete }: { onDelete: () => Promise<void> }) {
   return (
     <span onClick={(event) => event.stopPropagation()}>
       <Popconfirm
-        title="Delete message?"
-        description="Recipients will no longer see this message."
-        okText="Delete"
-        cancelText="Cancel"
+        title="Xóa tin nhắn?"
+        description="Người nhận sẽ không còn thấy tin nhắn này."
+        okText="Xóa"
+        cancelText="Hủy"
         okButtonProps={{ danger: true }}
         onConfirm={onDelete}
       >
-        <Button type="link" danger size="small" style={{ padding: 0 }}>Delete</Button>
+        <Button type="link" danger size="small" style={{ padding: 0 }}>Xóa</Button>
       </Popconfirm>
     </span>
   )
@@ -157,7 +158,7 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
     enabled: open,
     fetchPage: fetchInboxPage,
     getItemKey: (row) => row.id,
-    errorMessage: 'Failed to load messages',
+    errorMessage: 'Không thể tải tin nhắn',
   })
 
   const loadUnreadCount = useCallback(async () => {
@@ -237,14 +238,14 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
       setRows((current) => current.map((item) => item.id === detail.id ? detail : item))
       await loadUnreadCount()
     } catch {
-      message.error('Failed to open message')
+      message.error('Không thể mở tin nhắn')
     }
   }
 
   const deleteMessage = async (row: InboxMessage) => {
     try {
       await deleteInboxMessage(row.id)
-      message.success('Message deleted')
+      message.success('Đã xóa tin nhắn')
       if (selected?.id === row.id) {
         setSelected(null)
       }
@@ -252,7 +253,7 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
       setRows((current) => current.filter((item) => item.id !== row.id))
       await loadUnreadCount()
     } catch {
-      message.error('Failed to delete message')
+      message.error('Xóa tin nhắn thất bại')
     }
   }
 
@@ -266,12 +267,12 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
       if (filter === 'all') {
         setRows((current) => current.some((item) => item.id === sentMessage.id) ? current : [sentMessage, ...current])
       }
-      message.success('Reply sent')
+      message.success('Đã gửi phản hồi')
       return
     }
 
     if (!input.mentionedIds.length) {
-      message.warning('Mention at least one user to send a message')
+      message.warning('Hãy nhắc tên (@) ít nhất một người dùng để gửi tin nhắn')
       return
     }
     const sentMessage = await createInboxMessage({
@@ -282,7 +283,7 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
     if (filter === 'all') {
       setRows((current) => current.some((item) => item.id === sentMessage.id) ? current : [sentMessage, ...current])
     }
-    message.success('Message sent')
+    message.success('Đã gửi tin nhắn')
   }
 
   return (
@@ -310,8 +311,8 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
               <Segmented
                 value={filter}
                 options={[
-                  { label: <Tooltip title="All messages"><InboxOutlined /></Tooltip>, value: 'all' },
-                  { label: <Tooltip title="Unread messages"><MailOutlined /></Tooltip>, value: 'unread' },
+                  { label: <Tooltip title="Tất cả tin nhắn"><InboxOutlined /></Tooltip>, value: 'all' },
+                  { label: <Tooltip title="Tin nhắn chưa đọc"><MailOutlined /></Tooltip>, value: 'unread' },
                 ]}
                 onChange={(value) => {
                   setSelected(null)
@@ -320,7 +321,7 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
                 }}
               />
               <Space>
-                <Tooltip title="Mark all read">
+                <Tooltip title="Đánh dấu tất cả đã đọc">
                   <Button
                     icon={<CheckCircleOutlined />}
                     onClick={async () => {
@@ -335,12 +336,12 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
                     }}
                   />
                 </Tooltip>
-                <Tooltip title="Refresh messages">
+                <Tooltip title="Làm mới tin nhắn">
                   <Button icon={<ReloadOutlined />} onClick={() => Promise.all([refreshMessages(), loadUnreadCount()])} />
                 </Tooltip>
               </Space>
             </Space>
-            <Tooltip title="Close">
+            <Tooltip title="Đóng">
               <Button icon={<CloseOutlined />} onClick={() => setOpen(false)} />
             </Tooltip>
           </div>
@@ -382,12 +383,12 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
                           <Space size={8} wrap>
                             <Tag {...comfortableTagProps} color={row.kind === 'system' ? 'purple' : 'blue'} style={{ marginInlineEnd: 0 }}>
-                              {row.kind}
+                              {localizeWithMap(row.kind, INBOX_KIND_LABELS)}
                             </Tag>
                             <Typography.Text strong={!row.is_read}>{senderLabel(row)}</Typography.Text>
                             <ReplyContext row={row} />
                           </Space>
-                          <Tooltip title={new Date(row.created_at).toLocaleString()}>
+                          <Tooltip title={new Date(row.created_at).toLocaleString(DISPLAY_DATE_LOCALE)}>
                             <Typography.Text type="secondary" style={{ ...typography.compact, ...tabularNumbersStyle, whiteSpace: 'nowrap' }}>
                               {timeLabel(row.created_at)}
                             </Typography.Text>
@@ -416,7 +417,7 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
                       >
                         {canReply(selected) && (
                           <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setReplyTo(selected)}>
-                            Reply
+                            Trả lời
                           </Button>
                         )}
                         {selected.can_delete && <DeleteMessageAction onDelete={() => deleteMessage(selected)} />}
@@ -429,19 +430,19 @@ export default function InboxDrawer({ onOpenResource }: InboxDrawerProps) {
           ) : loadError ? (
             <Alert type="error" title={loadError} showIcon style={{ margin: 24 }} />
           ) : (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No messages" style={{ marginTop: 48 }} />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có tin nhắn nào" style={{ marginTop: 48 }} />
           )}
         </div>
         {replyTo && (
           <div style={{ color: 'rgba(255,255,255,0.45)', padding: '8px 12px 0' }}>
-            Replying to {senderLabel(replyTo)}
-            <Button type="link" size="small" onClick={() => setReplyTo(null)}>Cancel</Button>
+            Đang trả lời {senderLabel(replyTo)}
+            <Button type="link" size="small" onClick={() => setReplyTo(null)}>Hủy</Button>
           </div>
         )}
         <div style={{ padding: 12, borderTop: '1px solid #303030' }}>
           <MessageComposer
             compact
-            submitLabel={replyTo ? 'Reply' : 'Send'}
+            submitLabel={replyTo ? 'Trả lời' : 'Gửi'}
             onSubmit={submitMessage}
           />
         </div>

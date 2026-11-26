@@ -1,10 +1,13 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
+from apps.agentic.analysis.hybrid_rag import (
+    hybrid_search_knowledge_records,
+    lexical_search_knowledge,
+)
 from apps.agentic.analysis.profiles import AI_PROFILE_AGENT, serialize_for_ai, serialize_case_for_investigation
 from apps.agentic.analysis.prompts import INVESTIGATION_KNOWLEDGE_KEYWORD_PROMPT, invoke_structured_llm, KNOWLEDGE_EXTRACTION_PROMPT
 from apps.agentic.analysis.schemas import KnowledgeSearchKeywords
@@ -19,6 +22,7 @@ MAX_KNOWLEDGE_TAGS = 10
 class KnowledgeContext:
     keywords: list[str]
     records: list[dict]
+    retrieval_meta: dict = field(default_factory=dict)
 
     def as_payload(self):
         return {
@@ -85,22 +89,18 @@ def search_knowledge_records(keywords, limit=MAX_KNOWLEDGE_RECORDS):
     keywords = normalize_knowledge_keywords(keywords)
     if not keywords:
         return []
-
-    keyword_query = Q()
-    for keyword in keywords:
-        keyword_query |= Q(title__icontains=keyword)
-        keyword_query |= Q(body__icontains=keyword)
-        keyword_query |= Q(tags__contains=[keyword])
-
-    valid_time_query = Q(expires_at__isnull=True) | Q(expires_at__gte=timezone.now())
-    queryset = Knowledge.objects.filter(valid_time_query).filter(keyword_query).order_by("-created_at")[:limit]
-    return [serialize_for_ai(record, AI_PROFILE_AGENT) for record in queryset]
+    records = lexical_search_knowledge(keywords, limit=limit)
+    return [serialize_for_ai(record, AI_PROFILE_AGENT) for record in records]
 
 
 def build_knowledge_context(case_payload):
     keywords = extract_knowledge_keywords(case_payload)
-    records = search_knowledge_records(keywords)
-    return KnowledgeContext(keywords=keywords, records=records)
+    records, retrieval_meta = hybrid_search_knowledge_records(
+        case_payload,
+        keywords,
+        limit=MAX_KNOWLEDGE_RECORDS,
+    )
+    return KnowledgeContext(keywords=keywords, records=records, retrieval_meta=retrieval_meta)
 
 
 class KnowledgeExtractionLLMResult(BaseModel):

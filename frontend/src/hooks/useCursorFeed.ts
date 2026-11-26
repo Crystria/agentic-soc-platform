@@ -23,7 +23,7 @@ function mergeByKey<T>(current: T[], incoming: T[], getItemKey: (item: T) => str
 
 export default function useCursorFeed<T>({
   enabled = true,
-  errorMessage = 'Failed to load data',
+  errorMessage = 'Không thể tải dữ liệu',
   fetchPage,
   getItemKey,
 }: UseCursorFeedOptions<T>) {

@@ -6,6 +6,7 @@ import type {ChoiceOption, FieldEditingController} from '../types/records'
 import client from '../api/client'
 import {type AiAssessmentFieldKey, applyCaseAiAssessment} from '../api/aiDecision'
 import {message} from '../utils/appMessage'
+import {AI_FIELD_LABELS, localizeAiFieldList, localizeChoiceLabel} from '../utils/i18n'
 import {DescriptionValue, EditableDescriptionValue} from './DescriptionValue'
 import DetailSectionDivider from './DetailSectionDivider'
 import {descriptionStyles} from './descriptionValueStyles'
@@ -24,11 +25,11 @@ interface CaseBasicViewProps {
 }
 
 const AI_FIELD_OPTIONS: Array<{ key: AiAssessmentFieldKey; aiKey: string; label: string }> = [
-  { key: 'verdict', aiKey: 'verdict_ai', label: 'Verdict' },
-  { key: 'severity', aiKey: 'severity_ai', label: 'Severity' },
-  { key: 'impact', aiKey: 'impact_ai', label: 'Impact' },
-  { key: 'priority', aiKey: 'priority_ai', label: 'Priority' },
-  { key: 'confidence', aiKey: 'confidence_ai', label: 'Confidence' },
+  { key: 'verdict', aiKey: 'verdict_ai', label: AI_FIELD_LABELS.verdict },
+  { key: 'severity', aiKey: 'severity_ai', label: AI_FIELD_LABELS.severity },
+  { key: 'impact', aiKey: 'impact_ai', label: AI_FIELD_LABELS.impact },
+  { key: 'priority', aiKey: 'priority_ai', label: AI_FIELD_LABELS.priority },
+  { key: 'confidence', aiKey: 'confidence_ai', label: AI_FIELD_LABELS.confidence },
 ]
 
 const value = (record: RecordRow, key: string) => record[key]
@@ -58,7 +59,7 @@ const tags = (items: unknown) => Array.isArray(items) && items.length
   ? <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>{items.map((item) => <Tag {...comfortableTagProps} key={String(item)} color="blue" style={{ marginInlineEnd: 0 }}>{String(item)}</Tag>)}</span>
   : emptyValueNode()
 const verdictChoiceTag = (next: string, selected?: boolean) => next
-  ? <Tag {...comfortableTagProps} variant={selected ? 'solid' : 'outlined'} color={verdictColors[next]} style={{ marginInlineEnd: 0 }}>{next}</Tag>
+  ? <Tag {...comfortableTagProps} variant={selected ? 'solid' : 'outlined'} color={verdictColors[next]} style={{ marginInlineEnd: 0 }}>{localizeChoiceLabel(next)}</Tag>
   : emptyValueNode()
 
 function apiErrorMessage(error: unknown, fallback: string) {
@@ -103,7 +104,7 @@ function aiComparisonTag(humanVal: unknown, aiVal: unknown, renderTag: (v: unkno
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
       {renderTag(aiVal)}
-      {diff ? <Tag color="orange" style={{ marginInlineEnd: 0 }}>Differs</Tag> : null}
+      {diff ? <Tag color="orange" style={{ marginInlineEnd: 0 }}>Khác biệt</Tag> : null}
     </span>
   )
 }
@@ -189,10 +190,10 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
       const { applied_fields: appliedFields } = await applyCaseAiAssessment(caseId, {
         apply_digest_to_summary: !String(record.summary || '').trim(),
       })
-      message.success(`Applied AI assessment (${appliedFields.join(', ')})`)
+      message.success(`Đã áp dụng đánh giá AI (${localizeAiFieldList(appliedFields)})`)
       onRefresh?.()
     } catch (error) {
-      message.error(apiErrorMessage(error, 'Failed to apply AI assessment'))
+      message.error(apiErrorMessage(error, 'Không thể áp dụng đánh giá AI'))
     } finally {
       setApplyingAi(false)
     }
@@ -207,7 +208,7 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
 
   const submitReviewModal = async () => {
     if (!caseId || !selectedFields.length) {
-      message.warning('Select at least one AI field to apply')
+      message.warning('Chọn ít nhất một trường AI để áp dụng')
       return
     }
     setApplyingAi(true)
@@ -217,11 +218,11 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
         apply_digest_to_summary: copyDigest,
         decision_note: decisionNote,
       })
-      message.success(`Updated analyst decision (${appliedFields.join(', ')})`)
+      message.success(`Đã cập nhật quyết định của chuyên viên (${localizeAiFieldList(appliedFields)})`)
       setReviewOpen(false)
       onRefresh?.()
     } catch (error) {
-      message.error(apiErrorMessage(error, 'Failed to save AI-assisted decision'))
+      message.error(apiErrorMessage(error, 'Không thể lưu quyết định có AI hỗ trợ'))
     } finally {
       setApplyingAi(false)
     }
@@ -232,11 +233,11 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
     : stringValue(record, 'assignee_name')
 
   const summaryItems: DescriptionsProps['items'] = [
-    { key: 'case-id', label: 'Case ID', children: mono(upperStringValue(record, 'case_id')) },
-    inlineSelectItem('status', 'Status', 'status', controller, statusTag(String(value(record, 'status') || '')), false),
+    { key: 'case-id', label: 'Mã vụ việc', children: mono(upperStringValue(record, 'case_id')) },
+    inlineSelectItem('status', 'Trạng thái', 'status', controller, statusTag(String(value(record, 'status') || '')), false),
     {
       key: 'assignee',
-      label: assigneeState && controller ? editableLabel('Assignee') : 'Assignee',
+      label: assigneeState && controller ? editableLabel('Người phụ trách') : 'Người phụ trách',
       children: assigneeState && controller ? (
         <InlineUserEditor
           value={assigneeState.value ? String(assigneeState.value) : null}
@@ -251,26 +252,26 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
       ) : <DescriptionValue>{stringValue(record, 'assignee_name')}</DescriptionValue>,
     },
     textItem('spacer', '', null),
-    inlineSelectItem('severity', 'Severity', 'severity', controller, riskTag(value(record, 'severity'))),
-    inlineSelectItem('confidence', 'Confidence', 'confidence', controller, riskTag(value(record, 'confidence'))),
-    inlineSelectItem('impact', 'Impact', 'impact', controller, riskTag(value(record, 'impact'))),
-    inlineSelectItem('priority', 'Priority', 'priority', controller, riskTag(value(record, 'priority'))),
-    textItem('severity-ai', 'Severity (AI)', aiComparisonTag(value(record, 'severity'), value(record, 'severity_ai'), riskTag)),
-    textItem('confidence-ai', 'Confidence (AI)', aiComparisonTag(value(record, 'confidence'), value(record, 'confidence_ai'), riskTag)),
-    textItem('impact-ai', 'Impact (AI)', aiComparisonTag(value(record, 'impact'), value(record, 'impact_ai'), riskTag)),
-    textItem('priority-ai', 'Priority (AI)', aiComparisonTag(value(record, 'priority'), value(record, 'priority_ai'), riskTag)),
-    textItem('category', 'Category', caseCategoryTag(String(value(record, 'category') || ''))),
+    inlineSelectItem('severity', 'Mức độ nghiêm trọng', 'severity', controller, riskTag(value(record, 'severity'))),
+    inlineSelectItem('confidence', 'Độ tin cậy', 'confidence', controller, riskTag(value(record, 'confidence'))),
+    inlineSelectItem('impact', 'Tác động', 'impact', controller, riskTag(value(record, 'impact'))),
+    inlineSelectItem('priority', 'Độ ưu tiên', 'priority', controller, riskTag(value(record, 'priority'))),
+    textItem('severity-ai', 'Mức độ nghiêm trọng (AI)', aiComparisonTag(value(record, 'severity'), value(record, 'severity_ai'), riskTag)),
+    textItem('confidence-ai', 'Độ tin cậy (AI)', aiComparisonTag(value(record, 'confidence'), value(record, 'confidence_ai'), riskTag)),
+    textItem('impact-ai', 'Tác động (AI)', aiComparisonTag(value(record, 'impact'), value(record, 'impact_ai'), riskTag)),
+    textItem('priority-ai', 'Độ ưu tiên (AI)', aiComparisonTag(value(record, 'priority'), value(record, 'priority_ai'), riskTag)),
+    textItem('category', 'Danh mục', caseCategoryTag(String(value(record, 'category') || ''))),
     { key: 'correlation-uid', label: 'Correlation UID', children: mono(stringValue(record, 'correlation_uid')) },
-    textItem('tags', 'Tags', tags(value(record, 'tags')), 2),
-    { key: 'description', label: 'Description', span: 4, children: block(stringValue(record, 'description')) },
-    textItem('first-alert-seen-time', 'First Seen Alert', formatDateTime(String(value(record, 'first_alert_seen_time') || ''))),
-    textItem('detection-time', 'Detection Time (TTD)', formatDurationSeconds(value(record, 'detection_time_seconds'))),
+    textItem('tags', 'Thẻ (Tags)', tags(value(record, 'tags')), 2),
+    { key: 'description', label: 'Mô tả', span: 4, children: block(stringValue(record, 'description')) },
+    textItem('first-alert-seen-time', 'Cảnh báo đầu tiên', formatDateTime(String(value(record, 'first_alert_seen_time') || ''))),
+    textItem('detection-time', 'Thời gian phát hiện (TTD)', formatDurationSeconds(value(record, 'detection_time_seconds'))),
   ]
 
   const inProcessItems: DescriptionsProps['items'] = [
     {
       key: 'acknowledged-time',
-      label: acknowledgedTimeState && controller ? editableLabel('Acknowledged Time') : 'Acknowledged Time',
+      label: acknowledgedTimeState && controller ? editableLabel('Thời gian tiếp nhận') : 'Thời gian tiếp nhận',
       children: acknowledgedTimeState && controller ? (
         <EditableDescriptionValue
           state={acknowledgedTimeState}
@@ -287,13 +288,13 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
         />
       ) : <DescriptionValue>{formatDateTime(String(value(record, 'acknowledged_time') || ''))}</DescriptionValue>,
     },
-    textItem('acknowledgement-time', 'Time to Acknowledge (TTA)', formatDurationSeconds(value(record, 'acknowledgement_time_seconds'))),
+    textItem('acknowledgement-time', 'Thời gian tiếp nhận (TTA)', formatDurationSeconds(value(record, 'acknowledgement_time_seconds'))),
   ]
 
   const resolvedItems: DescriptionsProps['items'] = [
     {
       key: 'closed-time',
-      label: closedTimeState && controller ? editableLabel('Closed Time') : 'Closed Time',
+      label: closedTimeState && controller ? editableLabel('Thời gian đóng') : 'Thời gian đóng',
       children: closedTimeState && controller ? (
         <EditableDescriptionValue
           state={closedTimeState}
@@ -310,17 +311,17 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
         />
       ) : <DescriptionValue>{formatDateTime(String(value(record, 'closed_time') || ''))}</DescriptionValue>,
     },
-    textItem('response-time', 'Time to Respond (TTR)', formatDurationSeconds(value(record, 'response_time_seconds'))),
+    textItem('response-time', 'Thời gian xử lý (TTR)', formatDurationSeconds(value(record, 'response_time_seconds'))),
     {
       key: 'verdict',
-      label: verdictState && controller ? editableLabel('Verdict') : 'Verdict',
+      label: verdictState && controller ? editableLabel('Phán quyết') : 'Phán quyết',
       children: verdictState && controller ? (
         <InlineTagChoiceEditor
           value={String(verdictState.value ?? '')}
           disabled={verdictState.saving}
           options={verdictState.options}
           renderTag={verdictChoiceTag}
-          clearLabel="Unset"
+          clearLabel="Bỏ chọn"
           onStart={() => controller.startFieldEdit('verdict')}
           onChange={(next) => controller.setFieldDraftValue('verdict', next)}
           onComplete={() => controller.finishFieldEdit('verdict')}
@@ -328,10 +329,10 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
         />
       ) : <DescriptionValue>{verdictTag(String(value(record, 'verdict') || ''))}</DescriptionValue>,
     },
-    textItem('verdict-ai', 'Verdict (AI)', aiComparisonTag(value(record, 'verdict'), value(record, 'verdict_ai'), (v) => verdictTag(String(v || '')))),
+    textItem('verdict-ai', 'Phán quyết (AI)', aiComparisonTag(value(record, 'verdict'), value(record, 'verdict_ai'), (v) => verdictTag(String(v || '')))),
     {
       key: 'summary',
-      label: summaryState && controller ? editableLabel('Summary') : 'Summary',
+      label: summaryState && controller ? editableLabel('Tóm tắt') : 'Tóm tắt',
       span: 4,
       children: summaryState && controller ? (
         <InlineMarkdownEditor
@@ -353,12 +354,12 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
           showIcon
           icon={<RobotOutlined />}
           style={{ marginBottom: 16 }}
-          title={`AI Decision Assistant (${alignedCount}/${availableAiFields.length} fields aligned)`}
-          description="Accept the AI assessment directly or review and selectively override with an analyst decision note."
+          title={`Trợ lý Quyết định AI (${alignedCount}/${availableAiFields.length} trường khớp nhau)`}
+          description="Chấp nhận trực tiếp toàn bộ đánh giá của AI hoặc xem xét và ghi đè từng trường kèm ghi chú của chuyên viên."
           action={(
             <Space wrap>
               <Button size="small" icon={<SlidersOutlined />} onClick={openReviewModal} disabled={applyingAi}>
-                Review & Override
+                Xem xét & Ghi đè
               </Button>
               <Button
                 size="small"
@@ -367,28 +368,28 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
                 loading={applyingAi}
                 onClick={handleAcceptAllAi}
               >
-                Accept All AI
+                Chấp nhận tất cả từ AI
               </Button>
             </Space>
           )}
         />
       )}
       <Section showTitle={false} items={summaryItems} />
-      <Section title="In Process & On Hold" items={inProcessItems} />
-      <Section title="Resolved & Close" items={resolvedItems} />
+      <Section title="Đang xử lý & Tạm hoãn" items={inProcessItems} />
+      <Section title="Đã giải quyết & Đóng" items={resolvedItems} />
 
       <Modal
-        title="Review & Apply AI Assessment"
+        title="Xem xét & Áp dụng Đánh giá AI"
         open={reviewOpen}
         onCancel={() => setReviewOpen(false)}
         onOk={submitReviewModal}
-        okText="Apply Selected"
+        okText="Áp dụng mục đã chọn"
         confirmLoading={applyingAi}
         destroyOnHidden
       >
         <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           <div>
-            <div style={{ marginBottom: 8, fontWeight: 600 }}>Fields to copy from AI assessment</div>
+            <div style={{ marginBottom: 8, fontWeight: 600 }}>Các trường sao chép từ đánh giá AI</div>
             <Checkbox.Group
               value={selectedFields}
               onChange={(values) => setSelectedFields(values as AiAssessmentFieldKey[])}
@@ -398,9 +399,9 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
                 <Checkbox key={item.key} value={item.key}>
                   <Space size={6}>
                     <span>{item.label}:</span>
-                    <Tag color="blue">{String(record[item.aiKey] || '—')}</Tag>
+                    <Tag color="blue">{localizeChoiceLabel(record[item.aiKey]) || '—'}</Tag>
                     <span style={{ color: 'rgba(255,255,255,0.45)' }}>
-                      (current: {String(record[item.key] || 'Unset')})
+                      (hiện tại: {localizeChoiceLabel(record[item.key]) || 'Chưa chọn'})
                     </span>
                   </Space>
                 </Checkbox>
@@ -408,15 +409,15 @@ export default function CaseBasicView({ record, fieldController, onRefresh }: Ca
             </Checkbox.Group>
           </div>
           <Checkbox checked={copyDigest} onChange={(event) => setCopyDigest(event.target.checked)}>
-            Copy AI investigation digest into Case Summary
+            Sao chép bản tóm tắt điều tra AI vào Tóm tắt vụ việc
           </Checkbox>
           <div>
-            <div style={{ marginBottom: 6, fontWeight: 600 }}>Decision Note (optional, posted to Case Comments)</div>
+            <div style={{ marginBottom: 6, fontWeight: 600 }}>Ghi chú quyết định (tùy chọn, sẽ lưu vào Bình luận vụ việc)</div>
             <Input.TextArea
               rows={3}
               value={decisionNote}
               onChange={(event) => setDecisionNote(event.target.value)}
-              placeholder="Explain why you accepted or overrode the AI recommendation..."
+              placeholder="Giải thích lý do bạn chấp nhận hoặc ghi đè khuyến nghị từ AI..."
             />
           </div>
         </Space>

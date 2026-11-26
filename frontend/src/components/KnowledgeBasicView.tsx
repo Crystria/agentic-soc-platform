@@ -51,11 +51,11 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
   const canOpenCase = source === 'Case' && caseRowId !== null && onOpenResource
 
   const summaryItems: DescriptionsProps['items'] = [
-    { key: 'knowledge-id', label: 'Knowledge ID', children: mono(upperStringValue(record, 'knowledge_id')) },
-    { key: 'source', label: 'Source', children: <DescriptionValue>{knowledgeSourceTag(String(value(record, 'source') || ''))}</DescriptionValue> },
+    { key: 'knowledge-id', label: 'Mã tri thức', children: mono(upperStringValue(record, 'knowledge_id')) },
+    { key: 'source', label: 'Nguồn', children: <DescriptionValue>{knowledgeSourceTag(String(value(record, 'source') || ''))}</DescriptionValue> },
     ...(source === 'Case' ? [{
       key: 'case',
-      label: 'Case',
+      label: 'Vụ việc',
       children: canOpenCase && caseRowId !== null ? (
         <DescriptionValue mono>
           <Button
@@ -71,7 +71,7 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
     }] : []),
     {
       key: 'expires-at',
-      label: expiresAtState && controller ? editableLabel('Expires At') : 'Expires At',
+      label: expiresAtState && controller ? editableLabel('Hết hạn lúc') : 'Hết hạn lúc',
       children: expiresAtState && controller ? (
         <EditableDescriptionValue
           state={expiresAtState}
@@ -80,7 +80,7 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
               value={expiresAtState.value ? String(expiresAtState.value) : null}
               disabled={expiresAtState.saving}
               autoFocus={false}
-              placeholder="Leave empty to never expire"
+              placeholder="Để trống nếu không hết hạn"
               onChange={(next) => controller.setFieldDraftValue('expires_at', next)}
               onComplete={() => controller.finishFieldEdit('expires_at')}
               onCancel={() => controller.cancelFieldDraft('expires_at')}
@@ -107,7 +107,7 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
           {titleState && controller ? (
             <div style={{ width: '100%', minWidth: 0 }}>
               <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>
-                {editableLabel('Title')}
+                {editableLabel('Tiêu đề')}
               </div>
               <div style={{ height: 32, width: '100%', minWidth: 0 }}>
                 <InlineTextEditor
@@ -122,14 +122,14 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
             </div>
           ) : (
             <div style={{ minWidth: 0 }}>
-              <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Title</div>
+              <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Tiêu đề</div>
               <div style={{ ...typography.body, height: 32, display: 'flex', alignItems: 'center', color: token.colorText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stringValue(record, 'title')}</div>
             </div>
           )}
           {tagsState && controller ? (
             <div style={{ width: '100%', minWidth: 0 }}>
               <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>
-                {editableLabel('Tags')}
+                {editableLabel('Thẻ')}
               </div>
               <div style={{ height: 32, width: '100%', minWidth: 0 }}>
                 <InlineTagsEditor
@@ -144,7 +144,7 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
             </div>
           ) : (
             <div style={{ minWidth: 0 }}>
-              <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Tags</div>
+              <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Thẻ</div>
               <div style={{ height: 32, display: 'flex', alignItems: 'center', minWidth: 0 }}>{renderTags(value(record, 'tags'))}</div>
             </div>
           )}
@@ -152,7 +152,7 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
         {bodyState && controller ? (
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>
-              {editableLabel('Body')}
+              {editableLabel('Nội dung')}
             </div>
             <div style={{ flex: 1, minHeight: 0 }}>
               <InlineMarkdownEditor
@@ -166,7 +166,7 @@ export default function KnowledgeBasicView({ record, fieldController, onOpenReso
           </div>
         ) : (
           <>
-            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Body</div>
+            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Nội dung</div>
             <div style={{ width: '100%', minWidth: 0, minHeight: 0, flex: 1 }}>
               <MarkdownPreview source={String(value(record, 'body') || '')} height="100%" minHeight="100%" />
             </div>

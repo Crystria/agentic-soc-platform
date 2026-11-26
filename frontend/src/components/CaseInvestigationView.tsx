@@ -12,6 +12,14 @@ import {
 } from '../api/aiDecision'
 import {useAuthStore} from '../stores/auth'
 import {message} from '../utils/appMessage'
+import {
+  AI_FIELD_LABELS,
+  COVERAGE_STATE_LABELS,
+  PLAYBOOK_JOB_STATUS_LABELS,
+  localizeAiFieldList,
+  localizeChoiceLabel,
+  localizeWithMap,
+} from '../utils/i18n'
 import {CasePlaybookRunModal} from './CasePlaybookRunModal'
 import InvestigationReportView from './InvestigationReportView'
 
@@ -29,21 +37,21 @@ function errorMessage(error: unknown) {
   const data = (error as { response?: { data?: unknown } }).response?.data
   if (typeof data === 'string') return data
   if (data && typeof data === 'object' && 'detail' in data) {
-    return String((data as { detail?: unknown }).detail || 'Failed to load investigation report')
+    return String((data as { detail?: unknown }).detail || 'Không thể tải báo cáo điều tra')
   }
-  return 'Failed to load investigation report'
+  return 'Không thể tải báo cáo điều tra'
 }
 
 function agreementTag(row: AiQualityFieldComparison) {
-  if (row.agrees === true) return <Tag color="green">Match</Tag>
-  if (row.agrees === false) return <Tag color="orange">Mismatch</Tag>
-  return <Tag>Not evaluable</Tag>
+  if (row.agrees === true) return <Tag color="green">Khớp</Tag>
+  if (row.agrees === false) return <Tag color="orange">Lệch</Tag>
+  return <Tag>Chưa thể đánh giá</Tag>
 }
 
 function directionLabel(row: AiQualityFieldComparison) {
   if (!row.direction || row.distance === null) return '—'
-  if (row.direction === 'match') return 'Exact (0)'
-  return `${row.direction === 'overestimate' ? 'AI higher' : 'AI lower'} (${row.distance})`
+  if (row.direction === 'match') return 'Chính xác (0)'
+  return `${row.direction === 'overestimate' ? 'AI đánh giá cao hơn' : 'AI đánh giá thấp hơn'} (${row.distance})`
 }
 
 export default function CaseInvestigationView({ caseId, hasSummary = false, onRefresh }: CaseInvestigationViewProps) {
@@ -105,7 +113,7 @@ export default function CaseInvestigationView({ caseId, hasSummary = false, onRe
       const { applied_fields: appliedFields } = await applyCaseAiAssessment(caseId, {
         apply_digest_to_summary: !hasSummary,
       })
-      message.success(`Applied AI assessment (${appliedFields.join(', ')})`)
+      message.success(`Đã áp dụng đánh giá AI (${localizeAiFieldList(appliedFields)})`)
       onRefresh?.()
       loadReport()
     } catch (applyError) {
@@ -120,7 +128,7 @@ export default function CaseInvestigationView({ caseId, hasSummary = false, onRe
     setAnalyzing(true)
     try {
       const job = await triggerCaseAiAnalysis(caseId)
-      message.success(`Queued AI investigation job (${job.status})`)
+      message.success(`Đã xếp hàng đợi tác vụ điều tra AI (${localizeWithMap(job.status, PLAYBOOK_JOB_STATUS_LABELS, job.status)})`)
     } catch (analyzeError) {
       message.error(errorMessage(analyzeError))
     } finally {
@@ -129,29 +137,34 @@ export default function CaseInvestigationView({ caseId, hasSummary = false, onRe
   }
 
   const comparisonColumns = useMemo<ColumnsType<AiQualityFieldComparison>>(() => [
-    { title: 'Field', dataIndex: 'label', width: 120 },
     {
-      title: 'AI Value',
-      dataIndex: 'ai_value',
-      width: 160,
-      render: (val: string) => val ? <Tag color="blue">{val}</Tag> : '—',
-    },
-    {
-      title: 'Human Value',
-      dataIndex: 'human_value',
-      width: 160,
-      render: (val: string) => val ? <Tag>{val}</Tag> : '—',
-    },
-    {
-      title: 'Agreement',
-      key: 'agreement',
+      title: 'Trường',
+      dataIndex: 'label',
       width: 140,
+      render: (val: string, row) => AI_FIELD_LABELS[row.field] || val,
+    },
+    {
+      title: 'Giá trị AI',
+      dataIndex: 'ai_value',
+      width: 170,
+      render: (val: string) => val ? <Tag color="blue">{localizeChoiceLabel(val)}</Tag> : '—',
+    },
+    {
+      title: 'Chuyên viên chọn',
+      dataIndex: 'human_value',
+      width: 170,
+      render: (val: string) => val ? <Tag>{localizeChoiceLabel(val)}</Tag> : '—',
+    },
+    {
+      title: 'Độ khớp',
+      key: 'agreement',
+      width: 150,
       render: (_, row) => agreementTag(row),
     },
     {
-      title: 'Direction / Distance',
+      title: 'Xu hướng / Độ lệch',
       key: 'direction',
-      width: 180,
+      width: 200,
       render: (_, row) => directionLabel(row),
     },
   ], [])
@@ -164,7 +177,7 @@ export default function CaseInvestigationView({ caseId, hasSummary = false, onRe
           type="error"
           showIcon
           title={error}
-          action={<Button size="small" icon={<ReloadOutlined />} onClick={loadReport}>Retry</Button>}
+          action={<Button size="small" icon={<ReloadOutlined />} onClick={loadReport}>Thử lại</Button>}
         />
       </div>
     )
@@ -179,16 +192,18 @@ export default function CaseInvestigationView({ caseId, hasSummary = false, onRe
             title={(
               <Space size={8}>
                 <RobotOutlined />
-                <span>AI–Human Assessment Alignment</span>
+                <span>Đối chiếu Đánh giá AI – Chuyên viên</span>
                 <Tag color={quality.coverage_state === 'Evaluated' ? 'green' : 'gold'}>
-                  {quality.is_preview ? `Preview · ${quality.coverage_state}` : quality.coverage_state}
+                  {quality.is_preview
+                    ? `Xem trước · ${localizeWithMap(quality.coverage_state, COVERAGE_STATE_LABELS, quality.coverage_state)}`
+                    : localizeWithMap(quality.coverage_state, COVERAGE_STATE_LABELS, quality.coverage_state)}
                 </Tag>
               </Space>
             )}
             extra={canWrite ? (
               <Space wrap>
                 <Button size="small" icon={<ReloadOutlined />} loading={analyzing} onClick={handleTriggerAnalysis}>
-                  Re-run AI Analysis
+                  Chạy lại phân tích AI
                 </Button>
                 {hasAiValues && (
                   <Button
@@ -198,7 +213,7 @@ export default function CaseInvestigationView({ caseId, hasSummary = false, onRe
                     loading={applying}
                     onClick={handleApplyAi}
                   >
-                    Apply AI Values
+                    Áp dụng giá trị AI
                   </Button>
                 )}
               </Space>

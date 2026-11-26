@@ -8,6 +8,7 @@ import {message} from '../utils/appMessage'
 import {DescriptionValue} from './DescriptionValue'
 import {descriptionStyles} from './descriptionValueStyles'
 import {emptyValue, formatDateTime, formatDurationSeconds, severityTag} from '../utils/recordDisplay'
+import {localizeWithMap, SEVERITY_LABELS} from '../utils/i18n'
 import {monoTextStyle} from '../utils/typography'
 import PlaybookRunMessagesView from './PlaybookRunMessagesView'
 
@@ -89,15 +90,15 @@ export default function PlaybookBasicView({ record, onOpenResource, onRefresh, r
     try {
       if (decision === 'approve') {
         await approvePlaybookRun(playbookRunId, approvalNote)
-        message.success('Playbook approved and queued for execution')
+        message.success('Đã phê duyệt và đưa playbook vào hàng đợi thực thi')
       } else {
         await rejectPlaybookRun(playbookRunId, approvalNote)
-        message.success('Playbook run rejected')
+        message.success('Đã từ chối lượt chạy playbook')
       }
       setApprovalNote('')
       onRefresh?.()
     } catch (error) {
-      message.error(apiErrorMessage(error, `Failed to ${decision} playbook run`))
+      message.error(apiErrorMessage(error, decision === 'approve' ? 'Phê duyệt lượt chạy playbook thất bại' : 'Từ chối lượt chạy playbook thất bại'))
     } finally {
       setSubmittingAction(null)
     }
@@ -115,24 +116,24 @@ export default function PlaybookBasicView({ record, onOpenResource, onRefresh, r
   ) : caseLabel
 
   const summaryItems: DescriptionsProps['items'] = [
-    { key: 'playbook-id', label: 'Playbook ID', children: <DescriptionValue mono>{upperStringValue(record, 'playbook_id')}</DescriptionValue> },
-    item('status', 'Status', renderStatus(value(record, 'job_status'))),
-    item('risk-level', 'Risk Level', severityTag(riskLevel)),
-    item('case', 'Case', caseLink),
-    item('user', 'Requested By', stringValue(record, 'user_username')),
-    item('name', 'Name', stringValue(record, 'name')),
-    item('approved-by', 'Reviewed By', stringValue(record, 'approved_by_username')),
-    item('approved-at', 'Reviewed Time', formatDateTime(String(value(record, 'approved_at') || ''))),
+    { key: 'playbook-id', label: 'Mã Playbook', children: <DescriptionValue mono>{upperStringValue(record, 'playbook_id')}</DescriptionValue> },
+    item('status', 'Trạng thái', renderStatus(value(record, 'job_status'))),
+    item('risk-level', 'Mức rủi ro', severityTag(riskLevel)),
+    item('case', 'Vụ việc', caseLink),
+    item('user', 'Người yêu cầu', stringValue(record, 'user_username')),
+    item('name', 'Tên', stringValue(record, 'name')),
+    item('approved-by', 'Người duyệt', stringValue(record, 'approved_by_username')),
+    item('approved-at', 'Thời gian duyệt', formatDateTime(String(value(record, 'approved_at') || ''))),
     { key: 'job-id', label: 'Job ID', children: <DescriptionValue><span style={monoTextStyle}>{stringValue(record, 'job_id')}</span></DescriptionValue> },
-    item('started-at', 'Started Time', formatDateTime(String(value(record, 'started_at') || ''))),
-    item('finished-at', 'Finished Time', formatDateTime(String(value(record, 'finished_at') || ''))),
-    item('duration', 'Duration', formatDurationSeconds(value(record, 'duration_seconds'))),
+    item('started-at', 'Bắt đầu lúc', formatDateTime(String(value(record, 'started_at') || ''))),
+    item('finished-at', 'Hoàn thành lúc', formatDateTime(String(value(record, 'finished_at') || ''))),
+    item('duration', 'Thời lượng', formatDurationSeconds(value(record, 'duration_seconds'))),
   ]
 
   const inputItems: DescriptionsProps['items'] = [
-    blockItem('user-input', 'User Input', stringValue(record, 'user_input')),
-    blockItem('approval-note', 'Approval Note', stringValue(record, 'approval_note')),
-    blockItem('remark', 'Remark', stringValue(record, 'remark')),
+    blockItem('user-input', 'Đầu vào người dùng', stringValue(record, 'user_input')),
+    blockItem('approval-note', 'Ghi chú phê duyệt', stringValue(record, 'approval_note')),
+    blockItem('remark', 'Ghi chú', stringValue(record, 'remark')),
   ]
 
   return (
@@ -143,16 +144,16 @@ export default function PlaybookBasicView({ record, onOpenResource, onRefresh, r
           showIcon
           icon={<SafetyCertificateOutlined />}
           style={{ marginBottom: 16 }}
-          title={`Human-in-the-Loop Approval Required (${riskLevel || 'High'} Risk)`}
+          title={`Yêu cầu phê duyệt thủ công (Rủi ro ${localizeWithMap(riskLevel || 'High', SEVERITY_LABELS).toLowerCase()})`}
           description={(
             <Space orientation="vertical" style={{ width: '100%', marginTop: 6 }}>
-              <span>This playbook will remain paused until an analyst approves or rejects execution.</span>
+              <span>Playbook này sẽ tạm dừng cho đến khi chuyên viên phân tích phê duyệt hoặc từ chối thực thi.</span>
               {canDecide && (
                 <Space wrap style={{ width: '100%' }}>
                   <Input
                     value={approvalNote}
                     onChange={(event) => setApprovalNote(event.target.value)}
-                    placeholder="Optional approval or rejection rationale"
+                    placeholder="Lý do phê duyệt hoặc từ chối (tùy chọn)"
                     style={{ width: 320 }}
                     disabled={submittingAction !== null}
                   />
@@ -163,7 +164,7 @@ export default function PlaybookBasicView({ record, onOpenResource, onRefresh, r
                     disabled={submittingAction === 'reject'}
                     onClick={() => handleDecision('approve')}
                   >
-                    Approve & Queue
+                    Phê duyệt & Đưa vào hàng đợi
                   </Button>
                   <Button
                     danger
@@ -172,7 +173,7 @@ export default function PlaybookBasicView({ record, onOpenResource, onRefresh, r
                     disabled={submittingAction === 'approve'}
                     onClick={() => handleDecision('reject')}
                   >
-                    Reject
+                    Từ chối
                   </Button>
                 </Space>
               )}

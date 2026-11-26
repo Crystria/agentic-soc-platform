@@ -11,6 +11,7 @@ import MessageAttachments from './MessageAttachments'
 import MessageComposer from './MessageComposer'
 import UserAvatar from './UserAvatar'
 import {tabularNumbersStyle, typography} from '../utils/typography'
+import {DISPLAY_DATE_LOCALE} from '../utils/i18n'
 import {useRealtime} from '../realtimeContext'
 
 dayjs.extend(relativeTime)
@@ -34,20 +35,20 @@ function timeLabel(value: string) {
 }
 
 function authorLabel(comment: RecordComment) {
-  return comment.author_name || comment.author_username || 'Unknown user'
+  return comment.author_name || comment.author_username || 'Người dùng ẩn danh'
 }
 
 function parentLabel(comment: RecordComment) {
-  return comment.parent_author_name || comment.parent_author_username || 'Unknown user'
+  return comment.parent_author_name || comment.parent_author_username || 'Người dùng ẩn danh'
 }
 
 function ReplyContext({ comment }: { comment: RecordComment }) {
   if (!comment.parent) return null
   return (
     <>
-      <span style={{ color: 'rgba(255,255,255,0.45)' }}> replied to </span>
+      <span style={{ color: 'rgba(255,255,255,0.45)' }}> đã trả lời </span>
       <span>{parentLabel(comment)}</span>
-      <Tooltip title={comment.parent_body || 'No text content'}>
+      <Tooltip title={comment.parent_body || 'Không có nội dung văn bản'}>
         <MessageOutlined style={{ color: 'rgba(255,255,255,0.45)', fontSize: typography.compact.fontSize, marginInlineStart: 4 }} />
       </Tooltip>
     </>
@@ -57,14 +58,14 @@ function ReplyContext({ comment }: { comment: RecordComment }) {
 function DeleteCommentAction({ onDelete }: { onDelete: () => Promise<void> }) {
   return (
     <Popconfirm
-      title="Delete comment?"
-      description="This comment and its replies will be deleted."
-      okText="Delete"
-      cancelText="Cancel"
+      title="Xóa bình luận?"
+      description="Bình luận này và các phản hồi sẽ bị xóa."
+      okText="Xóa"
+      cancelText="Hủy"
       okButtonProps={{ danger: true }}
       onConfirm={onDelete}
     >
-      <Button type="link" danger size="small" style={{ padding: 0 }}>Delete</Button>
+      <Button type="link" danger size="small" style={{ padding: 0 }}>Xóa</Button>
     </Popconfirm>
   )
 }
@@ -96,7 +97,7 @@ function CommentItem({
               <span>{authorLabel(comment)}</span>
               <ReplyContext comment={comment} />
             </Space>
-            <Tooltip title={new Date(comment.created_at).toLocaleString()}>
+            <Tooltip title={new Date(comment.created_at).toLocaleString(DISPLAY_DATE_LOCALE)}>
               <span style={{ ...typography.compact, ...tabularNumbersStyle, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
                 {timeLabel(comment.created_at)}
               </span>
@@ -111,7 +112,7 @@ function CommentItem({
         )}
       />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, visibility: hovered ? 'visible' : 'hidden' }}>
-        <Button size="small" type="link" style={{ padding: 0 }} onClick={() => onReply(comment)}>Reply</Button>
+        <Button size="small" type="link" style={{ padding: 0 }} onClick={() => onReply(comment)}>Trả lời</Button>
         {comment.can_delete && <DeleteCommentAction onDelete={() => onDelete(comment)} />}
       </div>
     </List.Item>
@@ -141,7 +142,7 @@ export default function DiscussionThread({ contentType, objectId }: DiscussionTh
   } = useCursorFeed({
     fetchPage: fetchCommentPage,
     getItemKey: (comment) => comment.id,
-    errorMessage: 'Failed to load comments',
+    errorMessage: 'Không thể tải bình luận',
   })
 
   useEffect(() => {
@@ -193,9 +194,9 @@ export default function DiscussionThread({ contentType, objectId }: DiscussionTh
       })
       setReplyTo(null)
       setComments((current) => current.some((comment) => comment.id === createdComment.id) ? current : [...current, createdComment])
-      message.success('Comment added')
+      message.success('Đã thêm bình luận')
     } catch {
-      message.error('Failed to add comment')
+      message.error('Thêm bình luận thất bại')
     } finally {
       setActionLoading(false)
     }
@@ -207,9 +208,9 @@ export default function DiscussionThread({ contentType, objectId }: DiscussionTh
       await deleteComment(comment.id)
       setReplyTo(null)
       setComments((current) => current.filter((item) => item.id !== comment.id))
-      message.success('Comment deleted')
+      message.success('Đã xóa bình luận')
     } catch {
-      message.error('Failed to delete comment')
+      message.error('Xóa bình luận thất bại')
     } finally {
       setActionLoading(false)
     }
@@ -220,7 +221,7 @@ export default function DiscussionThread({ contentType, objectId }: DiscussionTh
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <Input
           prefix={<SearchOutlined />}
-          placeholder="Search comments"
+          placeholder="Tìm kiếm bình luận"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           allowClear
@@ -232,8 +233,8 @@ export default function DiscussionThread({ contentType, objectId }: DiscussionTh
         <List
           loading={loadingInitial}
           dataSource={filteredComments}
-          loadMore={hasMore ? <FeedLoadMore label="Load more comments" loading={loadingMore} onClick={loadMore} /> : null}
-          locale={{ emptyText: 'No comments yet' }}
+          loadMore={hasMore ? <FeedLoadMore label="Tải thêm bình luận" loading={loadingMore} onClick={loadMore} /> : null}
+          locale={{ emptyText: 'Chưa có bình luận nào' }}
           renderItem={(comment) => (
             <CommentItem
               comment={comment}
@@ -247,14 +248,14 @@ export default function DiscussionThread({ contentType, objectId }: DiscussionTh
       </div>
       {replyTo && (
         <div style={{ color: 'rgba(255,255,255,0.45)', margin: '8px 0' }}>
-          Replying to {replyTo.author_name || replyTo.author_username}
-          <Button type="link" size="small" onClick={() => setReplyTo(null)}>Cancel</Button>
+          Đang trả lời {replyTo.author_name || replyTo.author_username}
+          <Button type="link" size="small" onClick={() => setReplyTo(null)}>Hủy</Button>
         </div>
       )}
       <MessageComposer
-        placeholder="@member, press Enter to publish, Shift+Enter for a new line"
+        placeholder="@thành_viên, nhấn Enter để gửi, Shift+Enter để xuống dòng"
         disabled={actionLoading}
-        submitLabel="Comment"
+        submitLabel="Bình luận"
         onSubmit={submit}
       />
     </div>

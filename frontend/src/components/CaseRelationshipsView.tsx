@@ -37,6 +37,7 @@ import {
 } from '../api/caseRelationships'
 import {useAuthStore} from '../stores/auth'
 import {message} from '../utils/appMessage'
+import {localizeChoiceLabel} from '../utils/i18n'
 import {formatDateTime, severityTag, statusTag, verdictTag} from '../utils/recordDisplay'
 import type {ResourceColumn, ResourceFilterConfig} from '../types/records'
 import DataTable from './DataTable'
@@ -57,15 +58,15 @@ interface CaseRelationshipsViewProps {
 }
 
 const relationshipTypeOptions = [
-  {label: 'Related', value: 'Related'},
-  {label: 'Duplicate of', value: 'Duplicate of'},
-  {label: 'Parent of', value: 'Parent of'},
+  {label: 'Liên quan', value: 'Related'},
+  {label: 'Trùng lặp với', value: 'Duplicate of'},
+  {label: 'Vụ việc cha của', value: 'Parent of'},
 ]
 
 const relationshipFilters: ResourceFilterConfig[] = [
   {
     key: 'relationship_type',
-    label: 'Relationship',
+    label: 'Mối quan hệ',
     valueType: 'select',
     options: relationshipTypeOptions,
   },
@@ -92,11 +93,11 @@ function otherCase(relationship: CaseRelationship, currentCaseId: string) {
 
 function relationLabel(relationship: CaseRelationship, currentCaseId: string) {
   const isSource = relationship.source_case.id === currentCaseId
-  if (relationship.relationship_type === 'Related') return 'Related'
+  if (relationship.relationship_type === 'Related') return 'Liên quan'
   if (relationship.relationship_type === 'Duplicate of') {
-    return isSource ? 'Duplicate of' : 'Has duplicate'
+    return isSource ? 'Trùng với' : 'Bị trùng bởi'
   }
-  return isSource ? 'Parent of' : 'Child of'
+  return isSource ? 'Vụ việc cha của' : 'Vụ việc con của'
 }
 
 function directionFor(relationship: CaseRelationship, currentCaseId: string): RelationshipDirection {
@@ -153,7 +154,7 @@ export default function CaseRelationshipsView({
       }
     } catch (error) {
       if (requestId === suggestionRequestRef.current) {
-        setSuggestionsError(apiErrorMessage(error, 'Failed to load related Case suggestions'))
+        setSuggestionsError(apiErrorMessage(error, 'Không thể tải gợi ý vụ việc liên quan'))
       }
     } finally {
       if (requestId === suggestionRequestRef.current) {
@@ -187,7 +188,7 @@ export default function CaseRelationshipsView({
       }
     } catch (error) {
       if (requestId === searchRequestRef.current) {
-        message.error(apiErrorMessage(error, 'Failed to search Cases'))
+        message.error(apiErrorMessage(error, 'Không thể tìm kiếm vụ việc'))
       }
     }
   }, [caseId])
@@ -224,16 +225,16 @@ export default function CaseRelationshipsView({
       const payload = relationshipPayload(values, caseId)
       if (editing) {
         await updateCaseRelationship(editing.id, payload)
-        message.success('Case relationship updated')
+        message.success('Đã cập nhật mối quan hệ vụ việc')
       } else {
         await createCaseRelationship(payload)
-        message.success('Case relationship created')
+        message.success('Đã tạo mối quan hệ vụ việc')
       }
       setModalOpen(false)
       refreshRelationships()
     } catch (error) {
       if ((error as {errorFields?: unknown}).errorFields) return
-      message.error(apiErrorMessage(error, 'Failed to save Case relationship'))
+      message.error(apiErrorMessage(error, 'Không thể lưu mối quan hệ vụ việc'))
     } finally {
       setSaving(false)
     }
@@ -242,10 +243,10 @@ export default function CaseRelationshipsView({
   const removeRelationship = async (relationship: CaseRelationship) => {
     try {
       await deleteCaseRelationship(relationship.id)
-      message.success('Case relationship deleted')
+      message.success('Đã xóa mối quan hệ vụ việc')
       refreshRelationships()
     } catch (error) {
-      message.error(apiErrorMessage(error, 'Failed to delete Case relationship'))
+      message.error(apiErrorMessage(error, 'Không thể xóa mối quan hệ vụ việc'))
     }
   }
 
@@ -257,11 +258,11 @@ export default function CaseRelationshipsView({
         relationship_type: 'Related',
         note: '',
       })
-      message.success('Related Case added')
+      message.success('Đã thêm vụ việc liên quan')
       setSuggestions((current) => current.filter((item) => item.case.id !== suggestion.case.id))
       refreshRelationships()
     } catch (error) {
-      message.error(apiErrorMessage(error, 'Failed to add related Case'))
+      message.error(apiErrorMessage(error, 'Không thể thêm vụ việc liên quan'))
     }
   }, [caseId, refreshRelationships])
 
@@ -275,22 +276,22 @@ export default function CaseRelationshipsView({
 
   const relationshipColumns = useMemo<ResourceColumn<CaseRelationship>[]>(() => [
     {
-      title: 'Relationship',
+      title: 'Mối quan hệ',
       key: 'relationship',
       dataIndex: 'relationship_type',
-      width: 140,
+      width: 150,
       defaultVisible: true,
       sorter: true,
       render: (value, row) => (
         <Tag color="blue">
           {row.source_case && row.target_case
             ? relationLabel(row, caseId)
-            : String(value || '')}
+            : localizeChoiceLabel(value)}
         </Tag>
       ),
     },
     {
-      title: 'Case ID',
+      title: 'Mã vụ việc',
       key: 'case_id',
       required: true,
       defaultVisible: true,
@@ -303,35 +304,35 @@ export default function CaseRelationshipsView({
       },
     },
     {
-      title: 'Title',
+      title: 'Tiêu đề',
       key: 'title',
       defaultVisible: true,
       width: 360,
       render: (_value, row) => otherCase(row, caseId).title,
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       key: 'status',
       width: 130,
       defaultVisible: true,
       render: (_value, row) => statusTag(otherCase(row, caseId).status),
     },
     {
-      title: 'Severity',
+      title: 'Mức nghiêm trọng',
       key: 'severity',
-      width: 120,
+      width: 140,
       defaultVisible: true,
       render: (_value, row) => severityTag(otherCase(row, caseId).severity),
     },
     {
-      title: 'Verdict',
+      title: 'Phán quyết',
       key: 'verdict',
       width: 150,
       defaultVisible: true,
       render: (_value, row) => verdictTag(otherCase(row, caseId).verdict),
     },
     {
-      title: 'Note',
+      title: 'Ghi chú',
       dataIndex: 'note',
       key: 'note',
       width: 280,
@@ -339,7 +340,7 @@ export default function CaseRelationshipsView({
       render: (value) => String(value || '—'),
     },
     {
-      title: 'Created',
+      title: 'Thời gian tạo',
       key: 'created',
       dataIndex: 'created_at',
       width: 190,
@@ -348,18 +349,18 @@ export default function CaseRelationshipsView({
       render: (_value, row) => formatDateTime(row.created_at),
     },
     {
-      title: 'Created By',
+      title: 'Người tạo',
       key: 'created_by',
       dataIndex: 'created_by',
       width: 140,
       defaultVisible: true,
-      render: (value) => String(value || 'System'),
+      render: (value) => String(value || 'Hệ thống'),
     },
   ], [caseId])
 
   const suggestionColumns = useMemo<ColumnsType<CaseRelationshipSuggestion>>(() => [
     {
-      title: 'Case',
+      title: 'Vụ việc',
       key: 'case',
       width: 360,
       render: (_value, suggestion) => (
@@ -379,14 +380,14 @@ export default function CaseRelationshipsView({
       ),
     },
     {
-      title: 'Shared',
+      title: 'Trùng khớp',
       dataIndex: 'shared_artifact_count',
       key: 'shared_artifact_count',
-      width: 100,
-      render: (count: number) => `${count} Artifact${count === 1 ? '' : 's'}`,
+      width: 120,
+      render: (count: number) => `${count} thực thể`,
     },
     {
-      title: 'Evidence',
+      title: 'Bằng chứng chung',
       key: 'evidence',
       render: (_value, suggestion) => (
         <Space wrap size={[4, 4]}>
@@ -395,7 +396,7 @@ export default function CaseRelationshipsView({
               key={artifact.id}
               style={{maxWidth: '100%', whiteSpace: 'normal', overflowWrap: 'anywhere'}}
             >
-              {artifact.type}: {artifact.value}
+              {localizeChoiceLabel(artifact.type)}: {artifact.value}
             </Tag>
           ))}
           {suggestion.shared_artifact_count > suggestion.shared_artifacts.length && (
@@ -407,16 +408,16 @@ export default function CaseRelationshipsView({
       ),
     },
     ...(canWrite ? [{
-      title: 'Actions',
+      title: 'Thao tác',
       key: 'actions',
-      width: 120,
+      width: 140,
       align: 'center' as const,
       render: (_value: unknown, suggestion: CaseRelationshipSuggestion) => (
         <Popconfirm
-          title={`Relate ${suggestion.case.case_id.toUpperCase()} to this Case?`}
+          title={`Liên kết ${suggestion.case.case_id.toUpperCase()} với vụ việc này?`}
           onConfirm={() => acceptSuggestion(suggestion)}
         >
-          <Button type="link" size="small">Add as Related</Button>
+          <Button type="link" size="small">Thêm liên kết</Button>
         </Popconfirm>
       ),
     }] : []),
@@ -439,11 +440,11 @@ export default function CaseRelationshipsView({
           actions={(
             <Space size={4}>
               {canWrite && (
-                <Tooltip title="Add relationship">
+                <Tooltip title="Thêm mối quan hệ">
                   <Button icon={<PlusOutlined />} onClick={openCreate} />
                 </Tooltip>
               )}
-              <Tooltip title="Find suggestions">
+              <Tooltip title="Tìm gợi ý liên quan">
                 <Button
                   icon={<SearchOutlined />}
                   loading={suggestionsLoading}
@@ -454,7 +455,7 @@ export default function CaseRelationshipsView({
           )}
           rowActions={canWrite ? (row) => (
             <Space size={4}>
-              <Tooltip title="Edit relationship">
+              <Tooltip title="Sửa mối quan hệ">
                 <Button
                   type="text"
                   size="small"
@@ -463,13 +464,14 @@ export default function CaseRelationshipsView({
                 />
               </Tooltip>
               <Popconfirm
-                title="Delete this relationship?"
-                description="This action cannot be undone."
-                okText="Delete"
+                title="Xóa mối quan hệ này?"
+                description="Hành động này không thể hoàn tác."
+                okText="Xóa"
+                cancelText="Hủy"
                 okButtonProps={{danger: true}}
                 onConfirm={() => removeRelationship(row)}
               >
-                <Tooltip title="Delete relationship">
+                <Tooltip title="Xóa mối quan hệ">
                   <Button type="text" size="small" danger icon={<DeleteOutlined />} />
                 </Tooltip>
               </Popconfirm>
@@ -481,7 +483,7 @@ export default function CaseRelationshipsView({
         title={(
           <span style={{display: 'inline-flex', alignItems: 'center', gap: 10}}>
             <SearchOutlined style={{color: token.colorPrimary}} />
-            <span>Suggested Cases</span>
+            <span>Gợi ý Vụ việc Liên quan</span>
           </span>
         )}
         open={suggestionsOpen}
@@ -510,7 +512,7 @@ export default function CaseRelationshipsView({
                 loading={suggestionsLoading}
                 onClick={() => void loadSuggestions()}
               >
-                Retry
+                Thử lại
               </Button>
             )}
           />
@@ -523,16 +525,16 @@ export default function CaseRelationshipsView({
             size="small"
             tableLayout="fixed"
             pagination={false}
-            locale={{emptyText: <Empty description="No suggestions" />}}
+            locale={{emptyText: <Empty description="Không có gợi ý" />}}
           />
         )}
       </Modal>
       <Modal
-        title={editing ? 'Edit Case relationship' : 'Add Case relationship'}
+        title={editing ? 'Chỉnh sửa mối quan hệ vụ việc' : 'Thêm mối quan hệ vụ việc'}
         open={modalOpen}
         width={640}
         confirmLoading={saving}
-        okText={editing ? 'Save' : 'Add'}
+        okText={editing ? 'Lưu' : 'Thêm'}
         onOk={() => void saveRelationship()}
         onCancel={() => setModalOpen(false)}
         destroyOnHidden
@@ -540,30 +542,30 @@ export default function CaseRelationshipsView({
         <Form form={form} layout="vertical" preserve={false}>
           <Form.Item
             name="relationship_type"
-            label="Relationship"
-            rules={[{required: true, message: 'Select a relationship type'}]}
+            label="Mối quan hệ"
+            rules={[{required: true, message: 'Vui lòng chọn loại mối quan hệ'}]}
           >
             <Select options={relationshipTypeOptions} />
           </Form.Item>
           {relationshipType !== 'Related' && (
             <Form.Item
               name="direction"
-              label="Direction"
-              rules={[{required: true, message: 'Select a direction'}]}
+              label="Chiều quan hệ"
+              rules={[{required: true, message: 'Vui lòng chọn chiều quan hệ'}]}
             >
               <Select
                 options={[
                   {
                     value: 'current_to_other',
                     label: relationshipType === 'Parent of'
-                      ? 'This Case is parent of selected Case'
-                      : 'This Case is duplicate of selected Case',
+                      ? 'Vụ việc này là cha của vụ việc đã chọn'
+                      : 'Vụ việc này trùng với vụ việc đã chọn',
                   },
                   {
                     value: 'other_to_current',
                     label: relationshipType === 'Parent of'
-                      ? 'Selected Case is parent of this Case'
-                      : 'Selected Case is duplicate of this Case',
+                      ? 'Vụ việc đã chọn là cha của vụ việc này'
+                      : 'Vụ việc đã chọn trùng với vụ việc này',
                   },
                 ]}
               />
@@ -571,15 +573,15 @@ export default function CaseRelationshipsView({
           )}
           <Form.Item
             name="other_case_id"
-            label="Case"
-            rules={[{required: true, message: 'Select a Case'}]}
+            label="Vụ việc"
+            rules={[{required: true, message: 'Vui lòng chọn một vụ việc'}]}
           >
             <Select
               showSearch
               filterOption={false}
               disabled={Boolean(editing)}
               options={caseSelectOptions}
-              placeholder="Search by Case ID or title"
+              placeholder="Tìm theo Mã vụ việc hoặc tiêu đề"
               onSearch={(value) => void loadCaseOptions(value)}
               onFocus={() => {
                 if (!caseOptions.length) void loadCaseOptions('')
@@ -588,8 +590,8 @@ export default function CaseRelationshipsView({
           </Form.Item>
           <Form.Item
             name="note"
-            label="Note"
-            rules={[{max: 500, message: 'Note must be 500 characters or fewer'}]}
+            label="Ghi chú"
+            rules={[{max: 500, message: 'Ghi chú tối đa 500 ký tự'}]}
           >
             <Input.TextArea rows={4} showCount maxLength={500} />
           </Form.Item>

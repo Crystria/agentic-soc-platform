@@ -1,8 +1,13 @@
+from io import StringIO
+import os
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.core.management import call_command
+from django.test import SimpleTestCase, TestCase
 
-from apps.settings.models import ThreatIntelOpenCTIConfig
+from apps.settings.env_sync import collect_env_llm_specs, sync_llm_providers_from_env
+from apps.settings.models import LLMProviderConfig, ThreatIntelOpenCTIConfig
+from apps.settings.runtime_config import get_llm_configs, invalidate
 from apps.settings.serializers import ThreatIntelOpenCTIConfigSerializer
 from apps.settings.services import test_alienvault_otx_config, test_opencti_config
 
@@ -109,3 +114,76 @@ class ThreatIntelOpenCTIServiceTests(SimpleTestCase):
 
         self.assertFalse(result["success"])
         self.assertEqual(result["detail"], "OpenCTI API token is not configured.")
+
+
+class EnvLLMProviderSyncTests(TestCase):
+    def setUp(self):
+        invalidate("llm")
+
+    def tearDown(self):
+        invalidate("llm")
+
+    def test_should_collect_gemini_defaults_and_multiple_models_from_env(self):
+        specs = collect_env_llm_specs(
+            {
+                "GEMINI_API_KEY": "test-gemini-key",
+                "GEMINI_MODELS": "gemini-2.5-flash,gemini-2.5-pro",
+                "GEMINI_TAGS": "structured_output,fast",
+            }
+        )
+
+        self.assertEqual(len(specs), 2)
+        self.assertEqual(specs[0]["name"], "env:gemini")
+        self.assertEqual(specs[0]["base_url"], "https://generativelanguage.googleapis.com/v1beta/openai")
+        self.assertEqual(specs[0]["model"], "gemini-2.5-flash")
+        self.assertEqual(specs[0]["tags"], ["structured_output", "fast"])
+        self.assertEqual(specs[0]["priority"], 50)
+        self.assertEqual(specs[1]["name"], "env:gemini:2")
+        self.assertEqual(specs[1]["model"], "gemini-2.5-pro")
+        self.assertEqual(specs[1]["priority"], 51)
+
+    def test_should_upsert_providers_idempotently_and_never_leak_api_key(self):
+        env = {"API_KEY_GEMINI": "secret-google-key-value", "GEMINI_MODEL": "gemini-2.5-flash"}
+        first = sync_llm_providers_from_env(environ=env)
+        second = sync_llm_providers_from_env(environ=env)
+
+        self.assertEqual(first[0]["action"], "created")
+        self.assertEqual(second[0]["action"], "unchanged")
+        self.assertNotIn("api_key", first[0])
+
+        provider = LLMProviderConfig.objects.get(name="env:gemini")
+        self.assertEqual(provider.model, "gemini-2.5-flash")
+        self.assertEqual(provider.api_key, "secret-google-key-value")
+
+        updated = sync_llm_providers_from_env(
+            environ={"API_KEY_GEMINI": "secret-google-key-value", "GEMINI_MODEL": "gemini-2.5-pro"}
+        )
+        self.assertEqual(updated[0]["action"], "updated")
+        provider.refresh_from_db()
+        self.assertEqual(provider.model, "gemini-2.5-pro")
+
+    def test_should_fallback_to_env_when_db_has_no_enabled_providers(self):
+        LLMProviderConfig.objects.all().delete()
+        invalidate("llm")
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "fallback-key"}, clear=True):
+            configs = get_llm_configs()
+
+        self.assertTrue(
+            any(
+                item["name"] == "env:gemini"
+                and item["model"] == "gemini-flash-latest"
+                and item["api_key"] == "fallback-key"
+                for item in configs
+            )
+        )
+
+    def test_should_run_sync_command_without_printing_secrets(self):
+        out = StringIO()
+        secret_value = "AIzaSy-DO-NOT-PRINT-ME"
+        with patch.dict(os.environ, {"GEMINI_API_KEY": secret_value}, clear=True):
+            with patch("apps.settings.management.commands.sync_llm_providers.load_project_dotenv_files"):
+                call_command("sync_llm_providers", stdout=out)
+
+        output = out.getvalue()
+        self.assertIn("env:gemini", output)
+        self.assertNotIn(secret_value, output)

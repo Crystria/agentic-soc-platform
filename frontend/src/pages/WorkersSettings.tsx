@@ -3,6 +3,7 @@ import {Alert, Table, Typography} from 'antd'
 import type {ColumnsType} from 'antd/es/table'
 import client from '../api/client'
 import {choiceTag, emptyValueNode, formatDateTime, formatDurationSeconds} from '../utils/recordDisplay'
+import {localizeWithMap, WORKER_STATE_LABELS} from '../utils/i18n'
 
 interface WorkerError {
   type: string
@@ -37,7 +38,7 @@ const STATE_COLORS: Record<WorkerHealth['state'], string> = {
 
 function errorMessage(error: unknown) {
   const detail = (error as {response?: {data?: {detail?: unknown}}}).response?.data?.detail
-  return typeof detail === 'string' ? detail : 'Failed to load worker health.'
+  return typeof detail === 'string' ? detail : 'Không thể tải trạng thái worker.'
 }
 
 function duration(worker: WorkerHealth) {
@@ -92,62 +93,62 @@ export default function WorkersSettings() {
       fixed: 'left',
     },
     {
-      title: 'State',
+      title: 'Trạng thái',
       dataIndex: 'state',
       key: 'state',
       width: 220,
       render: (state: WorkerHealth['state'], worker) => (
         <span style={{display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap'}}>
-          {choiceTag(state, STATE_COLORS[state])}
+          {choiceTag(localizeWithMap(state, WORKER_STATE_LABELS), STATE_COLORS[state])}
           {worker.reason ? <Typography.Text type="secondary">{worker.reason.replaceAll('_', ' ')}</Typography.Text> : null}
         </span>
       ),
     },
     {
-      title: 'Current / Last Duration',
+      title: 'Thời lượng hiện tại / gần nhất',
       key: 'duration',
       width: 180,
       render: (_, worker) => duration(worker),
     },
     {
-      title: 'Current / Last Task',
+      title: 'Tác vụ hiện tại / gần nhất',
       dataIndex: 'last_message',
       key: 'last_message',
       width: 360,
       render: (value: string, worker) => (
-        worker.state === 'Running' ? 'Worker iteration is running.' : value || emptyValueNode()
+        worker.state === 'Running' ? 'Worker đang thực thi tác vụ.' : value || emptyValueNode()
       ),
     },
     {
-      title: 'Last Heartbeat',
+      title: 'Nhịp tim gần nhất',
       dataIndex: 'heartbeat_at',
       key: 'heartbeat_at',
       width: 180,
       render: formatDateTime,
     },
     {
-      title: 'Last Success',
+      title: 'Thành công gần nhất',
       dataIndex: 'last_iteration_success_at',
       key: 'last_iteration_success_at',
       width: 180,
       render: formatDateTime,
     },
     {
-      title: 'Last Processed',
+      title: 'Xử lý gần nhất',
       dataIndex: 'last_processed_at',
       key: 'last_processed_at',
       width: 180,
       render: formatDateTime,
     },
     {
-      title: 'Last Failure',
+      title: 'Lỗi gần nhất (lúc)',
       dataIndex: 'last_failure_at',
       key: 'last_failure_at',
       width: 180,
       render: formatDateTime,
     },
     {
-      title: 'Last Error',
+      title: 'Chi tiết lỗi gần nhất',
       dataIndex: 'last_error',
       key: 'last_error',
       width: 280,

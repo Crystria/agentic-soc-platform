@@ -1,4 +1,5 @@
 import {Descriptions} from 'antd'
+import {localizeChoiceLabel} from '../utils/i18n'
 import {artifactRoleTag, choiceTag, emptyValue} from '../utils/recordDisplay'
 import {monoTextStyle} from '../utils/typography'
 
@@ -25,12 +26,12 @@ export default function ArtifactBasicView({ record }: ArtifactBasicViewProps) {
         column={4}
         style={{ paddingTop: 4 }}
       >
-        <Descriptions.Item label="Artifact ID">
+        <Descriptions.Item label="Mã thực thể">
           <span style={monoTextStyle}>{upperStringValue(record, 'artifact_id')}</span>
         </Descriptions.Item>
-        <Descriptions.Item label="Type">{choiceTag(String(value(record, 'type') || ''), 'geekblue')}</Descriptions.Item>
-        <Descriptions.Item label="Role">{artifactRoleTag(String(value(record, 'role') || ''))}</Descriptions.Item>
-        <Descriptions.Item label="Value" span={4}>
+        <Descriptions.Item label="Loại">{choiceTag(localizeChoiceLabel(value(record, 'type')) || '', 'geekblue')}</Descriptions.Item>
+        <Descriptions.Item label="Vai trò">{artifactRoleTag(String(value(record, 'role') || ''))}</Descriptions.Item>
+        <Descriptions.Item label="Giá trị" span={4}>
           <div
             style={{
               ...monoTextStyle,

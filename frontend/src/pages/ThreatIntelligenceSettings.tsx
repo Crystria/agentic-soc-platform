@@ -84,7 +84,7 @@ export default function ThreatIntelligenceSettings() {
       otxForm.setFieldsValue({ ...initialOTXValues(), ...otxResponse.data })
       openctiForm.setFieldsValue({ ...initialOpenCTIValues(), ...openctiResponse.data })
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to load threat intelligence configuration'))
+      message.error(apiErrorMessage(error, 'Không thể tải cấu hình tình báo mối đe dọa'))
     } finally {
       setLoading(false)
     }
@@ -105,9 +105,9 @@ export default function ThreatIntelligenceSettings() {
         proxy: values.proxy || '',
       })
       otxForm.setFieldsValue({ ...initialOTXValues(), ...data, api_key: values.api_key || '' })
-      message.success('AlienVault OTX configuration saved')
+      message.success('Đã lưu cấu hình AlienVault OTX')
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save AlienVault OTX configuration'))
+      message.error(apiErrorMessage(error, 'Lưu cấu hình AlienVault OTX thất bại'))
     } finally {
       setSavingProvider(null)
     }
@@ -125,7 +125,7 @@ export default function ThreatIntelligenceSettings() {
       if (data.success) message.success(data.detail)
       else message.error(data.detail)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to test AlienVault OTX configuration'))
+      message.error(apiErrorMessage(error, 'Kiểm tra cấu hình AlienVault OTX thất bại'))
     } finally {
       setTestingProvider(null)
     }
@@ -141,9 +141,9 @@ export default function ThreatIntelligenceSettings() {
         proxy: values.proxy || '',
       })
       openctiForm.setFieldsValue({ ...initialOpenCTIValues(), ...data, token: values.token || '' })
-      message.success('OpenCTI configuration saved')
+      message.success('Đã lưu cấu hình OpenCTI')
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save OpenCTI configuration'))
+      message.error(apiErrorMessage(error, 'Lưu cấu hình OpenCTI thất bại'))
     } finally {
       setSavingProvider(null)
     }
@@ -161,7 +161,7 @@ export default function ThreatIntelligenceSettings() {
       if (data.success) message.success(data.detail)
       else message.error(data.detail)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to test OpenCTI configuration'))
+      message.error(apiErrorMessage(error, 'Kiểm tra cấu hình OpenCTI thất bại'))
     } finally {
       setTestingProvider(null)
     }
@@ -178,21 +178,21 @@ export default function ThreatIntelligenceSettings() {
             children: (
               <Card loading={loading}>
                 <Form form={otxForm} layout="vertical" initialValues={initialOTXValues()} style={{ maxWidth: 760 }}>
-                  <Form.Item name="enabled" label="Enabled" valuePropName="checked">
+                  <Form.Item name="enabled" label="Bật" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                   <Form.Item name="base_url" label="Base URL" rules={[{ required: true }, { type: 'url' }]}>
                     <Input placeholder="https://otx.alienvault.com/api/v1" />
                   </Form.Item>
-                  <Form.Item name="api_key" label="API Key" rules={[{ required: true, message: 'API key is required' }]}>
+                  <Form.Item name="api_key" label="API Key" rules={[{ required: true, message: 'API key là bắt buộc' }]}>
                     <Input.Password autoComplete="new-password" />
                   </Form.Item>
                   <Form.Item name="proxy" label="Proxy">
                     <Input placeholder="http://127.0.0.1:7890" />
                   </Form.Item>
                   <Space>
-                    <Button onClick={testOTXConfig} loading={testingProvider === 'otx'}>Test</Button>
-                    <Button type="primary" onClick={saveOTXConfig} loading={savingProvider === 'otx'}>Save</Button>
+                    <Button onClick={testOTXConfig} loading={testingProvider === 'otx'}>Kiểm tra</Button>
+                    <Button type="primary" onClick={saveOTXConfig} loading={savingProvider === 'otx'}>Lưu</Button>
                   </Space>
                 </Form>
               </Card>
@@ -205,24 +205,24 @@ export default function ThreatIntelligenceSettings() {
             children: (
               <Card loading={loading}>
                 <Form form={openctiForm} layout="vertical" initialValues={initialOpenCTIValues()} style={{ maxWidth: 760 }}>
-                  <Form.Item name="enabled" label="Enabled" valuePropName="checked">
+                  <Form.Item name="enabled" label="Bật" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                   <Form.Item name="url" label="Base URL" rules={[{ required: true }, { type: 'url' }]}>
                     <Input placeholder="http://localhost:8080" />
                   </Form.Item>
-                  <Form.Item name="token" label="API Token" rules={[{ required: true, message: 'API token is required' }]}>
+                  <Form.Item name="token" label="API Token" rules={[{ required: true, message: 'API token là bắt buộc' }]}>
                     <Input.Password autoComplete="new-password" />
                   </Form.Item>
-                  <Form.Item name="ssl_verify" label="SSL Verify" valuePropName="checked">
+                  <Form.Item name="ssl_verify" label="Xác minh SSL" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                   <Form.Item name="proxy" label="Proxy">
                     <Input placeholder="http://127.0.0.1:7890" />
                   </Form.Item>
                   <Space>
-                    <Button onClick={testOpenCTIConfig} loading={testingProvider === 'opencti'}>Test</Button>
-                    <Button type="primary" onClick={saveOpenCTIConfig} loading={savingProvider === 'opencti'}>Save</Button>
+                    <Button onClick={testOpenCTIConfig} loading={testingProvider === 'opencti'}>Kiểm tra</Button>
+                    <Button type="primary" onClick={saveOpenCTIConfig} loading={savingProvider === 'opencti'}>Lưu</Button>
                   </Space>
                 </Form>
               </Card>

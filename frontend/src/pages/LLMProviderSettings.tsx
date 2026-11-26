@@ -96,7 +96,7 @@ export default function LLMProviderSettings() {
       setEditing(data)
       form.setFieldsValue({ ...initialValues(), ...data })
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to load LLM provider'))
+      message.error(apiErrorMessage(error, 'Không thể tải thông tin nhà cung cấp LLM'))
       setModalOpen(false)
     }
   }
@@ -119,15 +119,15 @@ export default function LLMProviderSettings() {
       }
       if (editing) {
         await client.patch(`/settings/llm-providers/${editing.id}/`, payload)
-        message.success('LLM provider updated')
+        message.success('Đã cập nhật nhà cung cấp LLM')
       } else {
         await client.post('/settings/llm-providers/', payload)
-        message.success('LLM provider created')
+        message.success('Đã tạo nhà cung cấp LLM')
       }
       closeModal()
       refresh()
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save LLM provider'))
+      message.error(apiErrorMessage(error, 'Lưu nhà cung cấp LLM thất bại'))
     } finally {
       setSaving(false)
     }
@@ -144,10 +144,10 @@ export default function LLMProviderSettings() {
   const updateProviderStatus = async (record: LLMProviderConfig, enabled: boolean) => {
     try {
       await client.patch(`/settings/llm-providers/${record.id}/`, { enabled })
-      message.success(enabled ? 'LLM provider enabled' : 'LLM provider disabled')
+      message.success(enabled ? 'Đã bật nhà cung cấp LLM' : 'Đã tắt nhà cung cấp LLM')
       refresh()
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to update LLM provider status'))
+      message.error(apiErrorMessage(error, 'Cập nhật trạng thái nhà cung cấp LLM thất bại'))
     }
   }
 
@@ -157,7 +157,7 @@ export default function LLMProviderSettings() {
       const { data } = await client.post<LLMTestResult>(`/settings/llm-providers/${record.id}/test/`)
       showTestResult(data)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to test LLM provider'))
+      message.error(apiErrorMessage(error, 'Kiểm tra kết nối nhà cung cấp LLM thất bại'))
     } finally {
       setTestingId(null)
     }
@@ -178,7 +178,7 @@ export default function LLMProviderSettings() {
       })
       showTestResult(data)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to test LLM provider'))
+      message.error(apiErrorMessage(error, 'Kiểm tra kết nối nhà cung cấp LLM thất bại'))
     } finally {
       setTestingForm(false)
     }
@@ -210,7 +210,7 @@ export default function LLMProviderSettings() {
               }}
             />
             <Popconfirm
-              title={record.enabled ? 'Disable LLM provider?' : 'Enable LLM provider?'}
+              title={record.enabled ? 'Tắt nhà cung cấp LLM?' : 'Bật nhà cung cấp LLM?'}
               onConfirm={(event) => {
                 event?.stopPropagation()
                 return updateProviderStatus(record as LLMProviderConfig, !record.enabled)
@@ -241,22 +241,22 @@ export default function LLMProviderSettings() {
         fillParent
       />
       <Modal
-        title={editing ? `LLM Provider: ${editing.name}` : 'Add LLM Provider'}
+        title={editing ? `Nhà cung cấp LLM: ${editing.name}` : 'Thêm nhà cung cấp LLM'}
         open={modalOpen}
         onCancel={closeModal}
         width={760}
         destroyOnHidden
         footer={(
           <Space>
-            <Button onClick={testFormProvider} loading={testingForm}>Test</Button>
-            <Button onClick={closeModal}>Cancel</Button>
-            <Button type="primary" loading={saving} onClick={saveProvider}>Save</Button>
+            <Button onClick={testFormProvider} loading={testingForm}>Kiểm tra</Button>
+            <Button onClick={closeModal}>Hủy</Button>
+            <Button type="primary" loading={saving} onClick={saveProvider}>Lưu</Button>
           </Space>
         )}
       >
         <Form form={form} layout="vertical" initialValues={initialValues()} style={{ paddingTop: 8 }}>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input placeholder="Primary OpenAI-compatible provider" />
+          <Form.Item name="name" label="Tên" rules={[{ required: true }]}>
+            <Input placeholder="Nhà cung cấp chính tương thích OpenAI" />
           </Form.Item>
           <Form.Item name="base_url" label="Base URL" rules={[{ required: true }, { type: 'url' }]}>
             <Input placeholder="https://example-compatible-openai-endpoint/v1" />
@@ -270,17 +270,17 @@ export default function LLMProviderSettings() {
           <Form.Item name="proxy" label="Proxy">
             <Input placeholder="http://127.0.0.1:7890" />
           </Form.Item>
-          <Form.Item name="tags" label="Tags" rules={[
-            { required: true, message: 'Select at least one tag' },
-            { type: 'array', min: 1, message: 'Select at least one tag' },
+          <Form.Item name="tags" label="Thẻ" rules={[
+            { required: true, message: 'Chọn ít nhất một thẻ' },
+            { type: 'array', min: 1, message: 'Chọn ít nhất một thẻ' },
           ]}>
             <Select mode="tags" options={LLM_TAG_OPTIONS} placeholder="structured_output, powerful" tokenSeparators={[',']} />
           </Form.Item>
           <Space size="large" align="start">
-            <Form.Item name="enabled" label="Enabled" valuePropName="checked">
+            <Form.Item name="enabled" label="Bật" valuePropName="checked">
               <Switch />
             </Form.Item>
-            <Form.Item name="priority" label="Priority" rules={[{ required: true }]}>
+            <Form.Item name="priority" label="Độ ưu tiên" rules={[{ required: true }]}>
               <InputNumber min={0} max={100000} />
             </Form.Item>
           </Space>

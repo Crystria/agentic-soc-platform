@@ -8,12 +8,13 @@ import {getResourceConfig} from '../config/resources'
 import useCursorFeed from '../hooks/useCursorFeed'
 import {comfortableTagProps} from '../utils/tagStyles'
 import {tabularNumbersStyle, typography} from '../utils/typography'
+import {AUDIT_ACTION_LABELS, DISPLAY_DATE_LOCALE, localizeWithMap} from '../utils/i18n'
 import FeedLoadMore from './FeedLoadMore'
 
 const { RangePicker } = DatePicker
 const actionColor: Record<string, string> = { create: 'green', update: 'blue', delete: 'red', linked: 'cyan', unlinked: 'orange', deleted: 'red' }
 const relationActions = new Set(['linked', 'unlinked', 'deleted'])
-const actionOptions = Object.keys(actionColor).map((action) => ({ label: action, value: action }))
+const actionOptions = Object.keys(actionColor).map((action) => ({ label: AUDIT_ACTION_LABELS[action] || action, value: action }))
 const resourceKeyByContentType: Record<string, string> = {
   case: 'cases',
   alert: 'alerts',
@@ -94,9 +95,9 @@ function formatChanges(changes?: Record<string, unknown>, action?: string, field
           )
         }
 
-        const added = change.added?.length ? `added ${change.added.map(formatValue).join(', ')}` : ''
-        const removed = change.removed?.length ? `removed ${change.removed.map(formatValue).join(', ')}` : ''
-        const text = change.cleared ? 'cleared' : [added, removed].filter(Boolean).join('; ')
+        const added = change.added?.length ? `đã thêm ${change.added.map(formatValue).join(', ')}` : ''
+        const removed = change.removed?.length ? `đã gỡ ${change.removed.map(formatValue).join(', ')}` : ''
+        const text = change.cleared ? 'đã xóa giá trị' : [added, removed].filter(Boolean).join('; ')
         return (
           <div key={field} style={{ ...typography.compact, color: 'rgba(255,255,255,0.68)' }}>
             <span style={{ color: 'rgba(255,255,255,0.88)' }}>{label}</span>: {text}
@@ -127,7 +128,7 @@ function logFieldOptions(logs: AuditLog[], fieldLabel: (field: string) => string
 
 function logActorOptions(logs: AuditLog[]) {
   return logs.map((log) => {
-    if (!log.actor_id) return { label: 'system', value: 'system' }
+    if (!log.actor_id) return { label: 'Hệ thống', value: 'system' }
     return {
       label: log.actor_name || log.actor || String(log.actor_id),
       value: String(log.actor_id),
@@ -143,13 +144,13 @@ interface AuditTimelineProps {
 
 function resourceName(resourceKey: string) {
   const names: Record<string, string> = {
-    cases: 'case',
-    alerts: 'alert',
-    artifacts: 'artifact',
-    enrichments: 'enrichment',
+    cases: 'vụ việc',
+    alerts: 'cảnh báo',
+    artifacts: 'thực thể',
+    enrichments: 'làm giàu dữ liệu',
     playbooks: 'playbook',
-    knowledge: 'knowledge',
-    users: 'user',
+    knowledge: 'tri thức',
+    users: 'người dùng',
   }
   return names[resourceKey] || resourceKey
 }
@@ -157,10 +158,10 @@ function resourceName(resourceKey: string) {
 function RelationEvent({ log, onOpenResource }: { log: AuditLog; onOpenResource?: (resourceKey: string, rowId: string | number) => void }) {
   const metadata = log.metadata || {}
   const canOpen = log.action !== 'deleted' && Boolean(metadata.related_resource && metadata.related_id && onOpenResource)
-  const label = metadata.related_label || metadata.related_id || 'related record'
+  const label = metadata.related_label || metadata.related_id || 'bản ghi liên quan'
   return (
     <div style={{ ...typography.compact, marginTop: 6, color: 'rgba(255,255,255,0.68)' }}>
-      <span>{metadata.related_resource ? resourceName(metadata.related_resource) : metadata.relation || 'relationship'}: </span>
+      <span>{metadata.related_resource ? resourceName(metadata.related_resource) : metadata.relation || 'quan hệ'}: </span>
       {canOpen && metadata.related_resource && metadata.related_id ? (
         <Button
           type="link"
@@ -243,7 +244,7 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
   } = useCursorFeed({
     fetchPage: fetchAuditPage,
     getItemKey: (log) => log.id,
-    errorMessage: 'Failed to load audit log',
+    errorMessage: 'Không thể tải nhật ký thay đổi',
   })
 
   const fieldOptions = useMemo(() => (
@@ -251,7 +252,7 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
   ), [fieldLabel, logs])
 
   const actorOptions = useMemo(() => (
-    mergeOptions([{ label: 'system', value: 'system' }, ...logActorOptions(logs)], userOptions)
+    mergeOptions([{ label: 'Hệ thống', value: 'system' }, ...logActorOptions(logs)], userOptions)
   ), [logs, userOptions])
 
   const filterBar = (
@@ -262,7 +263,7 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
           icon={<FilterOutlined />}
           onClick={() => setFiltersExpanded((previous) => !previous)}
         >
-          Filters
+          Bộ lọc
         </Button>
         <Button icon={<ReloadOutlined />} loading={loadingInitial} onClick={refreshLogs} />
       </Space>
@@ -272,7 +273,7 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
             <Select
               showSearch={{ optionFilterProp: 'label' }}
               allowClear
-              placeholder="Field"
+              placeholder="Trường dữ liệu"
               options={fieldOptions}
               value={fieldFilter}
               onChange={(next) => setFieldFilter(next ?? null)}
@@ -281,7 +282,7 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
             <Select
               showSearch={{ optionFilterProp: 'label' }}
               allowClear
-              placeholder="Operator"
+              placeholder="Người thực hiện"
               options={actorOptions}
               value={actorFilter}
               onChange={(next) => setActorFilter(next ?? null)}
@@ -291,7 +292,7 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
           <div style={{ display: 'grid', gridTemplateColumns: '100px minmax(0, 1fr)', gap: 8 }}>
             <Select
               allowClear
-              placeholder="Action"
+              placeholder="Hành động"
               options={actionOptions}
               value={actionFilter}
               onChange={(next) => setActionFilter(next ?? null)}
@@ -318,9 +319,9 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
         children: (
           <div>
             <Space size={8} wrap>
-              <Tag {...comfortableTagProps} color={actionColor[log.action]} style={{ marginInlineEnd: 0 }}>{log.action}</Tag>
-              <span>{log.actor_name || log.actor || 'system'}</span>
-              <span style={{ ...typography.compact, ...tabularNumbersStyle, color: '#999' }}>{new Date(log.created_at).toLocaleString()}</span>
+              <Tag {...comfortableTagProps} color={actionColor[log.action]} style={{ marginInlineEnd: 0 }}>{localizeWithMap(log.action, AUDIT_ACTION_LABELS)}</Tag>
+              <span>{log.actor_name || log.actor || 'Hệ thống'}</span>
+              <span style={{ ...typography.compact, ...tabularNumbersStyle, color: '#999' }}>{new Date(log.created_at).toLocaleString(DISPLAY_DATE_LOCALE)}</span>
             </Space>
             {relationActions.has(log.action) ? <RelationEvent log={log} onOpenResource={onOpenResource} /> : formatChanges(log.display_changes || log.changes, log.action, fieldLabel)}
           </div>
@@ -332,7 +333,7 @@ export default function AuditTimeline({ contentType, objectId, onOpenResource }:
 
   if (loadingInitial) content = <Spin style={{ margin: 16 }} />
   else if (loadError && !logs.length) content = <Alert type="error" title={loadError} showIcon style={{ margin: '0 4px' }} />
-  else if (!logs.length) content = <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No audit log" />
+  else if (!logs.length) content = <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có nhật ký thay đổi" />
 
   return (
     <div>

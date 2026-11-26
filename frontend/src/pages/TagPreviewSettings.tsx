@@ -7,12 +7,24 @@ import {
   artifactRoleTag,
   caseCategoryTag,
   choiceTag,
+  enrichmentTypeTag,
   knowledgeSourceTag,
+  localizedChoiceTag,
   productCategoryTag,
   severityTag,
   statusTag,
   verdictTag,
 } from '../utils/recordDisplay'
+import {
+  ALERT_ANALYTIC_STATE_LABELS,
+  ALERT_POLICY_TYPE_LABELS,
+  ARTIFACT_TYPE_LABELS,
+  AUDIT_ACTION_LABELS,
+  INBOX_KIND_LABELS,
+  localizeWithMap,
+  PLAYBOOK_JOB_STATUS_LABELS,
+  USER_ROLE_LABELS,
+} from '../utils/i18n'
 
 type TagPreviewField = {
   title: string
@@ -49,87 +61,88 @@ const playbookTagValues = ['System', 'LLM', 'Case', 'Knowledge', 'CMDB', 'Threat
 const llmTagValues = ['fast', 'powerful', 'tool_calling', 'structured_output']
 
 const fixedColorTag = (color: string) => (value: string) => choiceTag(value, color)
-const sourceTag = (value: string) => choiceTag(value, value === 'custom' ? 'blue' : 'gold')
+const localizedColorTag = (lookup: Record<string, string>, color: string) => (value: string) => localizedChoiceTag(value, lookup, color)
+const sourceTag = (value: string) => choiceTag(value === 'custom' ? 'Tùy chỉnh' : 'Chính thức', value === 'custom' ? 'blue' : 'gold')
 const playbookTag = (value: string) => {
   const colors: Record<string, string> = { System: 'gold', LLM: 'purple', Case: 'green', Knowledge: 'magenta', CMDB: 'geekblue', 'Threat Intel': 'volcano', Enrichment: 'cyan', Custom: 'blue' }
   return choiceTag(value, colors[value] || 'blue')
 }
 const siemBackendTag = (value: string) => choiceTag(value, ({ ELK: 'orange', Splunk: 'green' } as Record<string, string>)[value] || 'default')
-const auditActionTag = (value: string) => choiceTag(value, ({ create: 'green', update: 'blue', delete: 'red', linked: 'cyan', unlinked: 'orange', deleted: 'red' } as Record<string, string>)[value] || 'default')
-const inboxKindTag = (value: string) => choiceTag(value, value === 'system' ? 'purple' : 'blue')
-const userRoleTag = (value: string) => choiceTag(value[0].toUpperCase() + value.slice(1), ({ admin: 'purple', user: 'blue', viewer: 'default' } as Record<string, string>)[value])
-const authTypeTag = (value: string) => choiceTag(value === 'ldap' ? 'LDAP' : 'Local', value === 'ldap' ? 'geekblue' : 'green')
-const activeStatusTag = (value: string) => choiceTag(value === 'true' ? 'Active' : 'Disabled', value === 'true' ? 'green' : 'red')
-const llmProviderStatusTag = (value: string) => choiceTag(value === 'true' ? 'Enabled' : 'Disabled', value === 'true' ? 'green' : 'default')
+const auditActionTag = (value: string) => choiceTag(localizeWithMap(value, AUDIT_ACTION_LABELS), ({ create: 'green', update: 'blue', delete: 'red', linked: 'cyan', unlinked: 'orange', deleted: 'red' } as Record<string, string>)[value] || 'default')
+const inboxKindTag = (value: string) => choiceTag(localizeWithMap(value, INBOX_KIND_LABELS), value === 'system' ? 'purple' : 'blue')
+const userRoleTag = (value: string) => choiceTag(localizeWithMap(value, USER_ROLE_LABELS), ({ admin: 'purple', user: 'blue', viewer: 'default' } as Record<string, string>)[value])
+const authTypeTag = (value: string) => choiceTag(value === 'ldap' ? 'LDAP' : 'Nội bộ', value === 'ldap' ? 'geekblue' : 'green')
+const activeStatusTag = (value: string) => choiceTag(value === 'true' ? 'Hoạt động' : 'Vô hiệu', value === 'true' ? 'green' : 'red')
+const llmProviderStatusTag = (value: string) => choiceTag(value === 'true' ? 'Bật' : 'Tắt', value === 'true' ? 'green' : 'default')
 const llmTag = (value: string) => choiceTag(value, ({ fast: 'blue', powerful: 'purple', tool_calling: 'geekblue', structured_output: 'green' } as Record<string, string>)[value] || 'default')
-const statusLabelTag = (value: string) => choiceTag(value, ({ Success: 'green', Failed: 'red', Pending: 'gold', Running: 'processing' } as Record<string, string>)[value] || 'default')
+const statusLabelTag = (value: string) => choiceTag(localizeWithMap(value, PLAYBOOK_JOB_STATUS_LABELS), ({ Success: 'green', Failed: 'red', Pending: 'gold', Running: 'processing' } as Record<string, string>)[value] || 'default')
 
 const tagPreviewGroups: TagPreviewGroup[] = [
   {
-    title: 'Cases',
+    title: 'Vụ việc',
     fields: [
-      { title: 'Case Category', values: caseCategoryValues, render: caseCategoryTag },
-      { title: 'Case Severity / Severity (AI)', values: severityValues, render: severityTag },
-      { title: 'Case Confidence / Confidence (AI)', values: confidenceValues, render: severityTag },
-      { title: 'Case Impact / Impact (AI)', values: impactValues, render: severityTag },
-      { title: 'Case Priority / Priority (AI)', values: priorityValues, render: severityTag },
-      { title: 'Case Verdict / Verdict (AI)', values: verdictValues, render: verdictTag },
-      { title: 'Case Tags', values: ['triage', 'vip', 'needs-review'], render: fixedColorTag('blue'), note: 'Free-form tag list; preview uses sample values.' },
+      { title: 'Danh mục vụ việc', values: caseCategoryValues, render: caseCategoryTag },
+      { title: 'Mức độ nghiêm trọng / (AI)', values: severityValues, render: severityTag },
+      { title: 'Độ tin cậy / (AI)', values: confidenceValues, render: severityTag },
+      { title: 'Tác động / (AI)', values: impactValues, render: severityTag },
+      { title: 'Độ ưu tiên / (AI)', values: priorityValues, render: severityTag },
+      { title: 'Phán quyết / (AI)', values: verdictValues, render: verdictTag },
+      { title: 'Thẻ vụ việc', values: ['triage', 'vip', 'needs-review'], render: fixedColorTag('blue'), note: 'Danh sách thẻ tự do; hiển thị các giá trị mẫu.' },
     ],
   },
   {
-    title: 'Alerts',
+    title: 'Cảnh báo',
     fields: [
-      { title: 'Alert Status', values: alertStatusValues, render: statusTag },
-      { title: 'Alert Severity', values: severityValues, render: severityTag },
-      { title: 'Alert Confidence', values: confidenceValues, render: severityTag },
-      { title: 'Alert Impact', values: impactValues, render: severityTag },
-      { title: 'Alert Risk Level', values: riskLevelValues, render: severityTag },
-      { title: 'Alert Disposition', values: alertDispositionValues, render: alertDispositionTag },
-      { title: 'Alert Action', values: alertActionValues, render: alertActionTag },
-      { title: 'Alert Product Category', values: productCategoryValues, render: productCategoryTag },
-      { title: 'Alert Analytic Type', values: alertAnalyticTypeValues, render: alertAnalyticTypeTag },
-      { title: 'Alert Analytic State', values: alertAnalyticStateValues, render: fixedColorTag('green') },
-      { title: 'Alert Policy Type', values: alertPolicyTypeValues, render: fixedColorTag('volcano') },
-      { title: 'Alert Product Vendor / Name / Feature', values: ['Elastic', 'Microsoft Sentinel', 'Defender XDR'], render: fixedColorTag('blue'), note: 'Free-form product fields; preview uses sample values.' },
-      { title: 'Alert Labels', values: ['phishing', 'endpoint', 'critical-path'], render: fixedColorTag('blue'), note: 'Free-form tag list; preview uses sample values.' },
-      { title: 'Alert Data Sources', values: ['edr', 'siem', 'proxy'], render: fixedColorTag('cyan'), note: 'Free-form tag list; preview uses sample values.' },
+      { title: 'Trạng thái cảnh báo', values: alertStatusValues, render: statusTag },
+      { title: 'Mức độ nghiêm trọng', values: severityValues, render: severityTag },
+      { title: 'Độ tin cậy', values: confidenceValues, render: severityTag },
+      { title: 'Tác động', values: impactValues, render: severityTag },
+      { title: 'Mức rủi ro', values: riskLevelValues, render: severityTag },
+      { title: 'Xử lý (Disposition)', values: alertDispositionValues, render: alertDispositionTag },
+      { title: 'Hành động', values: alertActionValues, render: alertActionTag },
+      { title: 'Danh mục sản phẩm', values: productCategoryValues, render: productCategoryTag },
+      { title: 'Loại phân tích', values: alertAnalyticTypeValues, render: alertAnalyticTypeTag },
+      { title: 'Trạng thái phân tích', values: alertAnalyticStateValues, render: localizedColorTag(ALERT_ANALYTIC_STATE_LABELS, 'green') },
+      { title: 'Loại chính sách', values: alertPolicyTypeValues, render: localizedColorTag(ALERT_POLICY_TYPE_LABELS, 'volcano') },
+      { title: 'Hãng / Tên / Tính năng sản phẩm', values: ['Elastic', 'Microsoft Sentinel', 'Defender XDR'], render: fixedColorTag('blue'), note: 'Trường sản phẩm nhập tự do; hiển thị giá trị mẫu.' },
+      { title: 'Nhãn cảnh báo', values: ['phishing', 'endpoint', 'critical-path'], render: fixedColorTag('blue'), note: 'Danh sách thẻ tự do; hiển thị giá trị mẫu.' },
+      { title: 'Nguồn dữ liệu', values: ['edr', 'siem', 'proxy'], render: fixedColorTag('cyan'), note: 'Danh sách thẻ tự do; hiển thị giá trị mẫu.' },
     ],
   },
   {
-    title: 'Artifacts and Enrichments',
+    title: 'Thực thể và Làm giàu dữ liệu',
     fields: [
-      { title: 'Artifact Type', values: artifactTypeValues, render: fixedColorTag('geekblue') },
-      { title: 'Artifact Name', values: artifactNameValues, render: fixedColorTag('cyan') },
-      { title: 'Artifact Role', values: artifactRoleValues, render: artifactRoleTag },
-      { title: 'Enrichment Type', values: enrichmentTypeValues, render: fixedColorTag('magenta') },
-      { title: 'Enrichment Provider', values: enrichmentProviderSamples, render: fixedColorTag('purple'), note: 'Provider enum is long; this preview includes the commonly visible provider values used as purple tags.' },
+      { title: 'Loại thực thể', values: artifactTypeValues, render: localizedColorTag(ARTIFACT_TYPE_LABELS, 'geekblue') },
+      { title: 'Tên thực thể', values: artifactNameValues, render: fixedColorTag('cyan') },
+      { title: 'Vai trò thực thể', values: artifactRoleValues, render: artifactRoleTag },
+      { title: 'Loại làm giàu dữ liệu', values: enrichmentTypeValues, render: enrichmentTypeTag },
+      { title: 'Nhà cung cấp làm giàu dữ liệu', values: enrichmentProviderSamples, render: fixedColorTag('purple'), note: 'Danh sách nhà cung cấp dài; phần xem trước liệt kê các nhãn phổ biến thường dùng màu tím.' },
     ],
   },
   {
-    title: 'Knowledge, Playbooks, Users, and Settings',
+    title: 'Tri thức, Playbook, Người dùng và Cài đặt',
     fields: [
-      { title: 'Knowledge Source', values: ['Manual', 'Case'], render: knowledgeSourceTag },
-      { title: 'Knowledge Tags', values: ['runbook', 'case-note', 'retention'], render: fixedColorTag('blue'), note: 'Free-form tag list; preview uses sample values.' },
-      { title: 'Playbook Job Status', values: ['Success', 'Failed', 'Pending', 'Running'], render: statusLabelTag },
-      { title: 'Playbook Definition Source', values: ['official', 'custom'], render: sourceTag },
-      { title: 'Playbook Definition Tags', values: playbookTagValues, render: playbookTag },
-      { title: 'User Role', values: ['admin', 'user', 'viewer'], render: userRoleTag },
-      { title: 'User Auth Type', values: ['local', 'ldap'], render: authTypeTag },
-      { title: 'User Status', values: ['true', 'false'], render: activeStatusTag },
-      { title: 'LLM Provider Enabled', values: ['true', 'false'], render: llmProviderStatusTag },
-      { title: 'LLM Provider Tags', values: llmTagValues, render: llmTag },
+      { title: 'Nguồn tri thức', values: ['Manual', 'Case'], render: knowledgeSourceTag },
+      { title: 'Thẻ tri thức', values: ['runbook', 'case-note', 'retention'], render: fixedColorTag('blue'), note: 'Danh sách thẻ tự do; hiển thị giá trị mẫu.' },
+      { title: 'Trạng thái tác vụ Playbook', values: ['Success', 'Failed', 'Pending', 'Running'], render: statusLabelTag },
+      { title: 'Nguồn định nghĩa Playbook', values: ['official', 'custom'], render: sourceTag },
+      { title: 'Thẻ định nghĩa Playbook', values: playbookTagValues, render: playbookTag },
+      { title: 'Vai trò người dùng', values: ['admin', 'user', 'viewer'], render: userRoleTag },
+      { title: 'Kiểu xác thực', values: ['local', 'ldap'], render: authTypeTag },
+      { title: 'Trạng thái người dùng', values: ['true', 'false'], render: activeStatusTag },
+      { title: 'Trạng thái nhà cung cấp LLM', values: ['true', 'false'], render: llmProviderStatusTag },
+      { title: 'Thẻ nhà cung cấp LLM', values: llmTagValues, render: llmTag },
     ],
   },
   {
-    title: 'Custom Console and System UI',
+    title: 'Bảng điều khiển tùy chỉnh và Giao diện hệ thống',
     fields: [
       { title: 'SIEM YAML Backend', values: ['ELK', 'Splunk'], render: siemBackendTag },
-      { title: 'SIEM YAML Key Field', values: ['Key field'], render: fixedColorTag('blue') },
-      { title: 'Audit Action', values: ['create', 'update', 'delete', 'linked', 'unlinked', 'deleted'], render: auditActionTag },
-      { title: 'Inbox Kind', values: ['system', 'user'], render: inboxKindTag },
-      { title: 'Dashboard Risk Artifact Type', values: ['IP Address', 'Hostname', 'User'], render: fixedColorTag('blue'), note: 'Dashboard values come from data; preview uses sample values.' },
-      { title: 'Dashboard Risk Artifact Role', values: artifactRoleValues, render: fixedColorTag('purple'), note: 'Dashboard uses a fixed purple tag for role values.' },
+      { title: 'SIEM YAML Key Field', values: ['Trường khóa'], render: fixedColorTag('blue') },
+      { title: 'Hành động nhật ký (Audit)', values: ['create', 'update', 'delete', 'linked', 'unlinked', 'deleted'], render: auditActionTag },
+      { title: 'Loại tin nhắn Hộp thư', values: ['system', 'user'], render: inboxKindTag },
+      { title: 'Loại thực thể rủi ro trên Tổng quan', values: ['IP Address', 'Hostname', 'User'], render: localizedColorTag(ARTIFACT_TYPE_LABELS, 'blue'), note: 'Dữ liệu lấy thực tế từ Tổng quan; đây là giá trị mẫu.' },
+      { title: 'Vai trò thực thể rủi ro trên Tổng quan', values: artifactRoleValues, render: fixedColorTag('purple'), note: 'Tổng quan dùng thẻ tím cho giá trị vai trò.' },
     ],
   },
 ]

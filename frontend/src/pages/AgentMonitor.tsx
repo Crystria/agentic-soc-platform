@@ -47,6 +47,11 @@ import IconTabLabel from '../components/IconTabLabel'
 import JsonViewer from '../components/JsonViewer'
 import {message} from '../utils/appMessage'
 import {formatDateTime, severityTag, verdictTag} from '../utils/recordDisplay'
+import {
+  localizeWithMap,
+  PLAYBOOK_JOB_STATUS_LABELS,
+  WORKER_STATE_LABELS,
+} from '../utils/i18n'
 import {fontFamilyMono} from '../utils/typography'
 
 const JOB_STATUS_COLORS: Record<AgenticJobStatus, string> = {
@@ -65,11 +70,11 @@ const WORKER_STATE_COLORS: Record<string, string> = {
 }
 
 const STATUS_FILTER_OPTIONS = [
-  { label: 'All statuses', value: '' },
-  { label: 'Pending', value: 'Pending' },
-  { label: 'Running', value: 'Running' },
-  { label: 'Success', value: 'Success' },
-  { label: 'Failed', value: 'Failed' },
+  { label: 'Tất cả trạng thái', value: '' },
+  { label: PLAYBOOK_JOB_STATUS_LABELS.Pending, value: 'Pending' },
+  { label: PLAYBOOK_JOB_STATUS_LABELS.Running, value: 'Running' },
+  { label: PLAYBOOK_JOB_STATUS_LABELS.Success, value: 'Success' },
+  { label: PLAYBOOK_JOB_STATUS_LABELS.Failed, value: 'Failed' },
 ]
 
 function apiErrorMessage(error: unknown, fallback: string) {
@@ -138,7 +143,7 @@ export default function AgentMonitor() {
       })
       .catch((requestError) => {
         if (!active) return
-        setError(apiErrorMessage(requestError, 'Failed to load Agent Monitor telemetry.'))
+        setError(apiErrorMessage(requestError, 'Không thể tải dữ liệu Giám sát Agent.'))
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -189,7 +194,7 @@ export default function AgentMonitor() {
       const detail = await fetchAgenticJobDetail(jobId)
       setInspectedJob(detail)
     } catch (requestError) {
-      message.error(apiErrorMessage(requestError, 'Failed to load job details'))
+      message.error(apiErrorMessage(requestError, 'Không thể tải chi tiết tác vụ'))
       setInspectOpen(false)
     } finally {
       setLoadingInspect(false)
@@ -199,38 +204,38 @@ export default function AgentMonitor() {
   const handleRetry = useCallback(async (jobId: string) => {
     try {
       await retryAgenticJob(jobId)
-      message.success('Case analysis retry queued')
+      message.success('Đã đưa tác vụ phân tích vụ việc vào hàng đợi chạy lại')
       reloadMonitor()
     } catch (requestError) {
-      message.error(apiErrorMessage(requestError, 'Failed to retry job'))
+      message.error(apiErrorMessage(requestError, 'Chạy lại tác vụ thất bại'))
     }
   }, [reloadMonitor])
 
   const handleCancel = useCallback(async (jobId: string) => {
     try {
       await cancelAgenticJob(jobId)
-      message.success('Pending job cancelled')
+      message.success('Đã hủy tác vụ đang chờ')
       reloadMonitor()
     } catch (requestError) {
-      message.error(apiErrorMessage(requestError, 'Failed to cancel job'))
+      message.error(apiErrorMessage(requestError, 'Hủy tác vụ thất bại'))
     }
   }, [reloadMonitor])
 
   const handleTrigger = async () => {
     const trimmed = triggerCaseId.trim()
     if (!trimmed) {
-      message.warning('Enter a Case ID (e.g. case_000001 or UUID)')
+      message.warning('Vui lòng nhập Mã vụ việc (ví dụ: case_000001 hoặc UUID)')
       return
     }
     setTriggering(true)
     try {
       const created = await triggerAgenticCaseAnalysis(trimmed)
-      message.success(`Queued analysis for ${created.case_readable_id.toUpperCase()}`)
+      message.success(`Đã đưa phân tích cho ${created.case_readable_id.toUpperCase()} vào hàng đợi`)
       setTriggerOpen(false)
       setTriggerCaseId('')
       reloadMonitor()
     } catch (requestError) {
-      message.error(apiErrorMessage(requestError, 'Failed to trigger Case analysis'))
+      message.error(apiErrorMessage(requestError, 'Kích hoạt phân tích vụ việc thất bại'))
     } finally {
       setTriggering(false)
     }
@@ -243,7 +248,7 @@ export default function AgentMonitor() {
 
   const jobColumns = useMemo<ColumnsType<AgenticJobListItem>>(() => [
     {
-      title: 'Case',
+      title: 'Vụ việc',
       key: 'case',
       width: 260,
       fixed: 'left',
@@ -264,14 +269,14 @@ export default function AgentMonitor() {
       ),
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'status',
       width: 110,
-      render: (status: AgenticJobStatus) => <Tag color={JOB_STATUS_COLORS[status]}>{status}</Tag>,
+      render: (status: AgenticJobStatus) => <Tag color={JOB_STATUS_COLORS[status]}>{localizeWithMap(status, PLAYBOOK_JOB_STATUS_LABELS)}</Tag>,
     },
-    { title: 'Trigger', dataIndex: 'trigger', width: 130, render: (val: string) => val || '—' },
+    { title: 'Nguồn kích hoạt', dataIndex: 'trigger', width: 130, render: (val: string) => val || '—' },
     {
-      title: 'Model / Provider',
+      title: 'Model / Nhà cung cấp',
       key: 'model',
       width: 210,
       render: (_, row) => row.model_name ? (
@@ -282,7 +287,7 @@ export default function AgentMonitor() {
       ) : '—',
     },
     {
-      title: 'AI Result',
+      title: 'Kết quả AI',
       key: 'result',
       width: 170,
       render: (_, row) => row.verdict_ai ? (
@@ -303,7 +308,7 @@ export default function AgentMonitor() {
       ) : '—',
     },
     {
-      title: 'Latency',
+      title: 'Độ trễ',
       dataIndex: 'latency_ms',
       width: 100,
       render: (ms: number | null) => formatLatency(ms),
@@ -311,33 +316,33 @@ export default function AgentMonitor() {
     {
       title: 'RAG',
       key: 'rag',
-      width: 110,
-      render: (_, row) => `${row.knowledge_records_count} rec / ${row.knowledge_keywords_count} kw`,
+      width: 130,
+      render: (_, row) => `${row.knowledge_records_count} bản ghi / ${row.knowledge_keywords_count} từ khóa`,
     },
     {
-      title: 'Created',
+      title: 'Thời gian tạo',
       dataIndex: 'created_at',
       width: 175,
       render: formatDateTime,
     },
     {
-      title: 'Actions',
+      title: 'Thao tác',
       key: 'actions',
       width: 190,
       fixed: 'right',
       render: (_, row) => (
         <Space size={4}>
           <Button size="small" icon={<EyeOutlined />} onClick={() => openInspector(row.id)}>
-            Inspect
+            Chi tiết
           </Button>
           {row.status === 'Pending' && (
-            <Popconfirm title="Cancel this pending job?" onConfirm={() => handleCancel(row.id)}>
+            <Popconfirm title="Hủy tác vụ đang chờ này?" onConfirm={() => handleCancel(row.id)}>
               <Button size="small" danger icon={<StopOutlined />} />
             </Popconfirm>
           )}
           {(row.status === 'Failed' || row.status === 'Success') && (
             <Button size="small" icon={<ReloadOutlined />} onClick={() => handleRetry(row.id)}>
-              Retry
+              Chạy lại
             </Button>
           )}
         </Space>
@@ -355,23 +360,28 @@ export default function AgentMonitor() {
     return Array.isArray(raw) ? raw.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null) : []
   }, [inspectedJob])
 
+  const inspectedRagRetrieval = useMemo(() => {
+    const raw = inspectedJob?.result_json?.knowledge_retrieval
+    return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null
+  }, [inspectedJob])
+
   const queueTab = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Row gutter={[12, 12]}>
         <Col xs={12} md={4}>
           <Card size="small" loading={loading}>
-            <Statistic title="Pending" value={overview?.queue.counts.pending ?? 0} />
+            <Statistic title="Đang chờ" value={overview?.queue.counts.pending ?? 0} />
           </Card>
         </Col>
         <Col xs={12} md={4}>
           <Card size="small" loading={loading}>
-            <Statistic title="Running" value={overview?.queue.counts.running ?? 0} />
+            <Statistic title="Đang chạy" value={overview?.queue.counts.running ?? 0} />
           </Card>
         </Col>
         <Col xs={12} md={4}>
           <Card size="small" loading={loading}>
             <Statistic
-              title="24h Success Rate"
+              title="Tỷ lệ thành công 24g"
               value={overview?.queue.last_24h.success_rate ?? 0}
               suffix="%"
             />
@@ -380,7 +390,7 @@ export default function AgentMonitor() {
         <Col xs={12} md={4}>
           <Card size="small" loading={loading}>
             <Statistic
-              title="Avg / P95 Latency"
+              title="Độ trễ TB / P95"
               value={formatLatency(overview?.queue.last_24h.avg_latency_ms ?? null)}
               suffix={overview?.queue.last_24h.p95_latency_ms !== null && overview?.queue.last_24h.p95_latency_ms !== undefined
                 ? ` / ${formatLatency(overview.queue.last_24h.p95_latency_ms)}`
@@ -390,19 +400,19 @@ export default function AgentMonitor() {
         </Col>
         <Col xs={12} md={4}>
           <Card size="small" loading={loading}>
-            <Statistic title="24h Tokens" value={overview?.queue.last_24h.total_tokens ?? 0} />
+            <Statistic title="Tokens 24g" value={overview?.queue.last_24h.total_tokens ?? 0} />
           </Card>
         </Col>
         <Col xs={12} md={4}>
           <Card size="small" loading={loading}>
-            <Statistic title="Knowledge Records" value={overview?.rag.total_knowledge ?? 0} />
+            <Statistic title="Bản ghi tri thức" value={overview?.rag.total_knowledge ?? 0} />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} lg={12}>
-          <Card size="small" title={`LLM Providers (${overview?.llm.enabled ?? 0}/${overview?.llm.total ?? 0} enabled)`}>
+          <Card size="small" title={`Nhà cung cấp LLM (${overview?.llm.enabled ?? 0}/${overview?.llm.total ?? 0} đang bật)`}>
             <Space wrap>
               {Object.entries(overview?.llm.tag_coverage ?? {}).map(([tag, count]) => (
                 <Tag key={tag} color={count > 0 ? 'blue' : 'red'}>
@@ -413,17 +423,17 @@ export default function AgentMonitor() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card size="small" title="Background Workers">
+          <Card size="small" title="Worker xử lý nền">
             {overview?.workers_available ? (
               <Space wrap>
                 {overview.workers.map((worker) => (
                   <Tag key={worker.worker_type} color={WORKER_STATE_COLORS[worker.state] || 'default'}>
-                    {worker.display_name}: {worker.state}
+                    {worker.display_name}: {localizeWithMap(worker.state, WORKER_STATE_LABELS)}
                   </Tag>
                 ))}
               </Space>
             ) : (
-              <Typography.Text type="secondary">Worker heartbeat stream unavailable.</Typography.Text>
+              <Typography.Text type="secondary">Không có dữ liệu nhịp tim (heartbeat) của worker.</Typography.Text>
             )}
           </Card>
         </Col>
@@ -431,12 +441,12 @@ export default function AgentMonitor() {
 
       <Card
         size="small"
-        title="CaseAnalysisJob Queue"
+        title="Hàng đợi phân tích vụ việc (CaseAnalysisJob)"
         extra={(
           <Space wrap>
             <Input.Search
               allowClear
-              placeholder="Search Case ID, title, model, error"
+              placeholder="Tìm mã vụ việc, tiêu đề, model, lỗi"
               value={searchText}
               onChange={(event) => {
                 setSearchText(event.target.value)
@@ -458,15 +468,15 @@ export default function AgentMonitor() {
                 setPage(1)
                 setStatusFilter(val)
               }}
-              style={{ width: 140 }}
+              style={{ width: 160 }}
             />
             <Space size={6}>
               <Switch checked={autoRefresh} onChange={setAutoRefresh} />
-              <span>Auto 10s</span>
+              <span>Tự động 10 giây</span>
             </Space>
-            <Button icon={<ReloadOutlined />} onClick={reloadMonitor}>Refresh</Button>
+            <Button icon={<ReloadOutlined />} onClick={reloadMonitor}>Làm mới</Button>
             <Button type="primary" icon={<PlayCircleOutlined />} onClick={() => setTriggerOpen(true)}>
-              Trigger Analysis
+              Chạy phân tích
             </Button>
           </Space>
         )}
@@ -495,7 +505,7 @@ export default function AgentMonitor() {
       <Col xs={24} lg={8}>
         <Card
           size="small"
-          title="Prompt Templates"
+          title="Mẫu Prompt"
           extra={(
             <Select
               size="small"
@@ -505,10 +515,10 @@ export default function AgentMonitor() {
                 setPromptLanguage(lang)
               }}
               options={[
-                { label: 'English (en)', value: 'en' },
-                { label: 'Chinese (zh)', value: 'zh' },
+                { label: 'Tiếng Anh (en)', value: 'en' },
+                { label: 'Tiếng Trung (zh)', value: 'zh' },
               ]}
-              style={{ width: 130 }}
+              style={{ width: 145 }}
             />
           )}
         >
@@ -527,20 +537,20 @@ export default function AgentMonitor() {
             })}
             columns={[
               { title: 'Prompt ID', dataIndex: 'prompt_id', render: (val: string) => <Typography.Text code>{val}</Typography.Text> },
-              { title: 'Source', dataIndex: 'source', width: 90, render: (val: string) => <Tag color={val === 'builtin' ? 'blue' : 'purple'}>{val}</Tag> },
-              { title: 'Lines', dataIndex: 'line_count', width: 70 },
+              { title: 'Nguồn', dataIndex: 'source', width: 90, render: (val: string) => <Tag color={val === 'builtin' ? 'blue' : 'purple'}>{val}</Tag> },
+              { title: 'Số dòng', dataIndex: 'line_count', width: 80 },
             ]}
           />
         </Card>
       </Col>
       <Col xs={24} lg={16}>
-        <Card size="small" title={selectedPrompt ? `${selectedPrompt.prompt_id} (${selectedPrompt.line_count} lines)` : 'Select a prompt'}>
+        <Card size="small" title={selectedPrompt ? `${selectedPrompt.prompt_id} (${selectedPrompt.line_count} dòng)` : 'Chọn một mẫu Prompt'}>
           {selectedPrompt ? (
             <pre style={{ margin: 0, maxHeight: '62vh', overflow: 'auto', whiteSpace: 'pre-wrap', fontFamily: fontFamilyMono, fontSize: 12 }}>
               {selectedPrompt.content}
             </pre>
           ) : (
-            <Typography.Text type="secondary">No prompt selected.</Typography.Text>
+            <Typography.Text type="secondary">Chưa chọn prompt nào.</Typography.Text>
           )}
         </Card>
       </Col>
@@ -551,26 +561,42 @@ export default function AgentMonitor() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Row gutter={[12, 12]}>
         <Col xs={24} lg={10}>
-          <Card size="small" title="Knowledge Base RAG Breakdown">
-            <Descriptions size="small" column={3}>
-              <Descriptions.Item label="Total">{overview?.rag.total_knowledge ?? 0}</Descriptions.Item>
-              <Descriptions.Item label="Manual">{overview?.rag.manual_knowledge ?? 0}</Descriptions.Item>
-              <Descriptions.Item label="Case-Derived">{overview?.rag.case_knowledge ?? 0}</Descriptions.Item>
+          <Card size="small" title="Chi tiết RAG Kho tri thức">
+            <Descriptions size="small" column={2}>
+              <Descriptions.Item label="Chế độ">
+                <Tag color={overview?.rag.mode === 'hybrid' ? 'green' : 'default'}>
+                  {(overview?.rag.mode || 'lexical').toUpperCase()}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Embedding Model">
+                {overview?.rag.embedding_model || (overview?.rag.embedding_configured ? 'đã cấu hình' : '—')}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tổng cộng">{overview?.rag.total_knowledge ?? 0}</Descriptions.Item>
+              <Descriptions.Item label="Đã đánh chỉ mục Vector (DB)">{overview?.rag.indexed_knowledge ?? 0}</Descriptions.Item>
+              <Descriptions.Item label="Thủ công">{overview?.rag.manual_knowledge ?? 0}</Descriptions.Item>
+              <Descriptions.Item label="Từ vụ việc">{overview?.rag.case_knowledge ?? 0}</Descriptions.Item>
+              <Descriptions.Item label="Chỉ mục Redis Stack">
+                <Tag color={overview?.rag.redis_vector_available ? 'blue' : 'orange'}>
+                  {overview?.rag.redis_vector_available
+                    ? `${overview?.rag.redis_vector_docs ?? 0} tài liệu (${overview?.rag.redis_vector_dimensions ?? '?'}d)`
+                    : 'Dự phòng Postgres'}
+                </Tag>
+              </Descriptions.Item>
             </Descriptions>
             <div style={{ marginTop: 12 }}>
-              <Typography.Text strong>Recent Retrieved Keywords</Typography.Text>
+              <Typography.Text strong>Từ khóa truy xuất gần đây</Typography.Text>
               <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {(overview?.rag.top_keywords.length ?? 0) > 0
                   ? overview?.rag.top_keywords.map((item) => (
                     <Tag key={item.keyword} color="cyan">{item.keyword} ({item.count})</Tag>
                   ))
-                  : <Typography.Text type="secondary">No keywords recorded yet.</Typography.Text>}
+                  : <Typography.Text type="secondary">Chưa ghi nhận từ khóa nào.</Typography.Text>}
               </div>
             </div>
           </Card>
         </Col>
         <Col xs={24} lg={14}>
-          <Card size="small" title="Stream Consumer Modules">
+          <Card size="small" title="Các module đọc Stream">
             <Table
               rowKey="name"
               size="small"
@@ -579,9 +605,9 @@ export default function AgentMonitor() {
               columns={[
                 { title: 'Module', dataIndex: 'name', width: 200 },
                 { title: 'Stream', dataIndex: 'stream_name', width: 180, render: (val: string) => <Typography.Text code>{val}</Typography.Text> },
-                { title: 'Threads', dataIndex: 'thread_num', width: 80 },
+                { title: 'Số luồng', dataIndex: 'thread_num', width: 90 },
                 {
-                  title: 'Stream Length',
+                  title: 'Độ dài Stream',
                   key: 'length',
                   render: (_, row) => row.stream_health?.available ? row.stream_health.length : (row.stream_health?.warning || '—'),
                 },
@@ -591,7 +617,7 @@ export default function AgentMonitor() {
         </Col>
       </Row>
 
-      <Card size="small" title="Registered Playbooks">
+      <Card size="small" title="Các Playbook đã đăng ký">
         <Table
           rowKey="name"
           size="small"
@@ -599,15 +625,15 @@ export default function AgentMonitor() {
           dataSource={overview?.runtime.playbooks.items ?? []}
           columns={[
             { title: 'Playbook', dataIndex: 'name', width: 220 },
-            { title: 'Risk Level', dataIndex: 'risk_level', width: 120, render: (val: string) => severityTag(val) },
-            { title: 'Source', dataIndex: 'source', width: 100, render: (val: string) => <Tag color={val === 'official' ? 'blue' : 'purple'}>{val}</Tag> },
+            { title: 'Mức rủi ro', dataIndex: 'risk_level', width: 120, render: (val: string) => severityTag(val) },
+            { title: 'Nguồn', dataIndex: 'source', width: 100, render: (val: string) => <Tag color={val === 'official' ? 'blue' : 'purple'}>{val}</Tag> },
             {
-              title: 'Tags',
+              title: 'Thẻ',
               dataIndex: 'tags',
               width: 240,
               render: (tags: string[]) => (tags || []).map((tag) => <Tag key={tag}>{tag}</Tag>),
             },
-            { title: 'Description', dataIndex: 'description' },
+            { title: 'Mô tả', dataIndex: 'description' },
           ]}
         />
       </Card>
@@ -622,7 +648,7 @@ export default function AgentMonitor() {
         items={[
           {
             key: 'queue',
-            label: <IconTabLabel icon={Bot}>Queue & Telemetry</IconTabLabel>,
+            label: <IconTabLabel icon={Bot}>Hàng đợi & Giám sát</IconTabLabel>,
             children: queueTab,
           },
           {
@@ -639,7 +665,7 @@ export default function AgentMonitor() {
       />
 
       <Drawer
-        title={inspectedJob ? `Job Inspector · ${inspectedJob.case_readable_id.toUpperCase()}` : 'Job Inspector'}
+        title={inspectedJob ? `Chi tiết tác vụ · ${inspectedJob.case_readable_id.toUpperCase()}` : 'Chi tiết tác vụ'}
         size="large"
         open={inspectOpen}
         onClose={() => setInspectOpen(false)}
@@ -647,46 +673,57 @@ export default function AgentMonitor() {
         {loadingInspect ? <Spin /> : inspectedJob ? (
           <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Descriptions size="small" bordered column={2}>
-              <Descriptions.Item label="Status">
-                <Tag color={JOB_STATUS_COLORS[inspectedJob.status]}>{inspectedJob.status}</Tag>
+              <Descriptions.Item label="Trạng thái">
+                <Tag color={JOB_STATUS_COLORS[inspectedJob.status]}>{localizeWithMap(inspectedJob.status, PLAYBOOK_JOB_STATUS_LABELS)}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Trigger">{inspectedJob.trigger || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Provider">{inspectedJob.provider_name || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Nguồn kích hoạt">{inspectedJob.trigger || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Nhà cung cấp">{inspectedJob.provider_name || '—'}</Descriptions.Item>
               <Descriptions.Item label="Model">{inspectedJob.model_name || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Latency">{formatLatency(inspectedJob.latency_ms)}</Descriptions.Item>
+              <Descriptions.Item label="Độ trễ">{formatLatency(inspectedJob.latency_ms)}</Descriptions.Item>
               <Descriptions.Item label="Tokens">
-                {inspectedJob.total_tokens ?? '—'} (in: {inspectedJob.input_tokens ?? '—'}, out: {inspectedJob.output_tokens ?? '—'})
+                {inspectedJob.total_tokens ?? '—'} (vào: {inspectedJob.input_tokens ?? '—'}, ra: {inspectedJob.output_tokens ?? '—'})
               </Descriptions.Item>
-              <Descriptions.Item label="Prompt Version">{inspectedJob.prompt_version || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Completed">{formatDateTime(inspectedJob.completed_at)}</Descriptions.Item>
+              <Descriptions.Item label="Phiên bản Prompt">{inspectedJob.prompt_version || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Hoàn thành lúc">{formatDateTime(inspectedJob.completed_at)}</Descriptions.Item>
             </Descriptions>
 
             {inspectedJob.error && (
-              <Alert type="error" showIcon title="Job Error" description={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{inspectedJob.error}</pre>} />
+              <Alert type="error" showIcon title="Lỗi tác vụ" description={<pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{inspectedJob.error}</pre>} />
             )}
 
-            <Card size="small" title={<IconTabLabel icon={BookOpenText}>RAG Context</IconTabLabel>}>
+            <Card size="small" title={<IconTabLabel icon={BookOpenText}>Ngữ cảnh RAG</IconTabLabel>}>
               <Space orientation="vertical" style={{ width: '100%' }}>
+                {inspectedRagRetrieval ? (
+                  <div>
+                    <Typography.Text strong>Truy xuất: </Typography.Text>
+                    <Tag color={inspectedRagRetrieval.mode === 'hybrid' ? 'green' : 'blue'}>
+                      {String(inspectedRagRetrieval.mode || 'lexical').toUpperCase()}
+                    </Tag>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      từ khóa={String(inspectedRagRetrieval.lexical_hits ?? 0)}, vector={String(inspectedRagRetrieval.semantic_hits ?? 0)} ({String(inspectedRagRetrieval.vector_backend || 'none')})
+                    </Typography.Text>
+                  </div>
+                ) : null}
                 <div>
-                  <Typography.Text strong>Keywords: </Typography.Text>
+                  <Typography.Text strong>Từ khóa: </Typography.Text>
                   {inspectedRagKeywords.length
                     ? inspectedRagKeywords.map((kw) => <Tag key={kw} color="cyan">{kw}</Tag>)
-                    : <Typography.Text type="secondary">None</Typography.Text>}
+                    : <Typography.Text type="secondary">Không có</Typography.Text>}
                 </div>
                 <div>
-                  <Typography.Text strong>Retrieved Records ({inspectedRagRecords.length}): </Typography.Text>
+                  <Typography.Text strong>Bản ghi truy xuất ({inspectedRagRecords.length}): </Typography.Text>
                   {inspectedRagRecords.length
                     ? inspectedRagRecords.map((rec, idx) => (
                       <Tag key={`${String(rec.knowledge_id || idx)}`} color="blue">
-                        {String(rec.title || rec.knowledge_id || 'Record')}
+                        {String(rec.title || rec.knowledge_id || 'Bản ghi')}
                       </Tag>
                     ))
-                    : <Typography.Text type="secondary">None</Typography.Text>}
+                    : <Typography.Text type="secondary">Không có</Typography.Text>}
                 </div>
               </Space>
             </Card>
 
-            <Card size="small" title="Raw Analysis Record JSON">
+            <Card size="small" title="Dữ liệu JSON kết quả phân tích gốc">
               <JsonViewer value={inspectedJob.result_json} maxHeight={420} />
             </Card>
           </Space>
@@ -694,16 +731,16 @@ export default function AgentMonitor() {
       </Drawer>
 
       <Modal
-        title="Trigger Case AI Investigation"
+        title="Kích hoạt điều tra vụ việc bằng AI"
         open={triggerOpen}
         onCancel={() => setTriggerOpen(false)}
         onOk={handleTrigger}
-        okText="Queue Analysis"
+        okText="Đưa vào hàng đợi"
         confirmLoading={triggering}
         destroyOnHidden
       >
         <Space orientation="vertical" style={{ width: '100%' }}>
-          <span>Enter the Case ID (for example: case_000001) or Case UUID to enqueue an immediate AI investigation job.</span>
+          <span>Nhập Mã vụ việc (ví dụ: case_000001) hoặc UUID vụ việc để đưa tác vụ điều tra AI vào hàng đợi ngay.</span>
           <Input
             value={triggerCaseId}
             onChange={(event) => setTriggerCaseId(event.target.value)}

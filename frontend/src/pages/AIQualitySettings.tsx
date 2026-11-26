@@ -10,33 +10,40 @@ import {
   fetchAiQualitySummary,
 } from '../api/aiDecision'
 import {formatDateTime} from '../utils/recordDisplay'
+import {
+  AI_FIELD_LABELS,
+  COVERAGE_STATE_LABELS,
+  localizeChoiceLabel,
+  localizeWithMap,
+  SEVERITY_LABELS,
+} from '../utils/i18n'
 
 const DAY_OPTIONS = [
-  { label: 'Last 7 days', value: 7 },
-  { label: 'Last 30 days', value: 30 },
-  { label: 'Last 90 days', value: 90 },
-  { label: 'Last 180 days', value: 180 },
+  { label: '7 ngày qua', value: 7 },
+  { label: '30 ngày qua', value: 30 },
+  { label: '90 ngày qua', value: 90 },
+  { label: '180 ngày qua', value: 180 },
 ]
 
 const COVERAGE_OPTIONS = [
-  { label: 'All states', value: '' },
-  { label: 'Evaluated', value: 'Evaluated' },
-  { label: 'No prediction', value: 'No prediction' },
-  { label: 'Invalid prediction', value: 'Invalid prediction' },
+  { label: 'Tất cả trạng thái', value: '' },
+  { label: COVERAGE_STATE_LABELS.Evaluated, value: 'Evaluated' },
+  { label: COVERAGE_STATE_LABELS['No prediction'], value: 'No prediction' },
+  { label: COVERAGE_STATE_LABELS['Invalid prediction'], value: 'Invalid prediction' },
 ]
 
 const SEVERITY_OPTIONS = [
-  { label: 'All severities', value: '' },
-  { label: 'Critical', value: 'Critical' },
-  { label: 'High', value: 'High' },
-  { label: 'Medium', value: 'Medium' },
-  { label: 'Low', value: 'Low' },
-  { label: 'Informational', value: 'Informational' },
+  { label: 'Tất cả mức độ', value: '' },
+  { label: SEVERITY_LABELS.Critical, value: 'Critical' },
+  { label: SEVERITY_LABELS.High, value: 'High' },
+  { label: SEVERITY_LABELS.Medium, value: 'Medium' },
+  { label: SEVERITY_LABELS.Low, value: 'Low' },
+  { label: SEVERITY_LABELS.Informational, value: 'Informational' },
 ]
 
 function errorMessage(error: unknown) {
   const detail = (error as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
-  return typeof detail === 'string' ? detail : 'Failed to load AI quality metrics.'
+  return typeof detail === 'string' ? detail : 'Không thể tải chỉ số chất lượng AI.'
 }
 
 export default function AIQualitySettings() {
@@ -84,75 +91,75 @@ export default function AIQualitySettings() {
   }, [coverageState, days, humanSeverity, onlyMismatches, page])
 
   const agreementColumns = useMemo<ColumnsType<AiQualityFieldAgreement>>(() => [
-    { title: 'Field', dataIndex: 'label', width: 140 },
+    { title: 'Trường dữ liệu', dataIndex: 'field', width: 140, render: (val: string, row) => AI_FIELD_LABELS[val] || row.label },
     {
-      title: 'Agreement Rate',
+      title: 'Tỷ lệ đồng thuận',
       dataIndex: 'agreement_rate',
       width: 140,
       render: (value: number | null) => value === null ? '—' : `${value}%`,
     },
     {
-      title: 'Agreed / Evaluable',
+      title: 'Đồng thuận / Đánh giá được',
       key: 'counts',
       render: (_, row) => `${row.agreed_count} / ${row.evaluable_count}`,
     },
   ], [])
 
   const ordinalColumns = useMemo<ColumnsType<AiQualityOrdinalStat>>(() => [
-    { title: 'Field', dataIndex: 'label', width: 120 },
-    { title: 'Samples', dataIndex: 'sample_count', width: 90 },
+    { title: 'Trường dữ liệu', dataIndex: 'field', width: 120, render: (val: string, row) => AI_FIELD_LABELS[val] || row.label },
+    { title: 'Số mẫu', dataIndex: 'sample_count', width: 90 },
     {
-      title: 'Mean Distance',
+      title: 'Khoảng cách TB',
       dataIndex: 'mean_absolute_distance',
       width: 120,
       render: (value: number | null) => value === null ? '—' : value,
     },
-    { title: 'Match', dataIndex: 'match_count', width: 80 },
-    { title: 'AI Higher', dataIndex: 'overestimate_count', width: 95 },
-    { title: 'AI Lower', dataIndex: 'underestimate_count', width: 95 },
+    { title: 'Khớp', dataIndex: 'match_count', width: 80 },
+    { title: 'AI cao hơn', dataIndex: 'overestimate_count', width: 95 },
+    { title: 'AI thấp hơn', dataIndex: 'underestimate_count', width: 95 },
   ], [])
 
   const sampleColumns = useMemo<ColumnsType<AiQualityEvaluationItem>>(() => [
     {
-      title: 'Case',
+      title: 'Vụ việc',
       dataIndex: 'case_readable_id',
       width: 120,
       render: (val: string) => <Typography.Text code>{String(val || '').toUpperCase()}</Typography.Text>,
     },
-    { title: 'Title', dataIndex: 'case_title', width: 240, ellipsis: true },
+    { title: 'Tiêu đề', dataIndex: 'case_title', width: 240, ellipsis: true },
     {
-      title: 'Coverage',
+      title: 'Độ phủ',
       dataIndex: 'coverage_state',
       width: 140,
-      render: (val: string) => <Tag color={val === 'Evaluated' ? 'green' : 'gold'}>{val}</Tag>,
+      render: (val: string) => <Tag color={val === 'Evaluated' ? 'green' : 'gold'}>{localizeWithMap(val, COVERAGE_STATE_LABELS)}</Tag>,
     },
     {
-      title: 'Verdict (AI vs Human)',
+      title: 'Phán quyết (AI / Người)',
       key: 'verdict',
       width: 240,
       render: (_, row) => (
         <Space size={4}>
-          <Tag color="blue">{row.fields.verdict.ai_value || '—'}</Tag>
+          <Tag color="blue">{row.fields.verdict.ai_value ? localizeChoiceLabel(row.fields.verdict.ai_value) : '—'}</Tag>
           <span>/</span>
-          <Tag>{row.fields.verdict.human_value || '—'}</Tag>
-          {row.fields.verdict.agrees === false ? <Tag color="orange">Mismatch</Tag> : null}
+          <Tag>{row.fields.verdict.human_value ? localizeChoiceLabel(row.fields.verdict.human_value) : '—'}</Tag>
+          {row.fields.verdict.agrees === false ? <Tag color="orange">Lệch</Tag> : null}
         </Space>
       ),
     },
     {
-      title: 'Severity (AI vs Human)',
+      title: 'Mức độ (AI / Người)',
       key: 'severity',
       width: 220,
       render: (_, row) => (
         <Space size={4}>
-          <Tag color="blue">{row.fields.severity.ai_value || '—'}</Tag>
+          <Tag color="blue">{row.fields.severity.ai_value ? localizeChoiceLabel(row.fields.severity.ai_value) : '—'}</Tag>
           <span>/</span>
-          <Tag>{row.fields.severity.human_value || '—'}</Tag>
+          <Tag>{row.fields.severity.human_value ? localizeChoiceLabel(row.fields.severity.human_value) : '—'}</Tag>
         </Space>
       ),
     },
     {
-      title: 'Closed At',
+      title: 'Đóng lúc',
       dataIndex: 'closed_at',
       width: 180,
       render: formatDateTime,
@@ -170,7 +177,7 @@ export default function AIQualitySettings() {
         <Select value={humanSeverity} options={SEVERITY_OPTIONS} onChange={(val) => { setPage(1); setHumanSeverity(val) }} style={{ width: 160 }} />
         <Space size={8}>
           <Switch checked={onlyMismatches} onChange={(checked) => { setPage(1); setOnlyMismatches(checked) }} />
-          <span>Only Mismatches</span>
+          <span>Chỉ hiện sai lệch</span>
         </Space>
       </Space>
 
@@ -179,13 +186,13 @@ export default function AIQualitySettings() {
       <Row gutter={[12, 12]}>
         <Col xs={12} md={6}>
           <Card size="small" loading={loading}>
-            <Statistic title="Closed Cases" value={summary?.coverage.total_closed ?? 0} />
+            <Statistic title="Vụ việc đã đóng" value={summary?.coverage.total_closed ?? 0} />
           </Card>
         </Col>
         <Col xs={12} md={6}>
           <Card size="small" loading={loading}>
             <Statistic
-              title="Prediction Coverage"
+              title="Tỷ lệ có dự đoán AI"
               value={summary?.coverage.coverage_rate ?? 0}
               suffix="%"
             />
@@ -193,19 +200,19 @@ export default function AIQualitySettings() {
         </Col>
         <Col xs={12} md={6}>
           <Card size="small" loading={loading}>
-            <Statistic title="No Prediction" value={summary?.coverage.no_prediction ?? 0} />
+            <Statistic title="Chưa có dự đoán" value={summary?.coverage.no_prediction ?? 0} />
           </Card>
         </Col>
         <Col xs={12} md={6}>
           <Card size="small" loading={loading}>
-            <Statistic title="Invalid Prediction" value={summary?.coverage.invalid_prediction ?? 0} />
+            <Statistic title="Dự đoán không hợp lệ" value={summary?.coverage.invalid_prediction ?? 0} />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} lg={11}>
-          <Card size="small" title="AI–Human Agreement Rates">
+          <Card size="small" title="Tỷ lệ đồng thuận AI – Chuyên viên">
             <Table<AiQualityFieldAgreement>
               rowKey="field"
               size="small"
@@ -217,7 +224,7 @@ export default function AIQualitySettings() {
           </Card>
         </Col>
         <Col xs={24} lg={13}>
-          <Card size="small" title="Ordinal Alignment & Distance">
+          <Card size="small" title="Căn chỉnh & sai số theo thứ tự">
             <Table<AiQualityOrdinalStat>
               rowKey="field"
               size="small"
@@ -230,7 +237,7 @@ export default function AIQualitySettings() {
         </Col>
       </Row>
 
-      <Card size="small" title="Closed Case Evaluations">
+      <Card size="small" title="Đánh giá các vụ việc đã đóng">
         <Table<AiQualityEvaluationItem>
           rowKey="id"
           size="small"

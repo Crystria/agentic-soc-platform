@@ -11,6 +11,7 @@ import {getResourceConfig} from '../config/resources'
 import type {OpenResourceOptions, ResourceColumn, ResourceConfig, ResourceFilterConfig, AdvancedFilterFieldConfig} from '../types/records'
 import {message} from '../utils/appMessage'
 import {choiceTag, emptyValue, formatDateTime} from '../utils/recordDisplay'
+import {AUDIT_ACTION_LABELS, localizeWithMap} from '../utils/i18n'
 import {monoTextStyle} from '../utils/typography'
 
 const { RangePicker } = DatePicker
@@ -38,49 +39,49 @@ const actionOptions = [
   'deleted',
   'reveal',
   'test',
-].map((value) => ({ label: value, value }))
+].map((value) => ({ label: AUDIT_ACTION_LABELS[value] || value, value }))
 
 const resourceTypeOptions = [
-  { label: 'Case', value: 'case' },
-  { label: 'Alert', value: 'alert' },
-  { label: 'Artifact', value: 'artifact' },
-  { label: 'Enrichment', value: 'enrichment' },
+  { label: 'Vụ việc', value: 'case' },
+  { label: 'Cảnh báo', value: 'alert' },
+  { label: 'Thực thể', value: 'artifact' },
+  { label: 'Làm giàu dữ liệu', value: 'enrichment' },
   { label: 'Playbook', value: 'playbook' },
-  { label: 'Knowledge', value: 'knowledge' },
-  { label: 'User', value: 'user' },
-  { label: 'LLM Provider', value: 'llmproviderconfig' },
-  { label: 'AlienVault OTX Settings', value: 'threatintelalienvaultotxconfig' },
-  { label: 'OpenCTI Settings', value: 'threatintelopencticonfig' },
-  { label: 'Splunk Settings', value: 'siemsplunkconfig' },
-  { label: 'ELK Settings', value: 'siemelkconfig' },
-  { label: 'LDAP Settings', value: 'ldapconfig' },
-  { label: 'Runtime Settings', value: 'runtimeconfig' },
+  { label: 'Tri thức', value: 'knowledge' },
+  { label: 'Người dùng', value: 'user' },
+  { label: 'Nhà cung cấp LLM', value: 'llmproviderconfig' },
+  { label: 'Cài đặt AlienVault OTX', value: 'threatintelalienvaultotxconfig' },
+  { label: 'Cài đặt OpenCTI', value: 'threatintelopencticonfig' },
+  { label: 'Cài đặt Splunk', value: 'siemsplunkconfig' },
+  { label: 'Cài đặt ELK', value: 'siemelkconfig' },
+  { label: 'Cài đặt LDAP', value: 'ldapconfig' },
+  { label: 'Cấu hình Runtime', value: 'runtimeconfig' },
 ]
 
 const linkableResourceKeys = new Set(['cases', 'alerts', 'artifacts', 'enrichments', 'playbooks', 'knowledge', 'users', 'llm-providers'])
 
 const endpoint = '/settings/audit-logs/'
-const searchPlaceholder = 'Audit ID, actor, action, resource, object ID, field, changes, metadata'
+const searchPlaceholder = 'Mã nhật ký, tác nhân, hành động, tài nguyên, mã đối tượng, trường, thay đổi, metadata'
 
 const filters: ResourceFilterConfig[] = [
-  { key: 'action', label: 'Action', valueType: 'select', options: actionOptions, width: 132 },
-  { key: 'actor', label: 'Actor', valueType: 'user', options: [{ label: 'system', value: 'system' }], width: 180 },
-  { key: 'resource_type', label: 'Resource Type', valueType: 'select', options: resourceTypeOptions, width: 200 },
+  { key: 'action', label: 'Hành động', valueType: 'select', options: actionOptions, width: 132 },
+  { key: 'actor', label: 'Người thực hiện', valueType: 'user', options: [{ label: 'Hệ thống', value: 'system' }], width: 180 },
+  { key: 'resource_type', label: 'Loại tài nguyên', valueType: 'select', options: resourceTypeOptions, width: 200 },
 ]
 
 const advancedFilters: AdvancedFilterFieldConfig[] = [
-  { key: 'action', label: 'Action', valueType: 'select', options: actionOptions },
-  { key: 'actor', label: 'Actor', valueType: 'user', options: [{ label: 'system', value: 'system' }] },
-  { key: 'resource_type', label: 'Resource Type', valueType: 'select', options: resourceTypeOptions },
-  { key: 'object_id', label: 'Object ID', valueType: 'text' },
-  { key: 'field', label: 'Field / Relation', valueType: 'text' },
-  { key: 'relation', label: 'Relation', valueType: 'text' },
-  { key: 'related_resource', label: 'Related Resource', valueType: 'text' },
-  { key: 'related_id', label: 'Related ID', valueType: 'text' },
-  { key: 'related_label', label: 'Related Label', valueType: 'text' },
+  { key: 'action', label: 'Hành động', valueType: 'select', options: actionOptions },
+  { key: 'actor', label: 'Người thực hiện', valueType: 'user', options: [{ label: 'Hệ thống', value: 'system' }] },
+  { key: 'resource_type', label: 'Loại tài nguyên', valueType: 'select', options: resourceTypeOptions },
+  { key: 'object_id', label: 'Mã đối tượng', valueType: 'text' },
+  { key: 'field', label: 'Trường / Quan hệ', valueType: 'text' },
+  { key: 'relation', label: 'Quan hệ', valueType: 'text' },
+  { key: 'related_resource', label: 'Tài nguyên liên quan', valueType: 'text' },
+  { key: 'related_id', label: 'Mã liên quan', valueType: 'text' },
+  { key: 'related_label', label: 'Nhãn liên quan', valueType: 'text' },
   { key: 'changes', label: 'Changes JSON', valueType: 'text' },
   { key: 'metadata', label: 'Metadata JSON', valueType: 'text' },
-  { key: 'created_at', label: 'Created Time', valueType: 'date' },
+  { key: 'created_at', label: 'Thời gian tạo', valueType: 'date' },
 ]
 
 const value = (record: RecordRow, key: string) => record[key]
@@ -88,11 +89,11 @@ const textValue = (record: RecordRow, key: string) => emptyValue(value(record, k
 const actorDisplay = (record: RecordRow) => {
   const actorName = String(value(record, 'actor_name') || '')
   const actor = String(value(record, 'actor') || '')
-  return actorName || actor || 'system'
+  return actorName || actor || 'Hệ thống'
 }
 const actionTag = (rawValue: unknown) => {
   const action = String(rawValue || '')
-  return choiceTag(action, actionColors[action] || 'default')
+  return choiceTag(localizeWithMap(action, AUDIT_ACTION_LABELS), actionColors[action] || 'default')
 }
 const date = (field: string) => (_: unknown, record: RecordRow) => formatDateTime(String(value(record, field) || ''))
 const mono = (content: unknown) => (
@@ -126,32 +127,32 @@ function AuditLogBasicView({
     <div style={{ padding: '20px 20px 16px', overflow: 'auto', height: '100%', boxSizing: 'border-box' }}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Descriptions column={2} size="small" bordered>
-          <Descriptions.Item label="Audit ID">{mono(value(record, 'readable_id'))}</Descriptions.Item>
-          <Descriptions.Item label="Time">{formatDateTime(String(value(record, 'created_at') || ''))}</Descriptions.Item>
-          <Descriptions.Item label="Action">{actionTag(action)}</Descriptions.Item>
-          <Descriptions.Item label="Actor">{actorDisplay(record)}</Descriptions.Item>
-          <Descriptions.Item label="Resource Type">{textValue(record, 'resource_label')}</Descriptions.Item>
-          <Descriptions.Item label="Object ID">
+          <Descriptions.Item label="Mã nhật ký">{mono(value(record, 'readable_id'))}</Descriptions.Item>
+          <Descriptions.Item label="Thời gian">{formatDateTime(String(value(record, 'created_at') || ''))}</Descriptions.Item>
+          <Descriptions.Item label="Hành động">{actionTag(action)}</Descriptions.Item>
+          <Descriptions.Item label="Người thực hiện">{actorDisplay(record)}</Descriptions.Item>
+          <Descriptions.Item label="Loại tài nguyên">{textValue(record, 'resource_label')}</Descriptions.Item>
+          <Descriptions.Item label="Mã đối tượng">
             {canOpenResource(objectResourceKey, objectId, action) ? (
               <Button type="link" size="small" style={{ padding: 0, height: 'auto', ...monoTextStyle }} onClick={() => onOpenResource?.(objectResourceKey, objectId!)}>
                 {textValue(record, 'object_id')}
               </Button>
             ) : mono(value(record, 'object_id'))}
           </Descriptions.Item>
-          <Descriptions.Item label="Field / Relation">{textValue(record, 'field_summary')}</Descriptions.Item>
-          <Descriptions.Item label="Related Resource">{textValue(record, 'related_resource')}</Descriptions.Item>
-          <Descriptions.Item label="Related Record">
+          <Descriptions.Item label="Trường / Quan hệ">{textValue(record, 'field_summary')}</Descriptions.Item>
+          <Descriptions.Item label="Tài nguyên liên quan">{textValue(record, 'related_resource')}</Descriptions.Item>
+          <Descriptions.Item label="Bản ghi liên quan">
             {canOpenResource(relatedResourceKey, relatedId, action) ? (
               <Button type="link" size="small" style={{ padding: 0, height: 'auto' }} onClick={() => onOpenResource?.(relatedResourceKey, relatedId!)}>
                 {textValue(record, 'related_label') !== '—' ? textValue(record, 'related_label') : textValue(record, 'related_id')}
               </Button>
             ) : textValue(record, 'related_label') !== '—' ? textValue(record, 'related_label') : mono(value(record, 'related_id'))}
           </Descriptions.Item>
-          <Descriptions.Item label="Summary" span={2}>{textValue(record, 'summary')}</Descriptions.Item>
+          <Descriptions.Item label="Tóm tắt" span={2}>{textValue(record, 'summary')}</Descriptions.Item>
         </Descriptions>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
           <div style={{ minWidth: 0 }}>
-            <Typography.Title level={5}>Changes</Typography.Title>
+            <Typography.Title level={5}>Thay đổi</Typography.Title>
             <JsonViewer value={value(record, 'display_changes') || value(record, 'changes')} maxHeight="none" />
           </div>
           <div style={{ minWidth: 0 }}>
@@ -198,14 +199,14 @@ export default function AuditLogsSettings() {
   }, [createdRange])
 
   const columns = useMemo<ResourceColumn<RecordRow>[]>(() => [
-    { key: 'readable_id', title: 'Audit ID', dataIndex: 'readable_id', width: 150, required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true },
-    { key: 'created_at', title: 'Time', dataIndex: 'created_at', width: 180, defaultVisible: true, sorter: true, render: date('created_at') },
-    { key: 'action', title: 'Action', dataIndex: 'action', width: 120, defaultVisible: true, sorter: true, render: actionTag },
-    { key: 'actor_name', title: 'Actor', dataIndex: 'actor_name', width: 180, defaultVisible: true, sorter: true, render: (_v, record) => actorDisplay(record) },
-    { key: 'resource_label', title: 'Resource Type', dataIndex: 'resource_label', width: 180, defaultVisible: true },
+    { key: 'readable_id', title: 'Mã nhật ký', dataIndex: 'readable_id', width: 150, required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true },
+    { key: 'created_at', title: 'Thời gian', dataIndex: 'created_at', width: 180, defaultVisible: true, sorter: true, render: date('created_at') },
+    { key: 'action', title: 'Hành động', dataIndex: 'action', width: 120, defaultVisible: true, sorter: true, render: actionTag },
+    { key: 'actor_name', title: 'Người thực hiện', dataIndex: 'actor_name', width: 180, defaultVisible: true, sorter: true, render: (_v, record) => actorDisplay(record) },
+    { key: 'resource_label', title: 'Loại tài nguyên', dataIndex: 'resource_label', width: 180, defaultVisible: true },
     {
       key: 'object_id',
-      title: 'Object ID',
+      title: 'Mã đối tượng',
       dataIndex: 'object_id',
       width: 360,
       defaultVisible: true,
@@ -216,10 +217,10 @@ export default function AuditLogsSettings() {
         rowId: (record) => value(record, 'object_id') as string | number | null | undefined,
       },
     },
-    { key: 'field_summary', title: 'Field / Relation', dataIndex: 'field_summary', width: 180, defaultVisible: true },
+    { key: 'field_summary', title: 'Trường / Quan hệ', dataIndex: 'field_summary', width: 180, defaultVisible: true },
     {
       key: 'related_label',
-      title: 'Related Record',
+      title: 'Bản ghi liên quan',
       dataIndex: 'related_label',
       width: 240,
       defaultVisible: true,
@@ -229,14 +230,14 @@ export default function AuditLogsSettings() {
         rowId: (record) => value(record, 'related_id') as string | number | null | undefined,
       },
     },
-    { key: 'summary', title: 'Summary', dataIndex: 'summary', width: 520, defaultVisible: true },
+    { key: 'summary', title: 'Tóm tắt', dataIndex: 'summary', width: 520, defaultVisible: true },
     { key: 'changes_json', title: 'Changes JSON', dataIndex: 'changes_json', width: 480 },
     { key: 'metadata_json', title: 'Metadata JSON', dataIndex: 'metadata_json', width: 480 },
   ], [])
 
   const detailConfig = useMemo<ResourceConfig<RecordRow>>(() => ({
     key: 'audit-logs',
-    label: 'Audit Logs',
+    label: 'Nhật ký hệ thống',
     endpoint,
     rowKey: 'id',
     searchPlaceholder,
@@ -266,9 +267,9 @@ export default function AuditLogsSettings() {
         responseType: 'blob',
       })
       downloadBlob(response.data, exportFilename(response.headers['content-disposition']))
-      message.success('Audit logs exported')
+      message.success('Đã xuất nhật ký hệ thống')
     } catch {
-      message.error('Failed to export audit logs')
+      message.error('Xuất nhật ký hệ thống thất bại')
     } finally {
       setExporting(false)
     }
@@ -300,7 +301,7 @@ export default function AuditLogsSettings() {
         onRowClick={(record) => setSelectedAuditLogId(value(record, 'id') as string | number)}
         onOpenResource={openRelatedDetail}
         actions={({ params }) => (
-          <Tooltip title="Export CSV">
+          <Tooltip title="Xuất CSV">
             <Button icon={<ExportOutlined />} loading={exporting} onClick={() => exportCsv(params)} />
           </Tooltip>
         )}

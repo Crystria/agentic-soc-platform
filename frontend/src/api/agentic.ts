@@ -67,9 +67,16 @@ export interface AgenticOverviewResponse {
     }>
   }
   rag: {
+    mode?: 'hybrid' | 'lexical' | 'vector' | 'none'
     total_knowledge: number
     manual_knowledge: number
     case_knowledge: number
+    indexed_knowledge?: number
+    embedding_configured?: boolean
+    embedding_model?: string
+    redis_vector_available?: boolean
+    redis_vector_docs?: number
+    redis_vector_dimensions?: number | null
     top_keywords: Array<{ keyword: string; count: number }>
   }
   runtime: {

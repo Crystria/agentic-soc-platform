@@ -2,6 +2,8 @@
 set -eu
 
 python manage.py migrate
+python manage.py sync_llm_providers
+python manage.py reindex_knowledge
 python manage.py collectstatic --noinput
 
 python - <<'PY'

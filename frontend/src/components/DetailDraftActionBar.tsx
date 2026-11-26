@@ -36,13 +36,13 @@ export default function DetailDraftActionBar({ dirtyCount, saving, onCancel, onS
         }}
       >
         <span style={{ color: 'rgba(255,255,255,0.72)' }}>
-          {dirtyCount} field{dirtyCount === 1 ? '' : 's'} changed
+          Đã thay đổi {dirtyCount} trường
         </span>
         <Button icon={<RollbackOutlined />} disabled={saving} onClick={onCancel}>
-          Cancel
+          Hủy
         </Button>
         <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={onSave}>
-          Save
+          Lưu
         </Button>
       </div>
     </div>

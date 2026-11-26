@@ -28,7 +28,7 @@ function apiErrorMessage(error: unknown) {
   if (data && typeof data === 'object' && typeof (data as { detail?: unknown }).detail === 'string') {
     return (data as { detail: string }).detail
   }
-  return 'Failed to load case knowledge'
+  return 'Không thể tải tri thức vụ việc'
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -120,7 +120,7 @@ export default function CaseKnowledgeView({ caseId, editableFields, onOpenResour
   const saveFieldDrafts = useCallback(async () => {
     const knowledgeId = knowledge?.id
     if (typeof knowledgeId !== 'string' && typeof knowledgeId !== 'number') {
-      message.error('Cannot update knowledge without an ID')
+      message.error('Không thể cập nhật tri thức không có ID')
       return
     }
     if (!dirtyFieldKeys.length) return
@@ -141,20 +141,20 @@ export default function CaseKnowledgeView({ caseId, editableFields, onOpenResour
       setKnowledge(data)
       clearFieldEditing()
       onChanged?.()
-      message.success('Knowledge updated')
+      message.success('Đã cập nhật tri thức')
     } catch (error) {
       const response = error as { response?: { status?: number; data?: unknown } }
       if (response.response?.status === 404) {
         setKnowledge(null)
         clearFieldEditing()
-        message.warning('Knowledge not found or has been deleted')
+        message.warning('Không tìm thấy tri thức hoặc đã bị xóa')
         return
       }
 
       const nextFieldErrors = extractFieldErrors(response.response?.data, dirtyFieldSet)
       if (Object.keys(nextFieldErrors).length) {
         setFieldErrors(nextFieldErrors)
-        message.error('Failed to update knowledge')
+        message.error('Không thể cập nhật tri thức')
       } else {
         message.error(apiErrorMessage(error))
       }
@@ -186,7 +186,7 @@ export default function CaseKnowledgeView({ caseId, editableFields, onOpenResour
     startFieldEdit: (key: string) => {
       const field = editableFieldMap.get(key)
       if (!field || !knowledge) {
-        message.error('Field is not editable')
+        message.error('Trường này không thể chỉnh sửa')
         return
       }
       setFieldErrors((previous) => removeFieldKey(previous, key))
@@ -202,7 +202,7 @@ export default function CaseKnowledgeView({ caseId, editableFields, onOpenResour
     setFieldDraftValue: (key: string, value: unknown) => {
       const field = editableFieldMap.get(key)
       if (!field) {
-        message.error('Field is not editable')
+        message.error('Trường này không thể chỉnh sửa')
         return
       }
       setFieldErrors((previous) => removeFieldKey(previous, key))
@@ -244,7 +244,7 @@ export default function CaseKnowledgeView({ caseId, editableFields, onOpenResour
   if (!caseId) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Empty description="No case selected" />
+        <Empty description="Chưa chọn vụ việc" />
       </div>
     )
   }
@@ -254,7 +254,7 @@ export default function CaseKnowledgeView({ caseId, editableFields, onOpenResour
   if (!knowledge) {
     return (
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Empty description="No extracted knowledge for this case" />
+        <Empty description="Chưa có tri thức nào được trích xuất cho vụ việc này" />
       </div>
     )
   }

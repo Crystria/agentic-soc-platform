@@ -42,7 +42,7 @@ export default function UserDetailModal({ userId, open, onClose, onSaved }: User
         })
       })
       .catch(() => {
-        message.error('Failed to load user')
+        message.error('Không thể tải thông tin người dùng')
         onClose()
       })
       .finally(() => setLoading(false))
@@ -56,7 +56,7 @@ export default function UserDetailModal({ userId, open, onClose, onSaved }: User
       const payload = user?.role === 'admin' ? { ...values, role: undefined } : values
       const { data } = await client.patch<AuthUser>(`/auth/users/${userId}/`, payload)
       setUser(data)
-      message.success('User updated')
+      message.success('Đã cập nhật người dùng')
       onSaved()
     } catch (error: unknown) {
       const response = error as { response?: { data?: unknown } }
@@ -68,13 +68,13 @@ export default function UserDetailModal({ userId, open, onClose, onSaved }: User
 
   return (
     <Modal
-      title={user ? `User: ${user.username}` : 'User Detail'}
+      title={user ? `Người dùng: ${user.username}` : 'Chi tiết người dùng'}
       open={open}
       onCancel={onClose}
       footer={(
         <Space>
-          <Button onClick={onClose}>Close</Button>
-          <Button type="primary" loading={saving} onClick={save}>Save</Button>
+          <Button onClick={onClose}>Đóng</Button>
+          <Button type="primary" loading={saving} onClick={save}>Lưu</Button>
         </Space>
       )}
       width={720}
@@ -97,19 +97,19 @@ export default function UserDetailModal({ userId, open, onClose, onSaved }: User
       <Form form={form} layout="vertical" disabled={loading} style={{ paddingTop: 8 }}>
         <Row gutter={16}>
           <Col span={20}>
-            <Form.Item label="Username"><Input value={user?.username} disabled /></Form.Item>
+            <Form.Item label="Tên đăng nhập"><Input value={user?.username} disabled /></Form.Item>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item label="Authentication Type"><Input value={user?.auth_type === 'ldap' ? 'LDAP' : 'Local Password'} disabled /></Form.Item>
+                <Form.Item label="Kiểu xác thực"><Input value={user?.auth_type === 'ldap' ? 'LDAP' : 'Mật khẩu nội bộ'} disabled /></Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="role" label="Role">
+                <Form.Item name="role" label="Vai trò">
                   <Select
                     disabled={user?.role === 'admin'}
-                    placeholder={user?.role === 'admin' ? 'Admin' : undefined}
+                    placeholder={user?.role === 'admin' ? 'Quản trị viên' : undefined}
                     options={[
-                      { label: 'User', value: 'user' },
-                      { label: 'Viewer', value: 'viewer' },
+                      { label: 'Người dùng', value: 'user' },
+                      { label: 'Chỉ xem', value: 'viewer' },
                     ]}
                   />
                 </Form.Item>
@@ -118,7 +118,7 @@ export default function UserDetailModal({ userId, open, onClose, onSaved }: User
           </Col>
           <Col span={4}>
             {user && (
-              <Form.Item label={<div style={{ width: '100%', textAlign: 'center' }}>Avatar</div>}>
+              <Form.Item label={<div style={{ width: '100%', textAlign: 'center' }}>Ảnh đại diện</div>}>
                 <div style={{ minHeight: 92, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <AvatarUpload
                     user={user}
@@ -134,20 +134,20 @@ export default function UserDetailModal({ userId, open, onClose, onSaved }: User
             )}
           </Col>
         </Row>
-        <Typography.Text strong>Profile</Typography.Text>
+        <Typography.Text strong>Hồ sơ</Typography.Text>
         <Divider style={{ margin: '8px 0 16px' }} />
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="email" label="Email" rules={[{ type: 'email' }]}><Input /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="mobile_phone" label="Mobile Phone"><Input /></Form.Item>
+            <Form.Item name="mobile_phone" label="Số điện thoại"><Input /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="first_name" label="First Name"><Input /></Form.Item>
+            <Form.Item name="first_name" label="Tên"><Input /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="last_name" label="Last Name"><Input /></Form.Item>
+            <Form.Item name="last_name" label="Họ"><Input /></Form.Item>
           </Col>
         </Row>
       </Form>

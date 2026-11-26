@@ -35,41 +35,41 @@ export default function UserCreateModal({ open, onClose, onCreated }: UserCreate
   }
 
   return (
-    <Modal title="Create User" open={open} onOk={onOk} onCancel={onClose} okText="Create" width={720} destroyOnHidden>
+    <Modal title="Tạo người dùng" open={open} onOk={onOk} onCancel={onClose} okText="Tạo" width={720} destroyOnHidden>
       <Form form={form} layout="vertical" initialValues={{ auth_type: 'local', role: 'user' }} style={{ paddingTop: 8 }}>
-        <Form.Item name="username" label="Username" rules={[{ required: true }]}><Input /></Form.Item>
+        <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true }]}><Input /></Form.Item>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="auth_type" label="Authentication Type" rules={[{ required: true }]}>
+            <Form.Item name="auth_type" label="Kiểu xác thực" rules={[{ required: true }]}>
               <Select options={[
-                { label: 'Local Password', value: 'local' },
+                { label: 'Mật khẩu nội bộ', value: 'local' },
                 { label: 'LDAP', value: 'ldap' },
               ]} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="role" label="Role" rules={[{ required: true }]}>
+            <Form.Item name="role" label="Vai trò" rules={[{ required: true }]}>
               <Select options={[
-                { label: 'User', value: 'user' },
-                { label: 'Viewer', value: 'viewer' },
+                { label: 'Người dùng', value: 'user' },
+                { label: 'Chỉ xem', value: 'viewer' },
               ]} />
             </Form.Item>
           </Col>
         </Row>
-        <Typography.Text strong>Profile</Typography.Text>
+        <Typography.Text strong>Hồ sơ</Typography.Text>
         <Divider style={{ margin: '8px 0 16px' }} />
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="email" label="Email" rules={[{ type: 'email' }]}><Input /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="mobile_phone" label="Mobile Phone"><Input /></Form.Item>
+            <Form.Item name="mobile_phone" label="Số điện thoại"><Input /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="first_name" label="First Name"><Input /></Form.Item>
+            <Form.Item name="first_name" label="Tên"><Input /></Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="last_name" label="Last Name"><Input /></Form.Item>
+            <Form.Item name="last_name" label="Họ"><Input /></Form.Item>
           </Col>
         </Row>
       </Form>

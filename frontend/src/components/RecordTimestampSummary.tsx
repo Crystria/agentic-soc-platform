@@ -11,8 +11,8 @@ interface RecordTimestampSummaryProps {
 }
 
 const timestampFields = [
-  { key: 'created_at', label: 'Created' },
-  { key: 'updated_at', label: 'Updated' },
+  { key: 'created_at', label: 'Tạo' },
+  { key: 'updated_at', label: 'Cập nhật' },
 ] as const
 
 function timestampItem(record: Record<string, unknown>, key: string, label: string) {

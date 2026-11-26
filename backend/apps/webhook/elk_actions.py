@@ -12,6 +12,7 @@ from integrations.siem.clients import get_elk_client
 logger = logging.getLogger(__name__)
 
 ELK_CLIENT_CONFIG_FIELDS = ("host", "api_key", "verify_certs")
+ELASTIC_SECURITY_ALERT_STREAM = "ELASTIC-SECURITY-ALERTS"
 
 
 @dataclass
@@ -23,6 +24,23 @@ class ProcessResult:
 
 def format_es_time(value):
     return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _is_elastic_security_alert_doc(action_data):
+    """Return True if document matches an Elastic Security alert (.alerts-security.alerts-*)."""
+    if not isinstance(action_data, dict):
+        return False
+    if isinstance(action_data.get("context"), dict) and "hits" in action_data["context"]:
+        return False
+    if "kibana.alert.rule.name" in action_data or "signal.rule.name" in action_data:
+        return True
+    kibana_section = action_data.get("kibana")
+    if isinstance(kibana_section, dict) and isinstance(kibana_section.get("alert"), dict):
+        return True
+    signal_section = action_data.get("signal")
+    if isinstance(signal_section, dict) and isinstance(signal_section.get("rule"), dict):
+        return True
+    return False
 
 
 class ELKActionProcessor:
@@ -114,6 +132,15 @@ class ELKActionProcessor:
         return result
 
     def process_action(self, action_data):
+        if _is_elastic_security_alert_doc(action_data):
+            webhook_result = handle_kibana_webhook(
+                {
+                    "rule": {"name": ELASTIC_SECURITY_ALERT_STREAM},
+                    "context": {"hits": [{"_source": action_data}]},
+                }
+            )
+            return webhook_result.sent, webhook_result.skipped
+
         rule_name = action_data.get("rule", {}).get("name") if isinstance(action_data.get("rule"), dict) else ""
         if not rule_name:
             logger.warning("ELK action missing rule.name; skipping")

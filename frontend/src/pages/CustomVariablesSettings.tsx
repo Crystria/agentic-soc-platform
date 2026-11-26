@@ -41,12 +41,12 @@ const MAX_VALUE_BYTES = 65_536
 const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER
 const JSON_EDITOR_EXTENSIONS = [json()]
 const VALUE_TYPE_OPTIONS = [
-  {label: 'String', value: 'string'},
-  {label: 'Integer', value: 'integer'},
-  {label: 'Float', value: 'float'},
+  {label: 'Chuỗi ký tự', value: 'string'},
+  {label: 'Số nguyên', value: 'integer'},
+  {label: 'Số thực', value: 'float'},
   {label: 'Boolean', value: 'boolean'},
-  {label: 'List', value: 'list'},
-  {label: 'Dictionary', value: 'dictionary'},
+  {label: 'Danh sách', value: 'list'},
+  {label: 'Từ điển', value: 'dictionary'},
 ]
 
 function apiErrorMessage(error: unknown, fallback: string) {
@@ -104,7 +104,7 @@ export default function CustomVariablesSettings() {
       form.setFieldsValue({...initialValues(), ...data, value})
       setModalOpen(true)
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to load custom variable'))
+      message.error(apiErrorMessage(error, 'Không thể tải biến tùy chỉnh'))
     }
   }
 
@@ -132,10 +132,10 @@ export default function CustomVariablesSettings() {
 
     if (editing) {
       await client.patch(`/custom/variables/${editing.id}/`, payload)
-      message.success('Custom variable updated')
+      message.success('Đã cập nhật biến tùy chỉnh')
     } else {
       await client.post('/custom/variables/', payload)
-      message.success('Custom variable created')
+      message.success('Đã tạo biến tùy chỉnh')
     }
     closeEditor()
     refresh()
@@ -150,18 +150,18 @@ export default function CustomVariablesSettings() {
       if (exposesSecret || changesType) {
         modal.confirm({
           title: exposesSecret
-            ? `Expose ${editing?.key} as a non-secret variable?`
-            : `Change ${editing?.key} from ${editing?.value_type} to ${values.value_type}?`,
+            ? `Hiển thị công khai biến ${editing?.key} (không còn là bí mật)?`
+            : `Đổi kiểu biến ${editing?.key} từ ${editing?.value_type} sang ${values.value_type}?`,
           content: exposesSecret
-            ? 'This value will become visible in normal Admin API responses and UI.'
-            : 'Playbooks and modules will receive a different Python value type.',
-          okText: exposesSecret ? 'Expose value' : 'Change type',
+            ? 'Giá trị này sẽ hiển thị bình thường trong phản hồi Admin API và giao diện.'
+            : 'Playbook và các module sẽ nhận được kiểu dữ liệu Python khác.',
+          okText: exposesSecret ? 'Hiển thị giá trị' : 'Đổi kiểu',
           okButtonProps: {danger: exposesSecret},
           onOk: async () => {
             try {
               await persist(values, true)
             } catch (error: unknown) {
-              message.error(apiErrorMessage(error, 'Failed to save custom variable'))
+              message.error(apiErrorMessage(error, 'Lưu biến tùy chỉnh thất bại'))
               throw error
             }
           },
@@ -170,7 +170,7 @@ export default function CustomVariablesSettings() {
         await persist(values, false)
       }
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save custom variable'))
+      message.error(apiErrorMessage(error, 'Lưu biến tùy chỉnh thất bại'))
     } finally {
       setSaving(false)
     }
@@ -182,7 +182,7 @@ export default function CustomVariablesSettings() {
       const {data} = await client.post<{value: string}>(`/custom/variables/${record.id}/reveal/`)
       setRevealed({key: record.key, value: data.value})
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to reveal custom variable'))
+      message.error(apiErrorMessage(error, 'Hiển thị biến tùy chỉnh thất bại'))
     } finally {
       setRevealingId(null)
     }
@@ -191,10 +191,10 @@ export default function CustomVariablesSettings() {
   const deleteVariable = async (record: CustomVariable) => {
     try {
       await client.delete(`/custom/variables/${record.id}/`)
-      message.success('Custom variable deleted')
+      message.success('Đã xóa biến tùy chỉnh')
       refresh()
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to delete custom variable'))
+      message.error(apiErrorMessage(error, 'Xóa biến tùy chỉnh thất bại'))
     }
   }
 
@@ -202,28 +202,28 @@ export default function CustomVariablesSettings() {
     const unchangedSecret = editing?.is_secret && valueType === 'string' && value === ''
     if (unchangedSecret) return Promise.resolve()
     if (value === undefined || value === null || (valueType === 'string' && value === '')) {
-      return Promise.reject(new Error('Value is required.'))
+      return Promise.reject(new Error('Giá trị là bắt buộc.'))
     }
     if (valueType === 'integer' && (typeof value !== 'number' || !Number.isSafeInteger(value))) {
-      return Promise.reject(new Error('Value must be a safe integer.'))
+      return Promise.reject(new Error('Giá trị phải là số nguyên an toàn.'))
     }
     let serialized = String(value)
     if (valueType === 'list' || valueType === 'dictionary') {
       try {
         const parsed = JSON.parse(serialized)
         if (valueType === 'list' && !Array.isArray(parsed)) {
-          return Promise.reject(new Error('Value must be a JSON list.'))
+          return Promise.reject(new Error('Giá trị phải là danh sách JSON hợp lệ.'))
         }
         if (valueType === 'dictionary' && (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object')) {
-          return Promise.reject(new Error('Value must be a JSON dictionary.'))
+          return Promise.reject(new Error('Giá trị phải là từ điển JSON hợp lệ.'))
         }
         serialized = JSON.stringify(parsed)
       } catch {
-        return Promise.reject(new Error('Value must be valid JSON.'))
+        return Promise.reject(new Error('Giá trị phải là JSON hợp lệ.'))
       }
     }
     if (new TextEncoder().encode(serialized).length > MAX_VALUE_BYTES) {
-      return Promise.reject(new Error(`Value cannot exceed ${MAX_VALUE_BYTES.toLocaleString()} UTF-8 bytes.`))
+      return Promise.reject(new Error(`Giá trị không được vượt quá ${MAX_VALUE_BYTES.toLocaleString()} byte UTF-8.`))
     }
     return Promise.resolve()
   }
@@ -241,7 +241,7 @@ export default function CustomVariablesSettings() {
       const parsed = JSON.parse(String(form.getFieldValue('value') ?? ''))
       form.setFieldValue('value', JSON.stringify(parsed, null, 2))
     } catch {
-      message.error('Value must be valid JSON before it can be formatted')
+      message.error('Giá trị phải là JSON hợp lệ trước khi định dạng')
     }
   }
 
@@ -284,9 +284,9 @@ export default function CustomVariablesSettings() {
                 }}
               />
               <Popconfirm
-                title={`Delete ${variable.key}?`}
-                description="This variable will be permanently deleted."
-                okText="Delete"
+                title={`Xóa ${variable.key}?`}
+                description="Biến này sẽ bị xóa vĩnh viễn."
+                okText="Xóa"
                 okButtonProps={{danger: true}}
                 onConfirm={(event) => {
                   event?.stopPropagation()
@@ -311,32 +311,32 @@ export default function CustomVariablesSettings() {
       />
 
       <Modal
-        title={editing ? `Custom Variable: ${editing.key}` : 'Add Custom Variable'}
+        title={editing ? `Biến tùy chỉnh: ${editing.key}` : 'Thêm biến tùy chỉnh'}
         open={modalOpen}
         width={valueType === 'list' || valueType === 'dictionary' ? 760 : undefined}
         onCancel={closeEditor}
         destroyOnHidden
         footer={(
           <Space>
-            <Button onClick={closeEditor}>Cancel</Button>
-            <Button type="primary" loading={saving} onClick={saveVariable}>Save</Button>
+            <Button onClick={closeEditor}>Hủy</Button>
+            <Button type="primary" loading={saving} onClick={saveVariable}>Lưu</Button>
           </Space>
         )}
       >
         <Form form={form} layout="vertical" initialValues={initialValues()} style={{paddingTop: 8}}>
           <Form.Item
             name="key"
-            label="Key"
+            label="Khóa"
             rules={[
               {required: true},
-              {pattern: /^[A-Z][A-Z0-9_]{0,127}$/, message: 'Use uppercase letters, numbers, and underscores.'},
+              {pattern: /^[A-Z][A-Z0-9_]{0,127}$/, message: 'Chỉ dùng chữ cái in hoa, chữ số và dấu gạch dưới (_).'},
             ]}
           >
             <Input disabled={editing !== null} placeholder="EDR_API_TOKEN" maxLength={128} />
           </Form.Item>
           <Form.Item
             name="value_type"
-            label="Type"
+            label="Kiểu"
             rules={[{required: true}]}
           >
             <Select options={VALUE_TYPE_OPTIONS} onChange={changeValueType} />
@@ -346,16 +346,16 @@ export default function CustomVariablesSettings() {
             valuePropName={valueType === 'boolean' ? 'checked' : 'value'}
             label={(
               <Space>
-                <span>Value</span>
+                <span>Giá trị</span>
                 {(valueType === 'list' || valueType === 'dictionary')
-                  ? <Button type="link" size="small" onClick={formatStructuredValue}>Format</Button>
+                  ? <Button type="link" size="small" onClick={formatStructuredValue}>Định dạng JSON</Button>
                   : null}
               </Space>
             )}
             rules={[{validator: validateValue}]}
             extra={editing?.is_secret
-              ? 'Leave blank to keep the current value. Maximum 65,536 UTF-8 bytes.'
-              : 'Maximum 65,536 UTF-8 bytes.'}
+              ? 'Để trống nếu giữ nguyên giá trị hiện tại. Tối đa 65.536 byte UTF-8.'
+              : 'Tối đa 65.536 byte UTF-8.'}
           >
             {valueType === 'boolean' ? (
               <Switch />
@@ -395,27 +395,27 @@ export default function CustomVariablesSettings() {
               <Input.TextArea autoSize={{minRows: 3, maxRows: 10}} />
             )}
           </Form.Item>
-          <Form.Item name="description" label="Description">
+          <Form.Item name="description" label="Mô tả">
             <Input.TextArea autoSize={{minRows: 2, maxRows: 5}} />
           </Form.Item>
-          <Form.Item name="is_secret" label="Secret" valuePropName="checked">
+          <Form.Item name="is_secret" label="Bí mật" valuePropName="checked">
             <Switch disabled={valueType !== 'string'} />
           </Form.Item>
-          <Form.Item name="enabled" label="Enabled" valuePropName="checked">
+          <Form.Item name="enabled" label="Bật" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={revealed ? `Secret: ${revealed.key}` : 'Secret'}
+        title={revealed ? `Giá trị bí mật: ${revealed.key}` : 'Giá trị bí mật'}
         open={revealed !== null}
         onCancel={() => setRevealed(null)}
         destroyOnHidden
-        footer={<Button onClick={() => setRevealed(null)}>Close</Button>}
+        footer={<Button onClick={() => setRevealed(null)}>Đóng</Button>}
       >
         <Typography.Paragraph type="secondary">
-          This value is shown only in this dialog.
+          Giá trị này chỉ hiển thị trong hộp thoại này.
         </Typography.Paragraph>
         <Input.TextArea value={revealed?.value || ''} readOnly autoSize={{minRows: 2, maxRows: 10}} />
       </Modal>

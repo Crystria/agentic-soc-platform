@@ -5,6 +5,7 @@ import {ReloadOutlined, SearchOutlined, ThunderboltOutlined} from '@ant-design/i
 import type {ColumnsType} from 'antd/es/table'
 import client from '../api/client'
 import OverflowTags from './OverflowTags'
+import {localizeChoiceLabel} from '../utils/i18n'
 import {comfortableTagProps} from '../utils/tagStyles'
 import {severityTag} from '../utils/recordDisplay'
 
@@ -116,7 +117,7 @@ export function CasePlaybookRunModal({
         if (requestId !== requestIdRef.current) return
         setDefinitions([])
         setSelectedName('')
-        setLoadError(apiErrorMessage(error, 'Failed to load playbooks'))
+        setLoadError(apiErrorMessage(error, 'Không thể tải danh sách Playbook'))
       })
       .finally(() => {
         if (requestId === requestIdRef.current) setLoading(false)
@@ -143,7 +144,7 @@ export function CasePlaybookRunModal({
           <Input.Search
             autoFocus
             allowClear
-            placeholder="Search playbooks"
+            placeholder="Tìm Playbook"
             value={String(selectedKeys[0] || '')}
             onChange={(event) => setSelectedKeys(event.target.value ? [event.target.value] : [])}
             onSearch={() => confirm({ closeDropdown: true })}
@@ -152,10 +153,10 @@ export function CasePlaybookRunModal({
             <Button size="small" onClick={() => {
               clearFilters?.({ confirm: true, closeDropdown: true })
             }}>
-              Reset
+              Đặt lại
             </Button>
             <Button type="primary" size="small" icon={<SearchOutlined />} onClick={() => confirm({ closeDropdown: true })}>
-              Search
+              Tìm
             </Button>
           </Space>
         </div>
@@ -174,18 +175,18 @@ export function CasePlaybookRunModal({
       render: (name: string) => <Typography.Text strong>{name}</Typography.Text>,
     },
     {
-      title: 'Risk',
+      title: 'Rủi ro',
       dataIndex: 'risk_level',
       width: 140,
       filters: ['Low', 'Medium', 'High', 'Critical'].map((riskLevel) => ({
-        text: riskLevel,
+        text: localizeChoiceLabel(riskLevel),
         value: riskLevel,
       })),
       onFilter: (filterValue, definition) => definition.risk_level === filterValue,
       render: (riskLevel: string) => severityTag(riskLevel),
     },
     {
-      title: 'Tags',
+      title: 'Thẻ (Tags)',
       dataIndex: 'tags',
       width: 300,
       filters: tagFilters,
@@ -205,14 +206,14 @@ export function CasePlaybookRunModal({
         user_input: userInput,
       })
       if (data?.job_status === 'Awaiting Approval') {
-        message.warning('Playbook submitted and is awaiting approval before execution')
+        message.warning('Playbook đã được gửi và đang chờ phê duyệt trước khi thực thi')
       } else {
-        message.success('Playbook submitted')
+        message.success('Đã gửi yêu cầu chạy Playbook')
       }
       onClose()
       onSubmitted?.()
     } catch (error) {
-      message.error(apiErrorMessage(error, 'Failed to submit playbook'))
+      message.error(apiErrorMessage(error, 'Không thể gửi yêu cầu chạy Playbook'))
     } finally {
       setSubmitting(false)
     }
@@ -225,7 +226,7 @@ export function CasePlaybookRunModal({
       title={(
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
           <ThunderboltOutlined style={{ color: token.colorPrimary }} />
-          <span>Run Playbook</span>
+          <span>Chạy Playbook</span>
         </span>
       )}
       open={open}
@@ -240,10 +241,10 @@ export function CasePlaybookRunModal({
       }}
       footer={[
         <Button key="cancel" onClick={onClose} disabled={submitting}>
-          Cancel
+          Hủy
         </Button>,
         <Button key="run" type="primary" icon={<ThunderboltOutlined />} loading={submitting} disabled={runDisabled} onClick={submit}>
-          Run
+          Chạy
         </Button>,
       ]}
     >
@@ -255,7 +256,7 @@ export function CasePlaybookRunModal({
               showIcon
               title={loadError}
               style={{ marginBottom: 12 }}
-              action={<Button size="small" icon={<ReloadOutlined />} onClick={loadDefinitions}>Retry</Button>}
+              action={<Button size="small" icon={<ReloadOutlined />} onClick={loadDefinitions}>Thử lại</Button>}
             />
           )}
           <Table<PlaybookDefinition>
@@ -274,7 +275,7 @@ export function CasePlaybookRunModal({
               onClick: () => setSelectedName(definition.name),
               style: { cursor: 'pointer' },
             })}
-            locale={{ emptyText: loading ? <span /> : <Empty description="No playbooks found" /> }}
+            locale={{ emptyText: loading ? <span /> : <Empty description="Không tìm thấy Playbook nào" /> }}
             scroll={{ y: 528 }}
           />
         </div>
@@ -289,22 +290,22 @@ export function CasePlaybookRunModal({
                 </Space>
               </div>
               <Typography.Paragraph style={{ whiteSpace: 'pre-wrap', marginBottom: 0 }}>
-                {selectedDefinition.description || 'No description.'}
+                {selectedDefinition.description || 'Không có mô tả.'}
               </Typography.Paragraph>
               {(selectedDefinition.risk_level === 'High' || selectedDefinition.risk_level === 'Critical') && (
                 <Alert
                   type="warning"
                   showIcon
-                  title={`${selectedDefinition.risk_level} risk playbook`}
-                  description="Submitting this playbook will create a run in Awaiting Approval status until reviewed by an analyst."
+                  title={`Playbook mức rủi ro ${localizeChoiceLabel(selectedDefinition.risk_level)}`}
+                  description="Khi gửi, tác vụ sẽ ở trạng thái Chờ phê duyệt cho tới khi được chuyên viên xét duyệt."
                 />
               )}
               <div style={{ marginTop: 'auto' }}>
-                <Typography.Text strong>User input</Typography.Text>
+                <Typography.Text strong>Dữ liệu đầu vào (tùy chọn)</Typography.Text>
                 <Input.TextArea
                   value={userInput}
                   onChange={(event) => setUserInput(event.target.value)}
-                  placeholder="Optional input for this playbook"
+                  placeholder="Tham số đầu vào tùy chọn cho Playbook này"
                   autoSize={{ minRows: 6, maxRows: 10 }}
                   disabled={submitting}
                   style={{ marginTop: 8 }}
@@ -312,7 +313,7 @@ export function CasePlaybookRunModal({
               </div>
             </>
           ) : (
-            <Empty description={loading ? 'Loading playbooks' : 'Select a playbook'} />
+            <Empty description={loading ? 'Đang tải danh sách Playbook' : 'Chọn một Playbook'} />
           )}
         </div>
       </div>
@@ -327,7 +328,7 @@ export default function CasePlaybookAction({ record, disabled, buttonStyle, refr
 
   return (
     <>
-      <Tooltip title="Run Playbook">
+      <Tooltip title="Chạy Playbook">
         <Button
           type="text"
           size="large"

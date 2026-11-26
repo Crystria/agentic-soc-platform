@@ -13,8 +13,10 @@ from apps.agentic.services.custom import (
 )
 from apps.common.worker_health import get_worker_health_states
 from apps.knowledge.models import Knowledge, KnowledgeSource
+from apps.knowledge.vector_store import RedisKnowledgeVectorStore
 from apps.settings.models import LLMProviderConfig
 from apps.settings.runtime_config import get_prompt_language
+from integrations.llm.embeddings import resolve_embedding_config
 
 logger = logging.getLogger(__name__)
 STANDARD_LLM_TAGS = ("fast", "powerful", "tool_calling", "structured_output")
@@ -159,6 +161,13 @@ def _build_rag_summary():
     source_rows = Knowledge.objects.values("source").annotate(count=Count("id"))
     source_counts = {row["source"]: row["count"] for row in source_rows}
     total_knowledge = sum(source_counts.values())
+    indexed_knowledge = Knowledge.objects.filter(embedding_dimensions__gt=0).count()
+
+    embedding_config = resolve_embedding_config()
+    try:
+        vector_stats = RedisKnowledgeVectorStore().stats()
+    except Exception:
+        vector_stats = {"available": False, "index_name": "", "docs": 0, "dimensions": None}
 
     keyword_counter = Counter()
     recent_results = (
@@ -174,9 +183,16 @@ def _build_rag_summary():
                 keyword_counter[kw.strip()] += 1
 
     return {
+        "mode": "hybrid" if embedding_config else "lexical",
         "total_knowledge": total_knowledge,
         "manual_knowledge": source_counts.get(KnowledgeSource.MANUAL, 0),
         "case_knowledge": source_counts.get(KnowledgeSource.CASE, 0),
+        "indexed_knowledge": indexed_knowledge,
+        "embedding_configured": bool(embedding_config),
+        "embedding_model": embedding_config.get("model", "") if embedding_config else "",
+        "redis_vector_available": bool(vector_stats.get("available")),
+        "redis_vector_docs": int(vector_stats.get("docs") or 0),
+        "redis_vector_dimensions": vector_stats.get("dimensions"),
         "top_keywords": [
             {"keyword": keyword, "count": count}
             for keyword, count in keyword_counter.most_common(15)

@@ -36,14 +36,27 @@ import {
     choiceTag,
     emptyValue,
     emptyValueNode,
+    enrichmentTypeTag,
     formatDateTime,
     formatDurationSeconds,
     knowledgeSourceTag,
+    localizedChoiceTag,
     productCategoryTag,
     severityTag,
     statusTag,
     verdictTag
 } from '../utils/recordDisplay'
+import {
+    ALERT_ANALYTIC_STATE_LABELS,
+    ALERT_POLICY_TYPE_LABELS,
+    ARTIFACT_TYPE_LABELS,
+    CASE_STATUS_LABELS,
+    localizeWithMap,
+    PLAYBOOK_JOB_STATUS_LABELS,
+    SEVERITY_LABELS,
+    USER_ROLE_LABELS,
+    VERDICT_LABELS,
+} from '../utils/i18n'
 
 type RecordRow = Record<string, unknown>
 type RecordTabRenderOptions = {
@@ -58,7 +71,7 @@ const stringValue = (record: RecordRow, key: string) => emptyValue(value(record,
 const viewRelatedLabel = (count: unknown) => (
     <span style={{display: 'inline-flex', alignItems: 'center', gap: 4}}>
         <BlockOutlined/>
-        {`View (${Number(count || 0)})`}
+        {`Xem (${Number(count || 0)})`}
     </span>
 )
 const playbookCaseLabel = (record: RecordRow) => {
@@ -87,35 +100,35 @@ const priorityTag = (v: unknown) => severityTag(String(v || ''))
 const userRoleTag = (v: unknown) => {
     const role = String(v || '')
     const colors: Record<string, string> = {admin: 'purple', user: 'blue', viewer: 'default'}
-    return choiceTag(role ? role[0].toUpperCase() + role.slice(1) : '', colors[role])
+    return choiceTag(localizeWithMap(role, USER_ROLE_LABELS, ''), colors[role])
 }
 const authTypeTag = (v: unknown) => {
     const authType = String(v || '')
-    return choiceTag(authType === 'ldap' ? 'LDAP' : 'Local', authType === 'ldap' ? 'geekblue' : 'green')
+    return choiceTag(authType === 'ldap' ? 'LDAP' : 'Nội bộ', authType === 'ldap' ? 'geekblue' : 'green')
 }
 const activeStatusTag = (v: unknown) => {
     const active = v === true || v === 'true'
-    return choiceTag(active ? 'Active' : 'Disabled', active ? 'green' : 'red')
+    return choiceTag(active ? 'Hoạt động' : 'Vô hiệu', active ? 'green' : 'red')
 }
 const llmProviderStatusTag = (v: unknown) => {
     const enabled = v === true || v === 'true'
-    return choiceTag(enabled ? 'Enabled' : 'Disabled', enabled ? 'green' : 'default')
+    return choiceTag(enabled ? 'Bật' : 'Tắt', enabled ? 'green' : 'default')
 }
 const customVariableSecretTag = (v: unknown) => {
     const secret = v === true || v === 'true'
-    return choiceTag(secret ? 'Secret' : 'Plain', secret ? 'purple' : 'default')
+    return choiceTag(secret ? 'Bí mật' : 'Thường', secret ? 'purple' : 'default')
 }
 const customVariableConfiguredTag = (v: unknown) => {
     const configured = v === true || v === 'true'
-    return choiceTag(configured ? 'Configured' : 'Not configured', configured ? 'green' : 'red')
+    return choiceTag(configured ? 'Đã cấu hình' : 'Chưa cấu hình', configured ? 'green' : 'red')
 }
 const customVariableTypeOptions = [
-    {label: 'String', value: 'string'},
-    {label: 'Integer', value: 'integer'},
-    {label: 'Float', value: 'float'},
+    {label: 'Chuỗi ký tự', value: 'string'},
+    {label: 'Số nguyên', value: 'integer'},
+    {label: 'Số thực', value: 'float'},
     {label: 'Boolean', value: 'boolean'},
-    {label: 'List', value: 'list'},
-    {label: 'Dictionary', value: 'dictionary'},
+    {label: 'Danh sách', value: 'list'},
+    {label: 'Từ điển', value: 'dictionary'},
 ]
 const customVariableTypeTag = (v: unknown) => {
     const type = String(v || '')
@@ -148,12 +161,12 @@ const llmTags = (items: unknown) => {
 const playbookJobStatusTag = (v: unknown) => {
     const status = String(v || '')
     const options = [
-        {label: 'Awaiting Approval', value: 'Awaiting Approval', color: 'gold'},
-        {label: 'Success', value: 'Success', color: 'green'},
-        {label: 'Failed', value: 'Failed', color: 'red'},
-        {label: 'Pending', value: 'Pending', color: 'gold'},
-        {label: 'Running', value: 'Running', color: 'processing'},
-        {label: 'Rejected', value: 'Rejected', color: 'red'},
+        {label: 'Chờ phê duyệt', value: 'Awaiting Approval', color: 'gold'},
+        {label: 'Thành công', value: 'Success', color: 'green'},
+        {label: 'Thất bại', value: 'Failed', color: 'red'},
+        {label: 'Đang chờ', value: 'Pending', color: 'gold'},
+        {label: 'Đang chạy', value: 'Running', color: 'processing'},
+        {label: 'Đã từ chối', value: 'Rejected', color: 'red'},
     ]
     const option = options.find((item) => item.value === status)
     const color = markerColor(option?.color)
@@ -163,7 +176,7 @@ const playbookJobStatusTag = (v: unknown) => {
             <span style={{color: color || 'rgba(255,255,255,0.45)', display: 'inline-flex', alignItems: 'center', fontSize: typography.tag.fontSize, flexShrink: 0}}>
                 {playbookJobStatusIcon(status)}
             </span>
-            <span style={{color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{status}</span>
+            <span style={{color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{localizeWithMap(status, PLAYBOOK_JOB_STATUS_LABELS)}</span>
         </span>
     )
 }
@@ -237,7 +250,7 @@ const emptyTabs = {
     case: [
         {
             key: 'alerts',
-            label: 'Alerts',
+            label: 'Cảnh báo',
             icon: <Siren {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => relatedTable(
                 '/alerts/',
@@ -249,13 +262,13 @@ const emptyTabs = {
         },
         {
             key: 'enrichments',
-            label: 'Enrichments',
+            label: 'Làm giàu dữ liệu',
             icon: <WandSparkles {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => relatedEnrichmentsTable('case', record, options?.onOpenResource, options?.onChanged),
         },
         {
             key: 'related-cases',
-            label: 'Related Cases',
+            label: 'Vụ việc liên quan',
             icon: <Link2 {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => (
                 <CaseRelationshipsView
@@ -267,7 +280,7 @@ const emptyTabs = {
         },
         {
             key: 'knowledge',
-            label: 'Knowledge',
+            label: 'Tri thức',
             icon: <BookOpenText {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => (
                 <CaseKnowledgeView
@@ -280,7 +293,7 @@ const emptyTabs = {
         },
         {
             key: 'playbooks',
-            label: 'Playbooks',
+            label: 'Playbook',
             icon: <BrainCircuit {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => relatedTable(
                 '/playbooks/',
@@ -292,7 +305,7 @@ const emptyTabs = {
         },
         {
             key: 'investigation',
-            label: 'Investigation',
+            label: 'Điều tra',
             icon: <FileTextOutlined/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => (
                 <CaseInvestigationView
@@ -306,7 +319,7 @@ const emptyTabs = {
     alert: [
         {
             key: 'artifacts',
-            label: 'Artifacts',
+            label: 'Thực thể',
             icon: <Fingerprint {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => relatedTable(
                 '/artifacts/',
@@ -318,7 +331,7 @@ const emptyTabs = {
         },
         {
             key: 'enrichments',
-            label: 'Enrichments',
+            label: 'Làm giàu dữ liệu',
             icon: <WandSparkles {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => relatedEnrichmentsTable('alert', record, options?.onOpenResource, options?.onChanged),
         },
@@ -326,7 +339,7 @@ const emptyTabs = {
     artifact: [
         {
             key: 'alerts',
-            label: 'Alerts',
+            label: 'Cảnh báo',
             icon: <Siren {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => relatedTable(
                 '/alerts/',
@@ -338,7 +351,7 @@ const emptyTabs = {
         },
         {
             key: 'enrichments',
-            label: 'Enrichments',
+            label: 'Làm giàu dữ liệu',
             icon: <WandSparkles {...lucideIconProps}/>,
             render: (record: RecordRow, options?: RecordTabRenderOptions) => relatedEnrichmentsTable('artifact', record, options?.onOpenResource, options?.onChanged),
         },
@@ -356,11 +369,11 @@ const L360 = 360;
 const L400 = 400;
 const L480 = 480;
 const caseStatusOptions = [
-    {label: 'New', value: 'New', color: 'cyan'},
-    {label: 'In Progress', value: 'In Progress', color: 'processing'},
-    {label: 'On Hold', value: 'On Hold', color: 'gold'},
-    {label: 'Resolved', value: 'Resolved', color: 'green'},
-    {label: 'Closed', value: 'Closed', color: 'default'},
+    {label: CASE_STATUS_LABELS.New, value: 'New', color: 'cyan'},
+    {label: CASE_STATUS_LABELS['In Progress'], value: 'In Progress', color: 'processing'},
+    {label: CASE_STATUS_LABELS['On Hold'], value: 'On Hold', color: 'gold'},
+    {label: CASE_STATUS_LABELS.Resolved, value: 'Resolved', color: 'green'},
+    {label: CASE_STATUS_LABELS.Closed, value: 'Closed', color: 'default'},
 ]
 const markerColor = (color?: string) => {
     const colors: Record<string, string> = {
@@ -400,124 +413,124 @@ const caseStatusSelectLabel = (raw: unknown) => {
             <span style={{color: color || 'rgba(255,255,255,0.45)', display: 'inline-flex', alignItems: 'center', fontSize: typography.tag.fontSize, flexShrink: 0}}>
                 {caseStatusIcon(status)}
             </span>
-            <span style={{color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{status}</span>
+            <span style={{color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{localizeWithMap(status, CASE_STATUS_LABELS)}</span>
         </span>
     )
 }
 const caseSeverityOptions = [
-    {label: 'Unknown', value: 'Unknown', color: 'default'},
-    {label: 'Informational', value: 'Informational', color: 'blue'},
-    {label: 'Low', value: 'Low', color: 'cyan'},
-    {label: 'Medium', value: 'Medium', color: 'gold'},
-    {label: 'High', value: 'High', color: 'volcano'},
-    {label: 'Critical', value: 'Critical', color: 'red'},
+    {label: SEVERITY_LABELS.Unknown, value: 'Unknown', color: 'default'},
+    {label: SEVERITY_LABELS.Informational, value: 'Informational', color: 'blue'},
+    {label: SEVERITY_LABELS.Low, value: 'Low', color: 'cyan'},
+    {label: SEVERITY_LABELS.Medium, value: 'Medium', color: 'gold'},
+    {label: SEVERITY_LABELS.High, value: 'High', color: 'volcano'},
+    {label: SEVERITY_LABELS.Critical, value: 'Critical', color: 'red'},
 ]
 const caseImpactPriorityOptions = [
-    {label: 'Unknown', value: 'Unknown', color: 'default'},
-    {label: 'Low', value: 'Low', color: 'cyan'},
-    {label: 'Medium', value: 'Medium', color: 'gold'},
-    {label: 'High', value: 'High', color: 'volcano'},
-    {label: 'Critical', value: 'Critical', color: 'red'},
+    {label: SEVERITY_LABELS.Unknown, value: 'Unknown', color: 'default'},
+    {label: SEVERITY_LABELS.Low, value: 'Low', color: 'cyan'},
+    {label: SEVERITY_LABELS.Medium, value: 'Medium', color: 'gold'},
+    {label: SEVERITY_LABELS.High, value: 'High', color: 'volcano'},
+    {label: SEVERITY_LABELS.Critical, value: 'Critical', color: 'red'},
 ]
 const caseConfidenceOptions = [
-    {label: 'Unknown', value: 'Unknown', color: 'default'},
-    {label: 'Low', value: 'Low', color: 'cyan'},
-    {label: 'Medium', value: 'Medium', color: 'gold'},
-    {label: 'High', value: 'High', color: 'volcano'},
+    {label: SEVERITY_LABELS.Unknown, value: 'Unknown', color: 'default'},
+    {label: SEVERITY_LABELS.Low, value: 'Low', color: 'cyan'},
+    {label: SEVERITY_LABELS.Medium, value: 'Medium', color: 'gold'},
+    {label: SEVERITY_LABELS.High, value: 'High', color: 'volcano'},
 ]
 const caseVerdictOptions = [
-    {label: 'Unknown', value: 'Unknown', color: 'default'},
-    {label: 'False Positive', value: 'False Positive', color: 'green'},
-    {label: 'True Positive', value: 'True Positive', color: 'red'},
-    {label: 'Disregard', value: 'Disregard', color: 'default'},
-    {label: 'Suspicious', value: 'Suspicious', color: 'orange'},
-    {label: 'Benign', value: 'Benign', color: 'green'},
-    {label: 'Test', value: 'Test', color: 'purple'},
-    {label: 'Insufficient Data', value: 'Insufficient Data', color: 'gold'},
-    {label: 'Security Risk', value: 'Security Risk', color: 'volcano'},
-    {label: 'Managed Externally', value: 'Managed Externally', color: 'blue'},
-    {label: 'Duplicate', value: 'Duplicate', color: 'cyan'},
-    {label: 'Other', value: 'Other', color: 'default'},
+    {label: VERDICT_LABELS.Unknown, value: 'Unknown', color: 'default'},
+    {label: VERDICT_LABELS['False Positive'], value: 'False Positive', color: 'green'},
+    {label: VERDICT_LABELS['True Positive'], value: 'True Positive', color: 'red'},
+    {label: VERDICT_LABELS.Disregard, value: 'Disregard', color: 'default'},
+    {label: VERDICT_LABELS.Suspicious, value: 'Suspicious', color: 'orange'},
+    {label: VERDICT_LABELS.Benign, value: 'Benign', color: 'green'},
+    {label: VERDICT_LABELS.Test, value: 'Test', color: 'purple'},
+    {label: VERDICT_LABELS['Insufficient Data'], value: 'Insufficient Data', color: 'gold'},
+    {label: VERDICT_LABELS['Security Risk'], value: 'Security Risk', color: 'volcano'},
+    {label: VERDICT_LABELS['Managed Externally'], value: 'Managed Externally', color: 'blue'},
+    {label: VERDICT_LABELS.Duplicate, value: 'Duplicate', color: 'cyan'},
+    {label: VERDICT_LABELS.Other, value: 'Other', color: 'default'},
 ]
 export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     cases: {
         key: 'cases',
-        label: 'Cases',
+        label: 'Vụ việc',
         icon: <BriefcaseBusiness {...lucideIconProps}/>,
         endpoint: '/cases/',
         rowKey: 'id',
-        searchPlaceholder: 'Case ID, Title, Description, Summary, Correlation UID',
+        searchPlaceholder: 'Mã vụ việc, Tiêu đề, Mô tả, Tóm tắt, Correlation UID',
         filters: [
-            {key: 'status', label: 'Status', valueType: 'select', width: L160},
-            {key: 'severity', label: 'Severity', valueType: 'select', width: L160},
-            {key: 'assignee', label: 'Assignee', valueType: 'user', width: L160},
+            {key: 'status', label: 'Trạng thái', valueType: 'select', width: L160},
+            {key: 'severity', label: 'Mức độ nghiêm trọng', valueType: 'select', width: L160},
+            {key: 'assignee', label: 'Người phụ trách', valueType: 'user', width: L160},
         ],
         advancedFilters: [
-            field('case_id', 'Case ID', 'text'),
-            field('title', 'Title', 'text'),
-            field('status', 'Status', 'select'),
-            field('category', 'Category', 'select'),
-            field('severity', 'Severity', 'select'),
-            field('assignee', 'Assignee', 'user'),
-            field('verdict', 'Verdict', 'select'),
-            field('priority', 'Priority', 'select'),
-            field('confidence', 'Confidence', 'select'),
-            field('impact', 'Impact', 'select'),
-            field('tags', 'Tags', 'tag'),
-            field('acknowledged_time', 'Acknowledged Time', 'date'),
-            field('closed_time', 'Closed Time', 'date'),
-            field('created_at', 'Created Time', 'date'),
-            field('updated_at', 'Updated Time', 'date'),
-            field('description', 'Description', 'text'),
-            field('summary', 'Summary', 'text'),
+            field('case_id', 'Mã vụ việc', 'text'),
+            field('title', 'Tiêu đề', 'text'),
+            field('status', 'Trạng thái', 'select'),
+            field('category', 'Danh mục', 'select'),
+            field('severity', 'Mức độ nghiêm trọng', 'select'),
+            field('assignee', 'Người phụ trách', 'user'),
+            field('verdict', 'Phán quyết', 'select'),
+            field('priority', 'Độ ưu tiên', 'select'),
+            field('confidence', 'Độ tin cậy', 'select'),
+            field('impact', 'Tác động', 'select'),
+            field('tags', 'Thẻ', 'tag'),
+            field('acknowledged_time', 'Thời gian xác nhận', 'date'),
+            field('closed_time', 'Thời gian đóng', 'date'),
+            field('created_at', 'Thời gian tạo', 'date'),
+            field('updated_at', 'Thời gian cập nhật', 'date'),
+            field('description', 'Mô tả', 'text'),
+            field('summary', 'Tóm tắt', 'text'),
             field('correlation_uid', 'Correlation UID', 'text'),
         ],
         columns: [
-            column('case_id', 'Case ID', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
-            column('title', 'Title', L480, {required: true, defaultVisible: true, fixed: 'left'}),
-            column('status', 'Status', L132, {defaultVisible: true, sorter: true, render: caseStatusSelectLabel}),
-            column('alerts_link', 'Alerts', L132, {
+            column('case_id', 'Mã vụ việc', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
+            column('title', 'Tiêu đề', L480, {required: true, defaultVisible: true, fixed: 'left'}),
+            column('status', 'Trạng thái', L132, {defaultVisible: true, sorter: true, render: caseStatusSelectLabel}),
+            column('alerts_link', 'Cảnh báo', L132, {
                 dataIndex: 'alert_count',
                 defaultVisible: true,
                 openRecordTab: 'alerts',
                 render: viewRelatedLabel,
             }),
-            column('playbooks_link', 'Playbooks', L132, {
+            column('playbooks_link', 'Playbook', L132, {
                 dataIndex: 'playbook_count',
                 defaultVisible: true,
                 openRecordTab: 'playbooks',
                 render: viewRelatedLabel,
             }),
-            column('enrichments_link', 'Enrichments', L132, {
+            column('enrichments_link', 'Làm giàu dữ liệu', L132, {
                 dataIndex: 'enrichment_count',
                 defaultVisible: true,
                 openRecordTab: 'enrichments',
                 render: viewRelatedLabel,
             }),
-            column('relationships_link', 'Related Cases', L132, {
+            column('relationships_link', 'Vụ việc liên quan', L132, {
                 dataIndex: 'relationship_count',
                 openRecordTab: 'related-cases',
                 render: viewRelatedLabel,
             }),
-            column('category', 'Category', L132, {defaultVisible: true, render: (v) => caseCategoryTag(String(v || ''))}),
-            column('severity', 'Severity', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
-            column('severity_ai', 'Severity (AI)', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
-            column('confidence', 'Confidence', L132, {defaultVisible: true, sorter: true, render: confidenceTag}),
-            column('confidence_ai', 'Confidence (AI)', L132, {defaultVisible: true, sorter: true, render: confidenceTag}),
-            column('priority', 'Priority', L132, {defaultVisible: true, sorter: true, render: priorityTag}),
-            column('priority_ai', 'Priority (AI)', L132, {defaultVisible: true, sorter: true, render: priorityTag}),
-            column('impact', 'Impact', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
-            column('impact_ai', 'Impact (AI)', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
-            column('verdict', 'Verdict', L160, {defaultVisible: true, sorter: true, render: (v) => verdictTag(String(v || ''))}),
-            column('verdict_ai', 'Verdict (AI)', L160, {defaultVisible: true, sorter: true, render: (v) => verdictTag(String(v || ''))}),
-            column('assignee_name', 'Assignee', L132, {defaultVisible: true}),
-            column('acknowledged_time', 'Acknowledged Time', L200, {defaultVisible: true, sorter: true, render: date('acknowledged_time')}),
-            column('closed_time', 'Closed Time', L160, {defaultVisible: true, sorter: true, render: date('closed_time')}),
-            column('created_at', 'Creation Time', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
-            column('updated_at', 'Last Modified Time', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
-            column('tags', 'Tags', L400, {render: (v) => tags(v)}),
-            column('description', 'Description', L400),
-            column('summary', 'Summary', L400),
+            column('category', 'Danh mục', L132, {defaultVisible: true, render: (v) => caseCategoryTag(String(v || ''))}),
+            column('severity', 'Mức độ nghiêm trọng', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
+            column('severity_ai', 'Mức độ (AI)', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
+            column('confidence', 'Độ tin cậy', L132, {defaultVisible: true, sorter: true, render: confidenceTag}),
+            column('confidence_ai', 'Độ tin cậy (AI)', L132, {defaultVisible: true, sorter: true, render: confidenceTag}),
+            column('priority', 'Độ ưu tiên', L132, {defaultVisible: true, sorter: true, render: priorityTag}),
+            column('priority_ai', 'Độ ưu tiên (AI)', L132, {defaultVisible: true, sorter: true, render: priorityTag}),
+            column('impact', 'Tác động', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
+            column('impact_ai', 'Tác động (AI)', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
+            column('verdict', 'Phán quyết', L160, {defaultVisible: true, sorter: true, render: (v) => verdictTag(String(v || ''))}),
+            column('verdict_ai', 'Phán quyết (AI)', L160, {defaultVisible: true, sorter: true, render: (v) => verdictTag(String(v || ''))}),
+            column('assignee_name', 'Người phụ trách', L132, {defaultVisible: true}),
+            column('acknowledged_time', 'Thời gian xác nhận', L200, {defaultVisible: true, sorter: true, render: date('acknowledged_time')}),
+            column('closed_time', 'Thời gian đóng', L160, {defaultVisible: true, sorter: true, render: date('closed_time')}),
+            column('created_at', 'Thời gian tạo', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
+            column('updated_at', 'Cập nhật lần cuối', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
+            column('tags', 'Thẻ', L400, {render: (v) => tags(v)}),
+            column('description', 'Mô tả', L400),
+            column('summary', 'Tóm tắt', L400),
             column('correlation_uid', 'Correlation UID', L240),
         ],
         editableFields: [
@@ -543,58 +556,58 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
         basicSections: [
             {
                 key: 'summary',
-                title: 'Summary',
+                title: 'Tóm tắt',
                 fields: [
-                    {label: 'Case ID', value: (r) => upperStringValue(r, 'case_id'), mono: true},
-                    {label: 'Status', value: (r) => statusTag(String(value(r, 'status') || '')), tag: true},
-                    {label: 'Title', value: (r) => stringValue(r, 'title')},
+                    {label: 'Mã vụ việc', value: (r) => upperStringValue(r, 'case_id'), mono: true},
+                    {label: 'Trạng thái', value: (r) => statusTag(String(value(r, 'status') || '')), tag: true},
+                    {label: 'Tiêu đề', value: (r) => stringValue(r, 'title')},
                 ],
             },
             {
                 key: 'risk',
-                title: 'Risk Assessment',
+                title: 'Đánh giá rủi ro',
                 fields: [
-                    {label: 'Severity', value: (r) => severityTag(String(value(r, 'severity') || '')), tag: true},
-                    {label: 'Severity (AI)', value: (r) => severityTag(String(value(r, 'severity_ai') || '')), tag: true},
-                    {label: 'Confidence', value: (r) => confidenceTag(value(r, 'confidence')), tag: true},
-                    {label: 'Confidence (AI)', value: (r) => confidenceTag(value(r, 'confidence_ai')), tag: true},
-                    {label: 'Impact', value: (r) => severityTag(String(value(r, 'impact') || '')), tag: true},
-                    {label: 'Impact (AI)', value: (r) => severityTag(String(value(r, 'impact_ai') || '')), tag: true},
-                    {label: 'Priority', value: (r) => priorityTag(value(r, 'priority')), tag: true},
-                    {label: 'Priority (AI)', value: (r) => priorityTag(value(r, 'priority_ai')), tag: true},
+                    {label: 'Mức độ nghiêm trọng', value: (r) => severityTag(String(value(r, 'severity') || '')), tag: true},
+                    {label: 'Mức độ (AI)', value: (r) => severityTag(String(value(r, 'severity_ai') || '')), tag: true},
+                    {label: 'Độ tin cậy', value: (r) => confidenceTag(value(r, 'confidence')), tag: true},
+                    {label: 'Độ tin cậy (AI)', value: (r) => confidenceTag(value(r, 'confidence_ai')), tag: true},
+                    {label: 'Tác động', value: (r) => severityTag(String(value(r, 'impact') || '')), tag: true},
+                    {label: 'Tác động (AI)', value: (r) => severityTag(String(value(r, 'impact_ai') || '')), tag: true},
+                    {label: 'Độ ưu tiên', value: (r) => priorityTag(value(r, 'priority')), tag: true},
+                    {label: 'Độ ưu tiên (AI)', value: (r) => priorityTag(value(r, 'priority_ai')), tag: true},
                 ],
             },
             {
                 key: 'classification',
-                title: 'Classification',
+                title: 'Phân loại',
                 fields: [
-                    {label: 'Category', value: (r) => caseCategoryTag(String(value(r, 'category') || '')), tag: true},
-                    {label: 'Tags', value: (r) => tags(value(r, 'tags'))},
-                    {label: 'Verdict', value: (r) => verdictTag(String(value(r, 'verdict') || '')), tag: true},
-                    {label: 'Verdict (AI)', value: (r) => verdictTag(String(value(r, 'verdict_ai') || '')), tag: true},
+                    {label: 'Danh mục', value: (r) => caseCategoryTag(String(value(r, 'category') || '')), tag: true},
+                    {label: 'Thẻ', value: (r) => tags(value(r, 'tags'))},
+                    {label: 'Phán quyết', value: (r) => verdictTag(String(value(r, 'verdict') || '')), tag: true},
+                    {label: 'Phán quyết (AI)', value: (r) => verdictTag(String(value(r, 'verdict_ai') || '')), tag: true},
                 ],
             },
             {
                 key: 'time',
-                title: 'Time',
+                title: 'Thời gian',
                 fields: [
-                    {label: 'Acknowledged Time', value: (r) => formatDateTime(String(value(r, 'acknowledged_time') || ''))},
-                    {label: 'Closed Time', value: (r) => formatDateTime(String(value(r, 'closed_time') || ''))},
+                    {label: 'Thời gian xác nhận', value: (r) => formatDateTime(String(value(r, 'acknowledged_time') || ''))},
+                    {label: 'Thời gian đóng', value: (r) => formatDateTime(String(value(r, 'closed_time') || ''))},
                 ],
             },
             {
                 key: 'ownership',
-                title: 'Ownership',
+                title: 'Phân công xử lý',
                 fields: [
-                    {label: 'Assignee', value: (r) => stringValue(r, 'assignee_name')},
+                    {label: 'Người phụ trách', value: (r) => stringValue(r, 'assignee_name')},
                 ],
             },
             {
                 key: 'description',
-                title: 'Description',
+                title: 'Mô tả',
                 fields: [
-                    {label: 'Description', value: (r) => stringValue(r, 'description')},
-                    {label: 'Summary', value: (r) => stringValue(r, 'summary')},
+                    {label: 'Mô tả', value: (r) => stringValue(r, 'description')},
+                    {label: 'Tóm tắt', value: (r) => stringValue(r, 'summary')},
                     {label: 'Correlation UID', value: (r) => stringValue(r, 'correlation_uid'), mono: true},
                 ],
             },
@@ -603,55 +616,55 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     },
     alerts: {
         key: 'alerts',
-        label: 'Alerts',
+        label: 'Cảnh báo',
         icon: <Siren {...lucideIconProps}/>,
         endpoint: '/alerts/',
         rowKey: 'id',
-        searchPlaceholder: 'Alert ID, Title, Rule, Product, Tactic, Source UID',
+        searchPlaceholder: 'Mã cảnh báo, Tiêu đề, Quy tắc, Sản phẩm, Tactic, Source UID',
         filters: [
-            {key: 'severity', label: 'Severity', valueType: 'select', width: L160},
-            {key: 'confidence', label: 'Confidence', valueType: 'select', width: L160},
-            {key: 'impact', label: 'Impact', valueType: 'select', width: L160},
+            {key: 'severity', label: 'Mức độ nghiêm trọng', valueType: 'select', width: L160},
+            {key: 'confidence', label: 'Độ tin cậy', valueType: 'select', width: L160},
+            {key: 'impact', label: 'Tác động', valueType: 'select', width: L160},
         ],
         advancedFilters: [
-            field('alert_id', 'Alert ID', 'text'),
-            field('title', 'Title', 'text'),
-            field('severity', 'Severity', 'select'),
-            field('confidence', 'Confidence', 'select'),
-            field('impact', 'Impact', 'select'),
-            field('status', 'Status', 'select'),
-            field('disposition', 'Disposition', 'select'),
-            field('action', 'Action', 'select'),
-            field('risk_level', 'Risk Level', 'select'),
-            field('product_category', 'Product Category', 'select'),
-            field('product_vendor', 'Product Vendor', 'select'),
-            field('product_name', 'Product Name', 'select'),
-            field('rule_id', 'Rule ID', 'text'),
-            field('rule_name', 'Rule Name', 'text'),
+            field('alert_id', 'Mã cảnh báo', 'text'),
+            field('title', 'Tiêu đề', 'text'),
+            field('severity', 'Mức độ nghiêm trọng', 'select'),
+            field('confidence', 'Độ tin cậy', 'select'),
+            field('impact', 'Tác động', 'select'),
+            field('status', 'Trạng thái', 'select'),
+            field('disposition', 'Xử lý (Disposition)', 'select'),
+            field('action', 'Hành động', 'select'),
+            field('risk_level', 'Mức rủi ro', 'select'),
+            field('product_category', 'Danh mục sản phẩm', 'select'),
+            field('product_vendor', 'Hãng sản xuất', 'select'),
+            field('product_name', 'Tên sản phẩm', 'select'),
+            field('rule_id', 'Mã quy tắc', 'text'),
+            field('rule_name', 'Tên quy tắc', 'text'),
             field('correlation_uid', 'Correlation UID', 'text'),
             field('source_uid', 'Source UID', 'text'),
-            field('labels', 'Labels', 'tag'),
-            field('first_seen_time', 'First Seen', 'date'),
-            field('last_seen_time', 'Last Seen', 'date'),
-            field('created_at', 'Created Time', 'date'),
+            field('labels', 'Nhãn', 'tag'),
+            field('first_seen_time', 'Lần đầu phát hiện', 'date'),
+            field('last_seen_time', 'Lần cuối phát hiện', 'date'),
+            field('created_at', 'Thời gian tạo', 'date'),
         ],
         columns: [
-            column('alert_id', 'Alert ID', L132, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
-            column('title', 'Title', L400, {required: true, defaultVisible: true, fixed: 'left'}),
-            column('severity', 'Severity', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
-            column('impact', 'Impact', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
-            column('disposition', 'Disposition', L132, {defaultVisible: true, sorter: true, render: (v) => alertDispositionTag(String(v || ''))}),
-            column('risk_level', 'Risk Level', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
-            column('action', 'Action', L132, {defaultVisible: true, sorter: true, render: (v) => alertActionTag(String(v || ''))}),
-            column('confidence', 'Confidence', L132, {defaultVisible: true, sorter: true, render: confidenceTag}),
-            column('status', 'Status', L132, {defaultVisible: true, sorter: true, render: (v) => statusTag(String(v || ''))}),
-            column('first_seen_time', 'First Seen', L160, {defaultVisible: true, sorter: true, render: date('first_seen_time')}),
-            column('last_seen_time', 'Last Seen', L160, {defaultVisible: true, sorter: true, render: date('last_seen_time')}),
-            column('product_vendor', 'Product Vendor', L200, {defaultVisible: true, render: (v) => choiceTag(String(v || ''), 'blue')}),
-            column('product_name', 'Product Name', L200, {defaultVisible: true, render: (v) => choiceTag(String(v || ''), 'blue')}),
-            column('product_feature', 'Product Feature', L200, {defaultVisible: true, render: (v) => choiceTag(String(v || ''), 'blue')}),
-            column('labels', 'Labels', L400, {defaultVisible: true, render: (v) => tags(v)}),
-            column('case_title', 'Case', L132, {
+            column('alert_id', 'Mã cảnh báo', L132, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
+            column('title', 'Tiêu đề', L400, {required: true, defaultVisible: true, fixed: 'left'}),
+            column('severity', 'Mức độ nghiêm trọng', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
+            column('impact', 'Tác động', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
+            column('disposition', 'Xử lý', L132, {defaultVisible: true, sorter: true, render: (v) => alertDispositionTag(String(v || ''))}),
+            column('risk_level', 'Mức rủi ro', L132, {defaultVisible: true, sorter: true, render: (v) => severityTag(String(v || ''))}),
+            column('action', 'Hành động', L132, {defaultVisible: true, sorter: true, render: (v) => alertActionTag(String(v || ''))}),
+            column('confidence', 'Độ tin cậy', L132, {defaultVisible: true, sorter: true, render: confidenceTag}),
+            column('status', 'Trạng thái', L132, {defaultVisible: true, sorter: true, render: (v) => statusTag(String(v || ''))}),
+            column('first_seen_time', 'Lần đầu phát hiện', L160, {defaultVisible: true, sorter: true, render: date('first_seen_time')}),
+            column('last_seen_time', 'Lần cuối phát hiện', L160, {defaultVisible: true, sorter: true, render: date('last_seen_time')}),
+            column('product_vendor', 'Hãng sản xuất', L200, {defaultVisible: true, render: (v) => choiceTag(String(v || ''), 'blue')}),
+            column('product_name', 'Tên sản phẩm', L200, {defaultVisible: true, render: (v) => choiceTag(String(v || ''), 'blue')}),
+            column('product_feature', 'Tính năng sản phẩm', L200, {defaultVisible: true, render: (v) => choiceTag(String(v || ''), 'blue')}),
+            column('labels', 'Nhãn', L400, {defaultVisible: true, render: (v) => tags(v)}),
+            column('case_title', 'Vụ việc', L132, {
                 defaultVisible: true,
                 render: (_v, r) => upperStringValue(r, 'case_readable_id'),
                 openResource: {
@@ -659,96 +672,96 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
                     rowId: (r) => value(r, 'case_id') as string | number | null | undefined,
                 },
             }),
-            column('created_at', 'Created Time', L160, {sorter: true, render: date('created_at')}),
-            column('updated_at', 'Updated Time', L160, {sorter: true, render: date('updated_at')}),
-            column('artifacts_link', 'Artifacts', L132, {
+            column('created_at', 'Thời gian tạo', L160, {sorter: true, render: date('created_at')}),
+            column('updated_at', 'Thời gian cập nhật', L160, {sorter: true, render: date('updated_at')}),
+            column('artifacts_link', 'Thực thể', L132, {
                 dataIndex: 'artifact_count',
                 defaultVisible: true,
                 openRecordTab: 'artifacts',
                 render: viewRelatedLabel,
             }),
-            column('enrichments_link', 'Enrichments', L132, {
+            column('enrichments_link', 'Làm giàu dữ liệu', L132, {
                 dataIndex: 'enrichment_count',
                 defaultVisible: true,
                 openRecordTab: 'enrichments',
                 render: viewRelatedLabel,
             }),
-            column('rule_id', 'Rule ID', L360),
-            column('rule_name', 'Rule Name', L360),
+            column('rule_id', 'Mã quy tắc', L360),
+            column('rule_name', 'Tên quy tắc', L360),
             column('correlation_uid', 'Correlation UID', L360),
             column('source_uid', 'Source UID', L240),
             column('src_url', 'Source URL', L360),
-            column('data_sources', 'Data Sources', L400, {render: (v) => tags(v, 'cyan')}),
-            column('tactic', 'Tactic', L200),
-            column('technique', 'Technique', L200),
-            column('sub_technique', 'Sub-technique', L200),
-            column('mitigation', 'Mitigation', L400),
-            column('desc', 'Description', L400),
-            column('status_detail', 'Status Detail', L400),
-            column('remediation', 'Remediation', L400),
-            column('analytic_name', 'Analytic Name', L240),
-            column('analytic_type', 'Analytic Type', L160, {render: (v) => alertAnalyticTypeTag(String(v || ''))}),
-            column('analytic_state', 'Analytic State', L160, {render: (v) => choiceTag(String(v || ''), 'green')}),
-            column('analytic_desc', 'Analytic Description', L400),
-            column('product_category', 'Product Category', L160, {render: (v) => productCategoryTag(String(v || ''))}),
-            column('policy_name', 'Policy Name', L240),
-            column('policy_type', 'Policy Type', L200, {render: (v) => choiceTag(String(v || ''), 'volcano')}),
-            column('policy_desc', 'Policy Description', L400),
+            column('data_sources', 'Nguồn dữ liệu', L400, {render: (v) => tags(v, 'cyan')}),
+            column('tactic', 'Chiến thuật', L200),
+            column('technique', 'Kỹ thuật', L200),
+            column('sub_technique', 'Kỹ thuật con', L200),
+            column('mitigation', 'Biện pháp giảm thiểu', L400),
+            column('desc', 'Mô tả', L400),
+            column('status_detail', 'Chi tiết trạng thái', L400),
+            column('remediation', 'Khắc phục', L400),
+            column('analytic_name', 'Tên bộ phân tích', L240),
+            column('analytic_type', 'Loại phân tích', L160, {render: (v) => alertAnalyticTypeTag(String(v || ''))}),
+            column('analytic_state', 'Trạng thái phân tích', L160, {render: (v) => localizedChoiceTag(String(v || ''), ALERT_ANALYTIC_STATE_LABELS, 'green')}),
+            column('analytic_desc', 'Mô tả phân tích', L400),
+            column('product_category', 'Danh mục sản phẩm', L160, {render: (v) => productCategoryTag(String(v || ''))}),
+            column('policy_name', 'Tên chính sách', L240),
+            column('policy_type', 'Loại chính sách', L200, {render: (v) => localizedChoiceTag(String(v || ''), ALERT_POLICY_TYPE_LABELS, 'volcano')}),
+            column('policy_desc', 'Mô tả chính sách', L400),
         ],
         basicSections: [
             {
-                key: 'summary', title: 'Summary', fields: [
-                    {label: 'Alert ID', value: (r) => upperStringValue(r, 'alert_id'), mono: true},
-                    {label: 'Title', value: (r) => stringValue(r, 'title')},
+                key: 'summary', title: 'Tóm tắt', fields: [
+                    {label: 'Mã cảnh báo', value: (r) => upperStringValue(r, 'alert_id'), mono: true},
+                    {label: 'Tiêu đề', value: (r) => stringValue(r, 'title')},
                 ]
             },
             {
-                key: 'risk', title: 'Risk Assessment', fields: [
-                    {label: 'Severity', value: (r) => severityTag(String(value(r, 'severity') || '')), tag: true},
-                    {label: 'Confidence', value: (r) => confidenceTag(value(r, 'confidence')), tag: true},
-                    {label: 'Impact', value: (r) => severityTag(String(value(r, 'impact') || '')), tag: true},
-                    {label: 'Risk Level', value: (r) => severityTag(String(value(r, 'risk_level') || '')), tag: true},
+                key: 'risk', title: 'Đánh giá rủi ro', fields: [
+                    {label: 'Mức độ nghiêm trọng', value: (r) => severityTag(String(value(r, 'severity') || '')), tag: true},
+                    {label: 'Độ tin cậy', value: (r) => confidenceTag(value(r, 'confidence')), tag: true},
+                    {label: 'Tác động', value: (r) => severityTag(String(value(r, 'impact') || '')), tag: true},
+                    {label: 'Mức rủi ro', value: (r) => severityTag(String(value(r, 'risk_level') || '')), tag: true},
                 ]
             },
             {
-                key: 'description', title: 'Description', fields: [
-                    {label: 'Labels', value: (r) => tags(value(r, 'labels'))},
-                    {label: 'Description', value: (r) => stringValue(r, 'desc')},
+                key: 'description', title: 'Mô tả', fields: [
+                    {label: 'Nhãn', value: (r) => tags(value(r, 'labels'))},
+                    {label: 'Mô tả', value: (r) => stringValue(r, 'desc')},
                 ]
             },
             {
-                key: 'correlation', title: 'Correlation', fields: [
+                key: 'correlation', title: 'Tương quan', fields: [
                     {label: 'Source UID', value: (r) => stringValue(r, 'source_uid'), mono: true},
-                    {label: 'Rule ID', value: (r) => stringValue(r, 'rule_id'), mono: true},
-                    {label: 'Rule Name', value: (r) => stringValue(r, 'rule_name')},
+                    {label: 'Mã quy tắc', value: (r) => stringValue(r, 'rule_id'), mono: true},
+                    {label: 'Tên quy tắc', value: (r) => stringValue(r, 'rule_name')},
                     {label: 'Correlation UID', value: (r) => stringValue(r, 'correlation_uid'), mono: true},
                 ]
             },
             {
-                key: 'mitre', title: 'MITRE ATT&CK and ATLAS', fields: [
-                    {label: 'Tactic', value: (r) => stringValue(r, 'tactic')},
-                    {label: 'Technique', value: (r) => stringValue(r, 'technique')},
-                    {label: 'Sub-technique', value: (r) => stringValue(r, 'sub_technique')},
-                    {label: 'Mitigation', value: (r) => stringValue(r, 'mitigation')},
+                key: 'mitre', title: 'MITRE ATT&CK và ATLAS', fields: [
+                    {label: 'Chiến thuật', value: (r) => stringValue(r, 'tactic')},
+                    {label: 'Kỹ thuật', value: (r) => stringValue(r, 'technique')},
+                    {label: 'Kỹ thuật con', value: (r) => stringValue(r, 'sub_technique')},
+                    {label: 'Biện pháp giảm thiểu', value: (r) => stringValue(r, 'mitigation')},
                 ]
             },
             {
-                key: 'status', title: 'Status, Action, and Remediation', fields: [
-                    {label: 'Status', value: (r) => statusTag(String(value(r, 'status') || '')), tag: true},
-                    {label: 'Disposition', value: (r) => alertDispositionTag(String(value(r, 'disposition') || '')), tag: true},
-                    {label: 'Action', value: (r) => alertActionTag(String(value(r, 'action') || '')), tag: true},
-                    {label: 'Status Detail', value: (r) => stringValue(r, 'status_detail')},
-                    {label: 'Remediation', value: (r) => stringValue(r, 'remediation')},
+                key: 'status', title: 'Trạng thái, Hành động và Khắc phục', fields: [
+                    {label: 'Trạng thái', value: (r) => statusTag(String(value(r, 'status') || '')), tag: true},
+                    {label: 'Xử lý', value: (r) => alertDispositionTag(String(value(r, 'disposition') || '')), tag: true},
+                    {label: 'Hành động', value: (r) => alertActionTag(String(value(r, 'action') || '')), tag: true},
+                    {label: 'Chi tiết trạng thái', value: (r) => stringValue(r, 'status_detail')},
+                    {label: 'Khắc phục', value: (r) => stringValue(r, 'remediation')},
                 ]
             },
             {
-                key: 'product', title: 'Product and Policy', fields: [
-                    {label: 'Product Category', value: (r) => productCategoryTag(String(value(r, 'product_category') || '')), tag: true},
-                    {label: 'Product Vendor', value: (r) => choiceTag(String(value(r, 'product_vendor') || ''), 'blue'), tag: true},
-                    {label: 'Product Name', value: (r) => choiceTag(String(value(r, 'product_name') || ''), 'blue'), tag: true},
-                    {label: 'Product Feature', value: (r) => choiceTag(String(value(r, 'product_feature') || ''), 'blue'), tag: true},
-                    {label: 'Policy Name', value: (r) => stringValue(r, 'policy_name')},
-                    {label: 'Policy Type', value: (r) => choiceTag(String(value(r, 'policy_type') || '')), tag: true},
+                key: 'product', title: 'Sản phẩm và Chính sách', fields: [
+                    {label: 'Danh mục sản phẩm', value: (r) => productCategoryTag(String(value(r, 'product_category') || '')), tag: true},
+                    {label: 'Hãng sản xuất', value: (r) => choiceTag(String(value(r, 'product_vendor') || ''), 'blue'), tag: true},
+                    {label: 'Tên sản phẩm', value: (r) => choiceTag(String(value(r, 'product_name') || ''), 'blue'), tag: true},
+                    {label: 'Tính năng sản phẩm', value: (r) => choiceTag(String(value(r, 'product_feature') || ''), 'blue'), tag: true},
+                    {label: 'Tên chính sách', value: (r) => stringValue(r, 'policy_name')},
+                    {label: 'Loại chính sách', value: (r) => localizedChoiceTag(String(value(r, 'policy_type') || ''), ALERT_POLICY_TYPE_LABELS), tag: true},
                 ]
             },
         ],
@@ -757,50 +770,50 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     },
     artifacts: {
         key: 'artifacts',
-        label: 'Artifacts',
+        label: 'Thực thể',
         icon: <Fingerprint {...lucideIconProps}/>,
         endpoint: '/artifacts/',
         rowKey: 'id',
-        searchPlaceholder: 'Artifact ID, Type, Name, Value, Role',
-        filters: [{key: 'type', label: 'Type', valueType: 'select', width: L160}, {key: 'role', label: 'Role', valueType: 'select', width: L160}],
+        searchPlaceholder: 'Mã thực thể, Loại, Tên, Giá trị, Vai trò',
+        filters: [{key: 'type', label: 'Loại', valueType: 'select', width: L160}, {key: 'role', label: 'Vai trò', valueType: 'select', width: L160}],
         advancedFilters: [
-            field('artifact_id', 'Artifact ID', 'text'),
-            field('type', 'Type', 'select'),
-            field('role', 'Role', 'select'),
-            field('name', 'Name', 'text'),
-            field('value', 'Value', 'text'),
-            field('created_at', 'Created Time', 'date'),
-            field('updated_at', 'Updated Time', 'date'),
+            field('artifact_id', 'Mã thực thể', 'text'),
+            field('type', 'Loại', 'select'),
+            field('role', 'Vai trò', 'select'),
+            field('name', 'Tên', 'text'),
+            field('value', 'Giá trị', 'text'),
+            field('created_at', 'Thời gian tạo', 'date'),
+            field('updated_at', 'Thời gian cập nhật', 'date'),
         ],
         columns: [
-            column('artifact_id', 'Artifact ID', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
-            column('name', 'Name', L200, {defaultVisible: true, fixed: 'left', render: (v) => choiceTag(String(v || ''), 'cyan')}),
-            column('type', 'Type', L160, {required: true, defaultVisible: true, sorter: true, render: (v) => choiceTag(String(v || ''), 'geekblue')}),
-            column('value', 'Value', L400, {required: true, defaultVisible: true}),
-            column('role', 'Role', L132, {defaultVisible: true, sorter: true, render: (v) => artifactRoleTag(String(v || ''))}),
-            column('alerts_link', 'Alerts', L160, {
+            column('artifact_id', 'Mã thực thể', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
+            column('name', 'Tên', L200, {defaultVisible: true, fixed: 'left', render: (v) => choiceTag(String(v || ''), 'cyan')}),
+            column('type', 'Loại', L160, {required: true, defaultVisible: true, sorter: true, render: (v) => localizedChoiceTag(String(v || ''), ARTIFACT_TYPE_LABELS, 'geekblue')}),
+            column('value', 'Giá trị', L400, {required: true, defaultVisible: true}),
+            column('role', 'Vai trò', L132, {defaultVisible: true, sorter: true, render: (v) => artifactRoleTag(String(v || ''))}),
+            column('alerts_link', 'Cảnh báo', L160, {
                 dataIndex: 'alert_count',
                 defaultVisible: true,
                 openRecordTab: 'alerts',
                 render: viewRelatedLabel,
             }),
-            column('enrichments_link', 'Enrichments', L160, {
+            column('enrichments_link', 'Làm giàu dữ liệu', L160, {
                 dataIndex: 'enrichment_count',
                 defaultVisible: true,
                 openRecordTab: 'enrichments',
                 render: viewRelatedLabel,
             }),
-            column('created_at', 'Created Time', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
-            column('updated_at', 'Updated Time', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
+            column('created_at', 'Thời gian tạo', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
+            column('updated_at', 'Thời gian cập nhật', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
         ],
         basicSections: [
             {
-                key: 'summary', title: 'Summary', fields: [
-                    {label: 'Artifact ID', value: (r) => upperStringValue(r, 'artifact_id'), mono: true},
-                    {label: 'Type', value: (r) => choiceTag(String(value(r, 'type') || ''), 'geekblue'), tag: true},
-                    {label: 'Name', value: (r) => choiceTag(String(value(r, 'name') || ''), 'cyan'), tag: true},
-                    {label: 'Value', value: (r) => stringValue(r, 'value'), mono: true},
-                    {label: 'Role', value: (r) => artifactRoleTag(String(value(r, 'role') || '')), tag: true},
+                key: 'summary', title: 'Tóm tắt', fields: [
+                    {label: 'Mã thực thể', value: (r) => upperStringValue(r, 'artifact_id'), mono: true},
+                    {label: 'Loại', value: (r) => localizedChoiceTag(String(value(r, 'type') || ''), ARTIFACT_TYPE_LABELS, 'geekblue'), tag: true},
+                    {label: 'Tên', value: (r) => choiceTag(String(value(r, 'name') || ''), 'cyan'), tag: true},
+                    {label: 'Giá trị', value: (r) => stringValue(r, 'value'), mono: true},
+                    {label: 'Vai trò', value: (r) => artifactRoleTag(String(value(r, 'role') || '')), tag: true},
                 ]
             },
         ],
@@ -809,30 +822,30 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     },
     enrichments: {
         key: 'enrichments',
-        label: 'Enrichments',
+        label: 'Làm giàu dữ liệu',
         icon: <WandSparkles {...lucideIconProps}/>,
         endpoint: '/enrichments/',
         rowKey: 'id',
-        searchPlaceholder: 'Search enrichments by ID, name, provider, value, or UID',
-        filters: [{key: 'type', label: 'Type', valueType: 'select', width: L200}, {key: 'provider', label: 'Provider', valueType: 'select', width: L280}],
+        searchPlaceholder: 'Tìm kiếm theo mã, tên, nhà cung cấp, giá trị hoặc UID',
+        filters: [{key: 'type', label: 'Loại', valueType: 'select', width: L200}, {key: 'provider', label: 'Nhà cung cấp', valueType: 'select', width: L280}],
         advancedFilters: [
-            field('enrichment_id', 'Enrichment ID', 'text'),
-            field('type', 'Type', 'select'),
-            field('provider', 'Provider', 'select'),
-            field('name', 'Name', 'text'),
+            field('enrichment_id', 'Mã làm giàu', 'text'),
+            field('type', 'Loại', 'select'),
+            field('provider', 'Nhà cung cấp', 'select'),
+            field('name', 'Tên', 'text'),
             field('uid', 'UID', 'text'),
-            field('value', 'Value', 'text'),
-            field('desc', 'Description', 'text'),
-            field('created_at', 'Created Time', 'date'),
-            field('updated_at', 'Updated Time', 'date'),
+            field('value', 'Giá trị', 'text'),
+            field('desc', 'Mô tả', 'text'),
+            field('created_at', 'Thời gian tạo', 'date'),
+            field('updated_at', 'Thời gian cập nhật', 'date'),
         ],
         columns: [
-            column('enrichment_id', 'Enrichment ID', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
-            column('name', 'Name', L240, {required: true, defaultVisible: true, fixed: 'left'}),
-            column('type', 'Type', L200, {defaultVisible: true, sorter: true, render: (v) => choiceTag(String(v || ''), 'magenta')}),
-            column('provider', 'Provider', L200, {defaultVisible: true, sorter: true, render: (v) => choiceTag(String(v || ''), 'purple')}),
-            column('value', 'Value', L400, {defaultVisible: true}),
-            column('linked_object', 'Linked Object', L160, {
+            column('enrichment_id', 'Mã làm giàu', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
+            column('name', 'Tên', L240, {required: true, defaultVisible: true, fixed: 'left'}),
+            column('type', 'Loại', L200, {defaultVisible: true, sorter: true, render: (v) => enrichmentTypeTag(String(v || ''))}),
+            column('provider', 'Nhà cung cấp', L200, {defaultVisible: true, sorter: true, render: (v) => choiceTag(String(v || ''), 'purple')}),
+            column('value', 'Giá trị', L400, {defaultVisible: true}),
+            column('linked_object', 'Đối tượng liên kết', L160, {
                 defaultVisible: true,
                 render: (_v, r) => upperStringValue(r, 'linked_object'),
                 openResource: {
@@ -840,22 +853,22 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
                     rowId: (r) => value(r, 'linked_object_id') as string | number | null | undefined,
                 },
             }),
-            column('created_at', 'Created Time', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
-            column('updated_at', 'Updated Time', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
-            column('desc', 'Description', L400),
+            column('created_at', 'Thời gian tạo', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
+            column('updated_at', 'Thời gian cập nhật', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
+            column('desc', 'Mô tả', L400),
             column('uid', 'UID', L360),
         ],
         basicSections: [
             {
-                key: 'summary', title: 'Summary', fields: [
-                    {label: 'Enrichment ID', value: (r) => upperStringValue(r, 'enrichment_id'), mono: true},
-                    {label: 'Name', value: (r) => stringValue(r, 'name')},
-                    {label: 'Type', value: (r) => choiceTag(String(value(r, 'type') || ''), 'magenta'), tag: true},
-                    {label: 'Provider', value: (r) => choiceTag(String(value(r, 'provider') || ''), 'purple'), tag: true},
+                key: 'summary', title: 'Tóm tắt', fields: [
+                    {label: 'Mã làm giàu', value: (r) => upperStringValue(r, 'enrichment_id'), mono: true},
+                    {label: 'Tên', value: (r) => stringValue(r, 'name')},
+                    {label: 'Loại', value: (r) => enrichmentTypeTag(String(value(r, 'type') || '')), tag: true},
+                    {label: 'Nhà cung cấp', value: (r) => choiceTag(String(value(r, 'provider') || ''), 'purple'), tag: true},
                     {label: 'UID', value: (r) => stringValue(r, 'uid'), mono: true},
-                    {label: 'Value', value: (r) => stringValue(r, 'value'), mono: true},
+                    {label: 'Giá trị', value: (r) => stringValue(r, 'value'), mono: true},
                     {
-                        label: 'Linked Object',
+                        label: 'Đối tượng liên kết',
                         value: (r) => upperStringValue(r, 'linked_object'),
                         openResource: {
                             resourceKey: linkedObjectResourceKey,
@@ -865,8 +878,8 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
                 ]
             },
             {
-                key: 'description', title: 'Description', fields: [
-                    {label: 'Description', value: (r) => stringValue(r, 'desc')},
+                key: 'description', title: 'Mô tả', fields: [
+                    {label: 'Mô tả', value: (r) => stringValue(r, 'desc')},
                 ]
             },
         ],
@@ -880,31 +893,31 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     },
     playbooks: {
         key: 'playbooks',
-        label: 'Playbooks',
+        label: 'Playbook',
         icon: <BrainCircuit {...lucideIconProps}/>,
         endpoint: '/playbooks/',
         rowKey: 'id',
         readOnly: true,
-        searchPlaceholder: 'Playbook ID, Name, Job ID, Remark',
-        filters: [{key: 'job_status', label: 'Status', valueType: 'select', width: L132}],
+        searchPlaceholder: 'Mã Playbook, Tên, Job ID, Ghi chú',
+        filters: [{key: 'job_status', label: 'Trạng thái', valueType: 'select', width: L132}],
         advancedFilters: [
-            field('playbook_id', 'Playbook ID', 'text'),
-            field('job_status', 'Status', 'select'),
-            field('name', 'Name', 'text'),
+            field('playbook_id', 'Mã Playbook', 'text'),
+            field('job_status', 'Trạng thái', 'select'),
+            field('name', 'Tên', 'text'),
             field('job_id', 'Job ID', 'text'),
-            field('user_input', 'User Input', 'text'),
-            field('remark', 'Remark', 'text'),
-            field('created_at', 'Created Time', 'date'),
-            field('updated_at', 'Updated Time', 'date'),
-            field('started_at', 'Started Time', 'date'),
-            field('finished_at', 'Finished Time', 'date'),
+            field('user_input', 'Đầu vào người dùng', 'text'),
+            field('remark', 'Ghi chú', 'text'),
+            field('created_at', 'Thời gian tạo', 'date'),
+            field('updated_at', 'Thời gian cập nhật', 'date'),
+            field('started_at', 'Bắt đầu lúc', 'date'),
+            field('finished_at', 'Hoàn thành lúc', 'date'),
         ],
         columns: [
-            column('playbook_id', 'Playbook ID', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
-            column('name', 'Name', L360, {required: true, defaultVisible: true, fixed: 'left'}),
-            column('job_status', 'Status', L160, {defaultVisible: true, sorter: true, render: playbookJobStatusTag}),
-            column('risk_level', 'Risk Level', L132, {defaultVisible: true, render: (v) => severityTag(String(v || ''))}),
-            column('case_title', 'Case', L160, {
+            column('playbook_id', 'Mã Playbook', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
+            column('name', 'Tên', L360, {required: true, defaultVisible: true, fixed: 'left'}),
+            column('job_status', 'Trạng thái', L160, {defaultVisible: true, sorter: true, render: playbookJobStatusTag}),
+            column('risk_level', 'Mức rủi ro', L132, {defaultVisible: true, render: (v) => severityTag(String(v || ''))}),
+            column('case_title', 'Vụ việc', L160, {
                 defaultVisible: true,
                 render: (_v, r) => upperStringValue(r, 'case_readable_id'),
                 openResource: {
@@ -912,26 +925,26 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
                     rowId: (r) => value(r, 'case_id') as string | number | null | undefined,
                 },
             }),
-            column('user_username', 'User', L160, {defaultVisible: true}),
+            column('user_username', 'Người yêu cầu', L160, {defaultVisible: true}),
             column('job_id', 'Job ID', L240, {defaultVisible: true}),
-            column('started_at', 'Started Time', L160, {defaultVisible: true, sorter: true, render: date('started_at')}),
-            column('finished_at', 'Finished Time', L160, {defaultVisible: true, sorter: true, render: date('finished_at')}),
-            column('duration_seconds', 'Duration', L132, {defaultVisible: true, render: (v) => formatDurationSeconds(v)}),
-            column('created_at', 'Created Time', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
-            column('updated_at', 'Updated Time', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
-            column('user_input', 'User Input', L400),
-            column('remark', 'Remark', L400),
+            column('started_at', 'Bắt đầu lúc', L160, {defaultVisible: true, sorter: true, render: date('started_at')}),
+            column('finished_at', 'Hoàn thành lúc', L160, {defaultVisible: true, sorter: true, render: date('finished_at')}),
+            column('duration_seconds', 'Thời lượng', L132, {defaultVisible: true, render: (v) => formatDurationSeconds(v)}),
+            column('created_at', 'Thời gian tạo', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
+            column('updated_at', 'Thời gian cập nhật', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
+            column('user_input', 'Đầu vào người dùng', L400),
+            column('remark', 'Ghi chú', L400),
         ],
         basicSections: [
             {
-                key: 'summary', title: 'Summary', fields: [
-                    {label: 'Playbook ID', value: (r) => upperStringValue(r, 'playbook_id'), mono: true},
-                    {label: 'Name', value: (r) => stringValue(r, 'name')},
-                    {label: 'Job Status', value: (r) => playbookJobStatusTag(value(r, 'job_status')), tag: true},
-                    {label: 'Case', value: playbookCaseLabel, openResource: {resourceKey: 'cases', rowId: (r) => value(r, 'case_id') as string | number | null | undefined}},
-                    {label: 'User', value: (r) => stringValue(r, 'user_username')},
+                key: 'summary', title: 'Tóm tắt', fields: [
+                    {label: 'Mã Playbook', value: (r) => upperStringValue(r, 'playbook_id'), mono: true},
+                    {label: 'Tên', value: (r) => stringValue(r, 'name')},
+                    {label: 'Trạng thái tác vụ', value: (r) => playbookJobStatusTag(value(r, 'job_status')), tag: true},
+                    {label: 'Vụ việc', value: playbookCaseLabel, openResource: {resourceKey: 'cases', rowId: (r) => value(r, 'case_id') as string | number | null | undefined}},
+                    {label: 'Người yêu cầu', value: (r) => stringValue(r, 'user_username')},
                     {label: 'Job ID', value: (r) => stringValue(r, 'job_id'), mono: true},
-                    {label: 'Remark', value: (r) => stringValue(r, 'remark')},
+                    {label: 'Ghi chú', value: (r) => stringValue(r, 'remark')},
                 ]
             },
         ],
@@ -947,27 +960,27 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     },
     knowledge: {
         key: 'knowledge',
-        label: 'Knowledge',
+        label: 'Tri thức',
         icon: <BookOpenText {...lucideIconProps}/>,
         endpoint: '/knowledge/',
         rowKey: 'id',
-        searchPlaceholder: 'Knowledge ID, Title, Body, Source',
-        filters: [{key: 'source', label: 'Source', valueType: 'select', width: L132}, {key: 'tags', label: 'Tags', valueType: 'tag', width: L200}],
+        searchPlaceholder: 'Mã tri thức, Tiêu đề, Nội dung, Nguồn',
+        filters: [{key: 'source', label: 'Nguồn', valueType: 'select', width: L132}, {key: 'tags', label: 'Thẻ', valueType: 'tag', width: L200}],
         advancedFilters: [
-            field('knowledge_id', 'Knowledge ID', 'text'),
-            field('source', 'Source', 'select'),
-            field('tags', 'Tags', 'tag'),
-            field('title', 'Title', 'text'),
-            field('body', 'Body', 'text'),
-            field('expires_at', 'Expires At', 'date'),
-            field('created_at', 'Created Time', 'date'),
-            field('updated_at', 'Updated Time', 'date'),
+            field('knowledge_id', 'Mã tri thức', 'text'),
+            field('source', 'Nguồn', 'select'),
+            field('tags', 'Thẻ', 'tag'),
+            field('title', 'Tiêu đề', 'text'),
+            field('body', 'Nội dung', 'text'),
+            field('expires_at', 'Hết hạn lúc', 'date'),
+            field('created_at', 'Thời gian tạo', 'date'),
+            field('updated_at', 'Thời gian cập nhật', 'date'),
         ],
         columns: [
-            column('knowledge_id', 'Knowledge ID', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
-            column('title', 'Title', L360, {required: true, defaultVisible: true, fixed: 'left'}),
-            column('source', 'Source', L132, {defaultVisible: true, sorter: true, render: (v) => knowledgeSourceTag(String(v || ''))}),
-            column('case_readable_id', 'Case', L160, {
+            column('knowledge_id', 'Mã tri thức', L160, {required: true, defaultVisible: true, fixed: 'left', openRecord: true, uppercase: true}),
+            column('title', 'Tiêu đề', L360, {required: true, defaultVisible: true, fixed: 'left'}),
+            column('source', 'Nguồn', L132, {defaultVisible: true, sorter: true, render: (v) => knowledgeSourceTag(String(v || ''))}),
+            column('case_readable_id', 'Vụ việc', L160, {
                 defaultVisible: true,
                 uppercase: true,
                 openResource: {
@@ -975,11 +988,11 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
                     rowId: (record) => value(record, 'case') as string | number | null | undefined,
                 },
             }),
-            column('tags', 'Tags', L400, {defaultVisible: true, render: (v) => tags(v)}),
-            column('expires_at', 'Expires At', L160, {defaultVisible: true, sorter: true, render: date('expires_at')}),
-            column('created_at', 'Created Time', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
-            column('updated_at', 'Updated Time', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
-            column('body', 'Body', L400),
+            column('tags', 'Thẻ', L400, {defaultVisible: true, render: (v) => tags(v)}),
+            column('expires_at', 'Hết hạn lúc', L160, {defaultVisible: true, sorter: true, render: date('expires_at')}),
+            column('created_at', 'Thời gian tạo', L160, {defaultVisible: true, sorter: true, render: date('created_at')}),
+            column('updated_at', 'Thời gian cập nhật', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
+            column('body', 'Nội dung', L400),
         ],
         editableFields: [
             {key: 'title', type: 'text'},
@@ -996,13 +1009,13 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
         ),
         basicSections: [
             {
-                key: 'summary', title: 'Summary', fields: [
-                    {label: 'Knowledge ID', value: (r) => upperStringValue(r, 'knowledge_id'), mono: true},
-                    {label: 'Title', value: (r) => stringValue(r, 'title')},
-                    {label: 'Source', value: (r) => knowledgeSourceTag(String(value(r, 'source') || '')), tag: true},
-                    {label: 'Tags', value: (r) => tags(value(r, 'tags'))},
-                    {label: 'Expires At', value: (r) => formatDateTime(String(value(r, 'expires_at') || ''))},
-                    {label: 'Body', value: (r) => stringValue(r, 'body')},
+                key: 'summary', title: 'Tóm tắt', fields: [
+                    {label: 'Mã tri thức', value: (r) => upperStringValue(r, 'knowledge_id'), mono: true},
+                    {label: 'Tiêu đề', value: (r) => stringValue(r, 'title')},
+                    {label: 'Nguồn', value: (r) => knowledgeSourceTag(String(value(r, 'source') || '')), tag: true},
+                    {label: 'Thẻ', value: (r) => tags(value(r, 'tags'))},
+                    {label: 'Hết hạn lúc', value: (r) => formatDateTime(String(value(r, 'expires_at') || ''))},
+                    {label: 'Nội dung', value: (r) => stringValue(r, 'body')},
                 ]
             },
         ],
@@ -1010,62 +1023,62 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     },
     users: {
         key: 'users',
-        label: 'Users',
+        label: 'Người dùng',
         icon: <UserOutlined/>,
         endpoint: '/auth/users/',
         rowKey: 'id',
-        searchPlaceholder: 'Username, Email, Name, Phone',
+        searchPlaceholder: 'Tên đăng nhập, Email, Họ tên, Điện thoại',
         filters: [
-            {key: 'role', label: 'Role', options: [{label: 'Admin', value: 'admin'}, {label: 'User', value: 'user'}, {label: 'Viewer', value: 'viewer'}], width: L132},
-            {key: 'auth_type', label: 'Auth Type', options: [{label: 'Local', value: 'local'}, {label: 'LDAP', value: 'ldap'}], width: L132},
-            {key: 'is_active', label: 'Status', options: [{label: 'Active', value: 'true'}, {label: 'Disabled', value: 'false'}], width: L132},
+            {key: 'role', label: 'Vai trò', options: [{label: 'Quản trị viên', value: 'admin'}, {label: 'Người dùng', value: 'user'}, {label: 'Chỉ xem', value: 'viewer'}], width: L132},
+            {key: 'auth_type', label: 'Kiểu xác thực', options: [{label: 'Nội bộ', value: 'local'}, {label: 'LDAP', value: 'ldap'}], width: L132},
+            {key: 'is_active', label: 'Trạng thái', options: [{label: 'Hoạt động', value: 'true'}, {label: 'Vô hiệu', value: 'false'}], width: L132},
         ],
         advancedFilters: [
-            field('username', 'Username', 'text'),
+            field('username', 'Tên đăng nhập', 'text'),
             field('email', 'Email', 'text'),
-            field('first_name', 'First Name', 'text'),
-            field('last_name', 'Last Name', 'text'),
-            field('mobile_phone', 'Mobile Phone', 'text'),
-            field('auth_type', 'Auth Type', 'select'),
-            field('is_active', 'Status', 'select'),
-            field('date_joined', 'Date Joined', 'date'),
-            field('last_login', 'Last Login', 'date'),
+            field('first_name', 'Tên', 'text'),
+            field('last_name', 'Họ', 'text'),
+            field('mobile_phone', 'Số điện thoại', 'text'),
+            field('auth_type', 'Kiểu xác thực', 'select'),
+            field('is_active', 'Trạng thái', 'select'),
+            field('date_joined', 'Ngày tham gia', 'date'),
+            field('last_login', 'Đăng nhập gần nhất', 'date'),
         ],
         columns: [
-            column('username', 'Username', L160, {required: true, defaultVisible: true, openRecord: true}),
-            column('avatar_url', 'Avatar', L80, {
+            column('username', 'Tên đăng nhập', L160, {required: true, defaultVisible: true, openRecord: true}),
+            column('avatar_url', 'Ảnh đại diện', L80, {
                 defaultVisible: true,
                 render: (_v, r) => <UserAvatar username={String(value(r, 'username') || '')} avatarUrl={String(value(r, 'avatar_url') || '')} size={32}/>
             }),
-            column('role', 'Role', L120, {defaultVisible: true, render: userRoleTag}),
-            column('auth_type', 'Auth Type', L120, {defaultVisible: true, sorter: true, render: authTypeTag}),
-            column('is_active', 'Status', L120, {defaultVisible: true, sorter: true, render: activeStatusTag}),
+            column('role', 'Vai trò', L120, {defaultVisible: true, render: userRoleTag}),
+            column('auth_type', 'Kiểu xác thực', L120, {defaultVisible: true, sorter: true, render: authTypeTag}),
+            column('is_active', 'Trạng thái', L120, {defaultVisible: true, sorter: true, render: activeStatusTag}),
             column('email', 'Email', L240, {defaultVisible: true}),
-            column('first_name', 'First Name', L120),
-            column('last_name', 'Last Name', L120),
-            column('full_name', 'Full Name', L200, {
+            column('first_name', 'Tên', L120),
+            column('last_name', 'Họ', L120),
+            column('full_name', 'Họ và tên', L200, {
                 defaultVisible: true,
                 render: (_v, r) => `${stringValue(r, 'first_name')} ${stringValue(r, 'last_name')}`.replaceAll('—', '').trim() || '—'
             }),
-            column('mobile_phone', 'Mobile Phone', L240, {defaultVisible: true}),
-            column('last_login', 'Last Login', L160, {defaultVisible: true, sorter: true, render: date('last_login')}),
-            column('date_joined', 'Date Joined', L160, {defaultVisible: true, sorter: true, render: date('date_joined')}),
+            column('mobile_phone', 'Số điện thoại', L240, {defaultVisible: true}),
+            column('last_login', 'Đăng nhập gần nhất', L160, {defaultVisible: true, sorter: true, render: date('last_login')}),
+            column('date_joined', 'Ngày tham gia', L160, {defaultVisible: true, sorter: true, render: date('date_joined')}),
         ],
         basicSections: [
             {
-                key: 'identity', title: 'Identity', fields: [
-                    {label: 'Username', value: (r) => stringValue(r, 'username')},
+                key: 'identity', title: 'Định danh', fields: [
+                    {label: 'Tên đăng nhập', value: (r) => stringValue(r, 'username')},
                     {label: 'Email', value: (r) => stringValue(r, 'email')},
-                    {label: 'Full Name', value: (r) => `${stringValue(r, 'first_name')} ${stringValue(r, 'last_name')}`.replaceAll('—', '').trim() || '—'},
-                    {label: 'Mobile Phone', value: (r) => stringValue(r, 'mobile_phone')},
-                    {label: 'Avatar', value: (r) => <UserAvatar username={String(value(r, 'username') || '')} avatarUrl={String(value(r, 'avatar_url') || '')} size={40}/>},
+                    {label: 'Họ và tên', value: (r) => `${stringValue(r, 'first_name')} ${stringValue(r, 'last_name')}`.replaceAll('—', '').trim() || '—'},
+                    {label: 'Số điện thoại', value: (r) => stringValue(r, 'mobile_phone')},
+                    {label: 'Ảnh đại diện', value: (r) => <UserAvatar username={String(value(r, 'username') || '')} avatarUrl={String(value(r, 'avatar_url') || '')} size={40}/>},
                 ]
             },
             {
-                key: 'access', title: 'Access', fields: [
-                    {label: 'Role', value: (r) => userRoleTag(value(r, 'role')), tag: true},
-                    {label: 'Auth Type', value: (r) => authTypeTag(value(r, 'auth_type')), tag: true},
-                    {label: 'Status', value: (r) => activeStatusTag(value(r, 'is_active')), tag: true},
+                key: 'access', title: 'Quyền truy cập', fields: [
+                    {label: 'Vai trò', value: (r) => userRoleTag(value(r, 'role')), tag: true},
+                    {label: 'Kiểu xác thực', value: (r) => authTypeTag(value(r, 'auth_type')), tag: true},
+                    {label: 'Trạng thái', value: (r) => activeStatusTag(value(r, 'is_active')), tag: true},
                 ]
             },
         ],
@@ -1073,62 +1086,62 @@ export const resourceConfigs: Record<string, ResourceConfig<RecordRow>> = {
     },
     'llm-providers': {
         key: 'llm-providers',
-        label: 'LLM Providers',
+        label: 'Nhà cung cấp LLM',
         icon: <ApiOutlined/>,
         endpoint: '/settings/llm-providers/',
         rowKey: 'id',
-        searchPlaceholder: 'Name, Base Url, Model',
+        searchPlaceholder: 'Tên, Base URL, Model',
         filters: [
-            {key: 'enabled', label: 'Enabled', valueType: 'select', options: [{label: 'Enabled', value: 'true'}, {label: 'Disabled', value: 'false'}], width: L132},
-            {key: 'tags', label: 'Tags', valueType: 'tag', options: llmTagOptions, width: L480},
+            {key: 'enabled', label: 'Trạng thái', valueType: 'select', options: [{label: 'Bật', value: 'true'}, {label: 'Tắt', value: 'false'}], width: L132},
+            {key: 'tags', label: 'Thẻ', valueType: 'tag', options: llmTagOptions, width: L480},
         ],
         advancedFilters: [
-            field('name', 'Name', 'text'),
+            field('name', 'Tên', 'text'),
             field('base_url', 'Base URL', 'text'),
             field('model', 'Model', 'text'),
-            {key: 'enabled', label: 'Enabled', valueType: 'select', options: [{label: 'Enabled', value: 'true'}, {label: 'Disabled', value: 'false'}]},
-            field('priority', 'Priority', 'number'),
+            {key: 'enabled', label: 'Trạng thái', valueType: 'select', options: [{label: 'Bật', value: 'true'}, {label: 'Tắt', value: 'false'}]},
+            field('priority', 'Độ ưu tiên', 'number'),
         ],
         columns: [
-            column('name', 'Name', L160, {required: true, defaultVisible: true, openRecord: true, sorter: true}),
+            column('name', 'Tên', L160, {required: true, defaultVisible: true, openRecord: true, sorter: true}),
             column('base_url', 'Base URL', L360, {defaultVisible: true, sorter: true}),
             column('model', 'Model', L240, {defaultVisible: true, sorter: true}),
-            column('tags', 'Tags', L360, {defaultVisible: true, render: llmTags}),
-            column('enabled', 'Enabled', L96, {defaultVisible: true, sorter: true, render: llmProviderStatusTag}),
-            column('priority', 'Priority', L96, {defaultVisible: true, sorter: true}),
+            column('tags', 'Thẻ', L360, {defaultVisible: true, render: llmTags}),
+            column('enabled', 'Trạng thái', L96, {defaultVisible: true, sorter: true, render: llmProviderStatusTag}),
+            column('priority', 'Độ ưu tiên', L96, {defaultVisible: true, sorter: true}),
         ],
         basicSections: [],
         tabs: [],
     },
     'custom-variables': {
         key: 'custom-variables',
-        label: 'Custom Variables',
+        label: 'Biến tùy chỉnh',
         icon: <ApiOutlined/>,
         endpoint: '/custom/variables/',
         rowKey: 'id',
-        searchPlaceholder: 'Key, Description',
+        searchPlaceholder: 'Khóa, Mô tả',
         filters: [
-            {key: 'value_type', label: 'Type', valueType: 'select', options: customVariableTypeOptions, width: L160},
-            {key: 'is_secret', label: 'Secret', valueType: 'select', options: [{label: 'Secret', value: 'true'}, {label: 'Plain', value: 'false'}], width: L132},
-            {key: 'enabled', label: 'Enabled', valueType: 'select', options: [{label: 'Enabled', value: 'true'}, {label: 'Disabled', value: 'false'}], width: L132},
+            {key: 'value_type', label: 'Kiểu', valueType: 'select', options: customVariableTypeOptions, width: L160},
+            {key: 'is_secret', label: 'Bí mật', valueType: 'select', options: [{label: 'Bí mật', value: 'true'}, {label: 'Thường', value: 'false'}], width: L132},
+            {key: 'enabled', label: 'Trạng thái', valueType: 'select', options: [{label: 'Bật', value: 'true'}, {label: 'Tắt', value: 'false'}], width: L132},
         ],
         advancedFilters: [
-            field('key', 'Key', 'text'),
-            field('description', 'Description', 'text'),
-            {key: 'value_type', label: 'Type', valueType: 'select', options: customVariableTypeOptions},
-            {key: 'is_secret', label: 'Secret', valueType: 'select', options: [{label: 'Secret', value: 'true'}, {label: 'Plain', value: 'false'}]},
-            {key: 'enabled', label: 'Enabled', valueType: 'select', options: [{label: 'Enabled', value: 'true'}, {label: 'Disabled', value: 'false'}]},
-            field('created_at', 'Created At', 'date'),
-            field('updated_at', 'Updated At', 'date'),
+            field('key', 'Khóa', 'text'),
+            field('description', 'Mô tả', 'text'),
+            {key: 'value_type', label: 'Kiểu', valueType: 'select', options: customVariableTypeOptions},
+            {key: 'is_secret', label: 'Bí mật', valueType: 'select', options: [{label: 'Bí mật', value: 'true'}, {label: 'Thường', value: 'false'}]},
+            {key: 'enabled', label: 'Trạng thái', valueType: 'select', options: [{label: 'Bật', value: 'true'}, {label: 'Tắt', value: 'false'}]},
+            field('created_at', 'Thời gian tạo', 'date'),
+            field('updated_at', 'Thời gian cập nhật', 'date'),
         ],
         columns: [
-            column('key', 'Key', L240, {required: true, defaultVisible: true, openRecord: true, sorter: true}),
-            column('description', 'Description', L360, {defaultVisible: true}),
-            column('value_type', 'Type', L132, {defaultVisible: true, sorter: true, render: customVariableTypeTag}),
-            column('is_secret', 'Secret', L96, {defaultVisible: true, sorter: true, render: customVariableSecretTag}),
-            column('enabled', 'Enabled', L96, {defaultVisible: true, sorter: true, render: llmProviderStatusTag}),
-            column('value_configured', 'Value', L132, {defaultVisible: true, render: customVariableConfiguredTag}),
-            column('updated_at', 'Updated At', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
+            column('key', 'Khóa', L240, {required: true, defaultVisible: true, openRecord: true, sorter: true}),
+            column('description', 'Mô tả', L360, {defaultVisible: true}),
+            column('value_type', 'Kiểu', L132, {defaultVisible: true, sorter: true, render: customVariableTypeTag}),
+            column('is_secret', 'Bí mật', L96, {defaultVisible: true, sorter: true, render: customVariableSecretTag}),
+            column('enabled', 'Trạng thái', L96, {defaultVisible: true, sorter: true, render: llmProviderStatusTag}),
+            column('value_configured', 'Giá trị', L132, {defaultVisible: true, render: customVariableConfiguredTag}),
+            column('updated_at', 'Thời gian cập nhật', L160, {defaultVisible: true, sorter: true, render: date('updated_at')}),
         ],
         basicSections: [],
         tabs: [],

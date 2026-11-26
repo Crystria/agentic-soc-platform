@@ -61,7 +61,7 @@ export default function RelatedRecordsTable({ endpoint, tableKey, resourceKey, c
           ? (record) => {
             const rowId = record.id
             if (typeof rowId !== 'string' && typeof rowId !== 'number') {
-              message.error('Cannot open related record without an ID')
+              message.error('Không thể mở bản ghi liên quan vì thiếu ID')
               return
             }
             openResourceFromTable(resourceKey, rowId)

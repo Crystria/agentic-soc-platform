@@ -54,7 +54,7 @@ export default function RuntimeSettings() {
       const { data } = await client.get<RuntimeConfig>('/settings/runtime/')
       form.setFieldsValue({ ...initialValues(), ...data })
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to load Runtime configuration'))
+      message.error(apiErrorMessage(error, 'Không thể tải cấu hình Runtime'))
     } finally {
       setLoading(false)
     }
@@ -71,9 +71,9 @@ export default function RuntimeSettings() {
       const values = await form.validateFields()
       const { data } = await client.patch<RuntimeConfig>('/settings/runtime/', values)
       form.setFieldsValue({ ...initialValues(), ...data })
-      message.success('Runtime configuration saved')
+      message.success('Đã lưu cấu hình Runtime')
     } catch (error: unknown) {
-      message.error(apiErrorMessage(error, 'Failed to save Runtime configuration'))
+      message.error(apiErrorMessage(error, 'Lưu cấu hình Runtime thất bại'))
     } finally {
       setSaving(false)
     }
@@ -81,7 +81,7 @@ export default function RuntimeSettings() {
 
   return (
     <div style={{ height: '100%', minHeight: 0, overflow: 'auto' }}>
-      <Card title="Runtime" loading={loading}>
+      <Card title="Cấu hình Runtime" loading={loading}>
         <Form form={form} layout="vertical" initialValues={initialValues()} style={{ maxWidth: 920 }}>
           <Typography.Text strong>Prompt</Typography.Text>
           <Divider style={{ margin: '8px 0 16px' }} />
@@ -89,24 +89,24 @@ export default function RuntimeSettings() {
             <Col span={12}>
               <Form.Item
                 name="prompt_language"
-                label={helpLabel('Prompt Language', 'Selects the prompt file language used by agentic analysis and extraction prompts.')}
+                label={helpLabel('Ngôn ngữ Prompt', 'Chọn ngôn ngữ tệp prompt dùng cho quá trình phân tích agentic và trích xuất tri thức.')}
                 rules={[{ required: true }]}
               >
                 <Select options={[
-                  { label: 'English', value: 'en' },
-                  { label: '中文', value: 'zh' },
+                  { label: 'Tiếng Anh', value: 'en' },
+                  { label: 'Tiếng Trung', value: 'zh' },
                 ]} />
               </Form.Item>
             </Col>
           </Row>
 
-          <Typography.Text strong>Stream Runtime</Typography.Text>
+          <Typography.Text strong>Cấu hình Stream</Typography.Text>
           <Divider style={{ margin: '8px 0 16px' }} />
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="stream_maxlen"
-                label={helpLabel('Stream Maxlen', 'Approximate maximum length retained for Redis Streams written by webhook alert ingestion. ELK action processing uses the same webhook write path.')}
+                label={helpLabel('Độ dài tối đa Stream', 'Độ dài xấp xỉ tối đa được giữ lại cho Redis Streams khi webhook nạp cảnh báo. Luồng xử lý ELK action dùng chung đường ghi này.')}
                 rules={[{ required: true }]}
               >
                 <InputNumber min={1} max={10000000} style={{ width: '100%' }} />
@@ -114,26 +114,26 @@ export default function RuntimeSettings() {
             </Col>
           </Row>
 
-          <Typography.Text strong>Dashboard Runtime</Typography.Text>
+          <Typography.Text strong>Cấu hình Tổng quan</Typography.Text>
           <Divider style={{ margin: '8px 0 16px' }} />
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="dashboard_refresh_interval_seconds"
-                label={helpLabel('Dashboard Refresh Interval', 'Controls how often the background worker recalculates the 24h, 7d, and 30d dashboard caches.')}
+                label={helpLabel('Chu kỳ làm mới Tổng quan', 'Điều chỉnh tần suất worker nền tính toán lại bộ nhớ đệm Tổng quan cho mốc 24 giờ, 7 ngày và 30 ngày.')}
                 rules={[{ required: true }]}
               >
                 <Select options={[
-                  { label: '5 minutes', value: 300 },
-                  { label: '15 minutes', value: 900 },
-                  { label: '30 minutes', value: 1800 },
-                  { label: '60 minutes', value: 3600 },
+                  { label: '5 phút', value: 300 },
+                  { label: '15 phút', value: 900 },
+                  { label: '30 phút', value: 1800 },
+                  { label: '60 phút', value: 3600 },
                 ]} />
               </Form.Item>
             </Col>
           </Row>
           <Space>
-            <Button type="primary" onClick={saveConfig} loading={saving}>Save</Button>
+            <Button type="primary" onClick={saveConfig} loading={saving}>Lưu</Button>
           </Space>
         </Form>
       </Card>

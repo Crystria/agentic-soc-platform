@@ -30,8 +30,8 @@ async function loadMentionUsers() {
 }
 
 export default function MessageComposer({
-  placeholder = '@member, press Enter to send, Shift+Enter for a new line',
-  submitLabel = 'Send',
+  placeholder = '@thành viên, nhấn Enter để gửi, Shift+Enter để xuống dòng',
+  submitLabel = 'Gửi',
   disabled = false,
   onSubmit,
 }: MessageComposerProps) {
@@ -61,7 +61,7 @@ export default function MessageComposer({
     try {
       setUsers(await loadMentionUsers())
     } catch {
-      setMentionUsersError('Mention suggestions are unavailable.')
+      setMentionUsersError('Không thể tải gợi ý nhắc tên (@mention).')
     }
   }
 
@@ -71,7 +71,7 @@ export default function MessageComposer({
       const attachment = await uploadAttachment(file)
       setAttachments((current) => [...current, attachment])
     } catch {
-      message.error('Failed to upload attachment')
+      message.error('Không thể tải tệp đính kèm lên')
     } finally {
       setUploading(false)
     }
@@ -168,7 +168,7 @@ export default function MessageComposer({
         />
         <div style={{ position: 'absolute', right: 8, bottom: 8, display: 'inline-flex', gap: 4 }}>
           <Upload {...uploadProps}>
-            <Tooltip title="Attach file">
+            <Tooltip title="Đính kèm tệp">
               <Button
                 type="text"
                 size="small"

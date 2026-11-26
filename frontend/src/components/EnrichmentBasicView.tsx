@@ -6,7 +6,7 @@ import {DescriptionValue, EditableDescriptionValue} from './DescriptionValue'
 import {descriptionStyles} from './descriptionValueStyles'
 import {InlineTextAreaEditor, InlineTextEditor} from './InlineFieldEditors'
 import JsonViewer from './JsonViewer'
-import {choiceTag, emptyValue} from '../utils/recordDisplay'
+import {choiceTag, emptyValue, enrichmentTypeTag} from '../utils/recordDisplay'
 import {editableLabel} from './editableLabel'
 import {monoTextStyle} from '../utils/typography'
 
@@ -69,10 +69,10 @@ export default function EnrichmentBasicView({ record, onOpenResource, fieldContr
   )
 
   const items: DescriptionsProps['items'] = [
-    { key: 'enrichment-id', label: 'Enrichment ID', children: <DescriptionValue mono>{upperStringValue(record, 'enrichment_id')}</DescriptionValue> },
-    item('type', 'Type', choiceTag(String(value(record, 'type') || ''), 'magenta')),
-    item('provider', 'Provider', choiceTag(String(value(record, 'provider') || ''), 'purple')),
-    item('linked-object', 'Linked Object', linkedObject),
+    { key: 'enrichment-id', label: 'Mã làm giàu', children: <DescriptionValue mono>{upperStringValue(record, 'enrichment_id')}</DescriptionValue> },
+    item('type', 'Loại', enrichmentTypeTag(String(value(record, 'type') || ''))),
+    item('provider', 'Nhà cung cấp', choiceTag(String(value(record, 'provider') || ''), 'purple')),
+    item('linked-object', 'Đối tượng liên kết', linkedObject),
     {
       key: 'uid',
       label: uidState && controller ? editableLabel('UID') : 'UID',
@@ -94,7 +94,7 @@ export default function EnrichmentBasicView({ record, onOpenResource, fieldContr
     },
     {
       key: 'value',
-      label: valueState && controller ? editableLabel('Value') : 'Value',
+      label: valueState && controller ? editableLabel('Giá trị') : 'Giá trị',
       span: 3,
       children: valueState && controller ? (
         <EditableDescriptionValue
@@ -114,7 +114,7 @@ export default function EnrichmentBasicView({ record, onOpenResource, fieldContr
     },
     {
       key: 'description',
-      label: descState && controller ? editableLabel('Description') : 'Description',
+      label: descState && controller ? editableLabel('Mô tả') : 'Mô tả',
       span: 4,
       children: descState && controller ? (
         <EditableDescriptionValue
@@ -134,7 +134,7 @@ export default function EnrichmentBasicView({ record, onOpenResource, fieldContr
         />
       ) : <DescriptionValue minHeight={86} height={86} multiline>{stringValue(record, 'desc')}</DescriptionValue>,
     },
-    { key: 'data', label: 'Data', span: 4, children: <JsonViewer value={record.data} /> },
+    { key: 'data', label: 'Dữ liệu', span: 4, children: <JsonViewer value={record.data} /> },
   ]
 
   return (

@@ -1,0 +1,76 @@
+name: ".alerts-security.alerts-*"
+backend: ELK
+description: Elastic Security detection alerts index containing triggered rule signals and ECS context.
+
+fields:
+  - name: "@timestamp"
+    type: date
+    description: Alert generation timestamp (UTC)
+    is_key_field: false
+    sample_values: ["2026-11-26T04:00:00Z"]
+
+  - name: kibana.alert.rule.name
+    type: keyword
+    description: Elastic Security detection rule name
+    is_key_field: true
+    sample_values: ["Suspicious PowerShell Execution", "Potential Credential Dumping"]
+
+  - name: kibana.alert.rule.rule_id
+    type: keyword
+    description: Elastic Security rule identifier
+    is_key_field: false
+    sample_values: ["43a2520e-a755-11ea-bb37-0242ac130002"]
+
+  - name: kibana.alert.severity
+    type: keyword
+    description: Alert severity level
+    is_key_field: true
+    sample_values: ["critical", "high", "medium", "low"]
+
+  - name: kibana.alert.risk_score
+    type: long
+    description: Alert numeric risk score (0-100)
+    is_key_field: false
+    sample_values: [73, 99, 47]
+
+  - name: kibana.alert.reason
+    type: text
+    description: Human-readable reason explaining why the alert fired
+    is_key_field: false
+    sample_values: ["process event with process name powershell.exe"]
+
+  - name: host.name
+    type: keyword
+    description: Affected host name
+    is_key_field: true
+    sample_values: ["DESKTOP-WIN11"]
+
+  - name: user.name
+    type: keyword
+    description: Associated user name
+    is_key_field: true
+    sample_values: ["Administrator", "analyst"]
+
+  - name: process.name
+    type: keyword
+    description: Triggering process name
+    is_key_field: true
+    sample_values: ["powershell.exe", "vssadmin.exe"]
+
+  - name: process.command_line
+    type: keyword
+    description: Command line of triggering process
+    is_key_field: false
+    sample_values: ["powershell.exe -enc ..."]
+
+  - name: source.ip
+    type: ip
+    description: Source IP address
+    is_key_field: true
+    sample_values: ["10.0.0.15"]
+
+  - name: destination.ip
+    type: ip
+    description: Destination IP address
+    is_key_field: false
+    sample_values: ["192.168.1.10"]

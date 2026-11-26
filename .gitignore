@@ -1,42 +1,92 @@
-# Python
+# ===== Python =====
 __pycache__/
 *.py[cod]
+*.pyo
 *.egg-info/
+*.egg
 dist/
 build/
-*.egg
+*.whl
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
 
 # Virtual environment
 .venv/
+venv/
+env/
 
-# Django
+# ===== Django =====
 *.sqlite3
+db.sqlite3
 media/
 staticfiles/
 backend/perf-results/
 
-# Environment
+# ===== Environment & Secrets =====
 .env
 .env.local
-/deploy/asp-compose/compose.override.yaml
+.env.production
+.env.staging
+*.pem
+*.key
+*.crt
+*.p12
 
-# IDE
+# Deploy runtime artifacts
+/deploy/asp-compose/compose.override.yaml
+/deploy/asp-compose/certs/
+/deploy/asp-compose/logs/
+
+# ===== IDE & Editor =====
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+*.sublime-project
+*.sublime-workspace
 
-# Node
+# ===== Node / Frontend =====
 node_modules/
+frontend/dist/
+.pnpm-store/
+.eslintcache
+*.tsbuildinfo
 
-# Local git worktrees
+# ===== OS generated =====
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===== Local git worktrees =====
 .worktrees/
 /asf-doc/
 #/asp-marketplace/
 
-# OS
-.DS_Store
-Thumbs.db
-
+# ===== AI / Agent config =====
 .claude/*
 .asp/
+
+# ===== Vietnamese report files (auto-generated) =====
+BAO_CAO_*.md
+KE_HOACH_*.md
+PHAN_TICH_*.md
+GIT_PULL_REPORT.md
+REPORT_ROADMAP_PROGRESS.md
+README_BAO_CAO_HE_THONG.md
+
+# ===== Logs =====
+*.log
+logs/
+!backend/apps/**/migrations/
+
+# ===== Misc =====
+*.bak
+*.tmp
+*.orig

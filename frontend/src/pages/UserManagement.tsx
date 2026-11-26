@@ -16,19 +16,19 @@ function credentialMessage(credentials: CredentialPayload) {
   const platformUrl = window.location.origin
   if (credentials.auth_type === 'local') {
     return [
-      'Account information',
-      `Platform: ${platformUrl}`,
-      'Login type: Platform',
-      `Username: ${credentials.username}`,
-      `Initial password: ${credentials.password || ''}`,
+      'Thông tin tài khoản',
+      `Nền tảng: ${platformUrl}`,
+      'Kiểu đăng nhập: Nội bộ',
+      `Tên đăng nhập: ${credentials.username}`,
+      `Mật khẩu ban đầu: ${credentials.password || ''}`,
     ].join('\n')
   }
   return [
-    'Account information',
-    `Platform: ${platformUrl}`,
-    'Login type: LDAP',
-    `Username: ${credentials.username}`,
-    'Use your LDAP password to log in.',
+    'Thông tin tài khoản',
+    `Nền tảng: ${platformUrl}`,
+    'Kiểu đăng nhập: LDAP',
+    `Tên đăng nhập: ${credentials.username}`,
+    'Sử dụng mật khẩu LDAP của bạn để đăng nhập.',
   ].join('\n')
 }
 
@@ -54,10 +54,10 @@ export default function UserManagement() {
   const updateUserStatus = async (record: Record<string, unknown>, isActive: boolean) => {
     try {
       await client.patch(`/auth/users/${record.id}/`, { is_active: isActive })
-      message.success(isActive ? 'User enabled' : 'User disabled')
+      message.success(isActive ? 'Đã kích hoạt người dùng' : 'Đã vô hiệu hóa người dùng')
       refresh()
     } catch {
-      message.error('Failed to update user status')
+      message.error('Cập nhật trạng thái người dùng thất bại')
     }
   }
 
@@ -66,7 +66,7 @@ export default function UserManagement() {
       const { data } = await client.post<UserMutationResponse>(`/auth/users/${record.id}/reset_password/`)
       showCredentials(data.credentials)
     } catch {
-      message.error('Failed to reset password')
+      message.error('Đặt lại mật khẩu thất bại')
     }
   }
 
@@ -90,7 +90,7 @@ export default function UserManagement() {
           const isAdmin = user.role === 'admin'
           const isCurrentUser = currentUserId !== undefined && String(user.id) === String(currentUserId)
           const deleteAction = isCurrentUser ? (
-            <Tooltip title="You cannot delete your own account">
+            <Tooltip title="Bạn không thể xóa tài khoản của chính mình">
               <span onClick={(event) => event.stopPropagation()}>
                 <Button danger size="small" type="text" icon={<DeleteOutlined />} disabled />
               </span>
@@ -100,7 +100,7 @@ export default function UserManagement() {
             <Space size={4} align="center" className="table-row-actions">
               {!isAdmin ? (
                 <Popconfirm
-                  title={user.is_active ? 'Disable user?' : 'Enable user?'}
+                  title={user.is_active ? 'Vô hiệu hóa người dùng?' : 'Kích hoạt người dùng?'}
                   onConfirm={(event) => {
                     event?.stopPropagation()
                     return updateUserStatus(user, !user.is_active)
@@ -119,7 +119,7 @@ export default function UserManagement() {
               )}
               {!isAdmin && user.auth_type === 'local' ? (
                 <Popconfirm
-                  title="Reset password?"
+                  title="Đặt lại mật khẩu?"
                   onConfirm={(event) => {
                     event?.stopPropagation()
                     return resetPassword(user)
@@ -145,7 +145,7 @@ export default function UserManagement() {
         onCreated={(response) => {
           setCreateOpen(false)
           refresh()
-          message.success('User created')
+          message.success('Đã tạo người dùng')
           showCredentials(response.credentials)
         }}
       />
@@ -155,17 +155,17 @@ export default function UserManagement() {
         onClose={() => setSelectedUserId(null)}
         onSaved={refresh}
       />
-      <Modal title="Copy User Login Message" open={credentials !== null} onCancel={() => setCredentials(null)} footer={null} destroyOnHidden>
+      <Modal title="Sao chép thông tin đăng nhập" open={credentials !== null} onCancel={() => setCredentials(null)} footer={null} destroyOnHidden>
         <Space vertical style={{ width: '100%' }}>
           <Input.TextArea value={messageText} rows={5} readOnly />
           <Button
             type="primary"
             onClick={() => {
               navigator.clipboard.writeText(messageText)
-              message.success('Copied')
+              message.success('Đã sao chép')
             }}
           >
-            Copy
+            Sao chép
           </Button>
         </Space>
       </Modal>

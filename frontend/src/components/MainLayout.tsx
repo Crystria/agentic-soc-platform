@@ -22,16 +22,16 @@ const { Header, Sider, Content } = Layout
 const lucideIconProps = {size: '1.2em', strokeWidth: 2}
 
 const breadcrumbMap: Record<string, string> = {
-  cases: 'Cases',
-  alerts: 'Alerts',
-  artifacts: 'Artifacts',
-  enrichments: 'Enrichments',
-  playbooks: 'Playbooks',
-  knowledge: 'Knowledge',
-  agents: 'Agents',
-  custom: 'Custom',
-  dashboard: 'Dashboard',
-  system: 'Setting',
+  cases: 'Vụ việc',
+  alerts: 'Cảnh báo',
+  artifacts: 'Thực thể',
+  enrichments: 'Làm giàu dữ liệu',
+  playbooks: 'Playbook',
+  knowledge: 'Kho tri thức',
+  agents: 'Giám sát Agent',
+  custom: 'Tùy chỉnh',
+  dashboard: 'Tổng quan',
+  system: 'Cài đặt hệ thống',
 }
 
 export default function MainLayout() {
@@ -72,16 +72,16 @@ export default function MainLayout() {
   const isDashboardPage = selectedKey === '/dashboard'
 
   const menuItems = [
-    { key: '/dashboard', icon: <LayoutDashboard {...lucideIconProps} />, label: 'Dashboard' },
-    { key: '/cases', icon: <BriefcaseBusiness {...lucideIconProps} />, label: 'Cases' },
-    { key: '/alerts', icon: <Siren {...lucideIconProps} />, label: 'Alerts' },
-    { key: '/artifacts', icon: <Fingerprint {...lucideIconProps} />, label: 'Artifacts' },
-    { key: '/enrichments', icon: <WandSparkles {...lucideIconProps} />, label: 'Enrichments' },
-    { key: '/playbooks', icon: <BrainCircuit {...lucideIconProps} />, label: 'Playbooks' },
-    { key: '/knowledge', icon: <BookOpenText {...lucideIconProps} />, label: 'Knowledge' },
-    hasPermission(user, 'admin') ? { key: '/agents', icon: <Bot {...lucideIconProps} />, label: 'Agents' } : null,
-    hasPermission(user, 'admin') ? { key: '/custom', icon: <Puzzle {...lucideIconProps} />, label: 'Custom' } : null,
-    hasPermission(user, 'admin') ? { key: '/system', icon: <Settings {...lucideIconProps} />, label: 'Setting' } : null,
+    { key: '/dashboard', icon: <LayoutDashboard {...lucideIconProps} />, label: 'Tổng quan' },
+    { key: '/cases', icon: <BriefcaseBusiness {...lucideIconProps} />, label: 'Vụ việc' },
+    { key: '/alerts', icon: <Siren {...lucideIconProps} />, label: 'Cảnh báo' },
+    { key: '/artifacts', icon: <Fingerprint {...lucideIconProps} />, label: 'Thực thể' },
+    { key: '/enrichments', icon: <WandSparkles {...lucideIconProps} />, label: 'Làm giàu dữ liệu' },
+    { key: '/playbooks', icon: <BrainCircuit {...lucideIconProps} />, label: 'Playbook' },
+    { key: '/knowledge', icon: <BookOpenText {...lucideIconProps} />, label: 'Kho tri thức' },
+    hasPermission(user, 'admin') ? { key: '/agents', icon: <Bot {...lucideIconProps} />, label: 'Giám sát Agent' } : null,
+    hasPermission(user, 'admin') ? { key: '/custom', icon: <Puzzle {...lucideIconProps} />, label: 'Tùy chỉnh' } : null,
+    hasPermission(user, 'admin') ? { key: '/system', icon: <Settings {...lucideIconProps} />, label: 'Cài đặt' } : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item))
 
   const pathParts = location.pathname.split('/').filter(Boolean)
@@ -94,8 +94,8 @@ export default function MainLayout() {
   ]
 
   const userMenuItems = [
-    { key: 'profile', label: 'Personal', icon: <UserOutlined />, onClick: () => setPersonalCenterOpen(true) },
-    { key: 'logout', label: 'Logout', icon: <LogoutOutlined />, onClick: () => { logout(); navigate('/login') } },
+    { key: 'profile', label: 'Cá nhân', icon: <UserOutlined />, onClick: () => setPersonalCenterOpen(true) },
+    { key: 'logout', label: 'Đăng xuất', icon: <LogoutOutlined />, onClick: () => { logout(); navigate('/login') } },
   ]
 
   return (
@@ -154,7 +154,7 @@ export default function MainLayout() {
             />
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Button type="text" size="large" icon={<UserAvatar username={user?.username} avatarUrl={user?.avatar_url} size={28} />} style={{ color: 'rgba(255,255,255,0.85)' }}>
-                {user?.username || 'User'}
+                {user?.username || 'Người dùng'}
               </Button>
             </Dropdown>
           </div>

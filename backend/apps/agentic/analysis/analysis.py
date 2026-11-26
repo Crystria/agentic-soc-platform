@@ -92,6 +92,7 @@ class CaseAnalysisRunner:
             generated_at=timezone.now().isoformat(),
             knowledge_keywords=knowledge_context.keywords,
             knowledge_records=knowledge_context.records,
+            knowledge_retrieval=knowledge_context.retrieval_meta,
             report=report,
         )
 

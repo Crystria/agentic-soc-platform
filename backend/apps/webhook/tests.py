@@ -15,6 +15,7 @@ from apps.webhook.service import (
     handle_kibana_webhook,
     handle_splunk_webhook,
     handle_wazuh_webhook,
+    ingest_elastic_security_alert,
 )
 
 
@@ -132,6 +133,64 @@ class WebhookServiceTests(TestCase):
         self.assertEqual(redis_client.messages[0]["stream"], "WAZUH-ALERTS")
         self.assertEqual(redis_client.messages[0]["data"]["rule"]["id"], "5710")
 
+    def test_handle_wazuh_webhook_direct_ingest_creates_case_alert_artifacts_and_job(self):
+        from apps.agentic.models import CaseAnalysisJob
+        from apps.alerts.models import Alert, AlertPolicyType
+        from apps.cases.models import Case
+
+        payload = {
+            "timestamp": "2026-11-11T05:01:45.000+0000",
+            "rule": {
+                "level": 14,
+                "description": "Shadow copy deletion using vssadmin.exe detected",
+                "id": "92015",
+                "groups": ["windows", "sysmon", "ransomware"],
+                "mitre": {
+                    "id": ["T1490"],
+                    "tactic": ["Impact"],
+                    "technique": ["Inhibit System Recovery"],
+                },
+            },
+            "agent": {"id": "003", "name": "win-fileserver01", "ip": "10.0.1.5"},
+            "data": {
+                "win": {
+                    "eventdata": {
+                        "image": "C:\\Windows\\System32\\vssadmin.exe",
+                        "commandLine": "vssadmin.exe delete shadows /all /quiet",
+                        "targetUserName": "SYSTEM",
+                    }
+                }
+            },
+            "full_log": "Sysmon Event 1: vssadmin.exe executed.",
+        }
+
+        result = handle_wazuh_webhook(payload, redis_client=FakeRedisClient(), direct_ingest=True)
+
+        self.assertEqual(result.stream, "WAZUH-ALERTS")
+        self.assertEqual(result.sent, 1)
+        self.assertEqual(Case.objects.count(), 1)
+        self.assertEqual(Alert.objects.count(), 1)
+        self.assertEqual(CaseAnalysisJob.objects.count(), 1)
+        alert = Alert.objects.first()
+        self.assertEqual(alert.policy_type, AlertPolicyType.OTHER)
+        self.assertEqual(alert.tactic, "Impact")
+        self.assertEqual(alert.artifacts.count(), 5)
+
+    def test_handle_wazuh_webhook_direct_ingest_handles_missing_mitre_tactic(self):
+        from apps.alerts.models import Alert
+
+        payload = {
+            "timestamp": "2026-11-11T12:00:00.000+0000",
+            "rule": {"id": "5710", "level": 3, "description": "Minor event without MITRE"},
+            "agent": {"name": "ubuntu-lab", "ip": "192.168.1.50"},
+            "data": {},
+        }
+
+        result = handle_wazuh_webhook(payload, redis_client=FakeRedisClient(), direct_ingest=True)
+
+        self.assertEqual(result.sent, 1)
+        self.assertEqual(Alert.objects.first().tactic, "")
+
     def test_handle_kibana_webhook_skips_empty_sources(self):
         redis_client = FakeRedisClient()
 
@@ -174,6 +233,101 @@ class ELKActionProcessorTests(TestCase):
         self.assertEqual(result.actions, 1)
         self.assertEqual(result.skipped, 1)
         self.assertEqual(len(elk_client.searches), 1)
+
+    def test_process_action_forwards_elastic_security_alert_to_elastic_stream(self):
+        fake_redis = FakeRedisClient()
+        processor = ELKActionProcessor(elk_client=FakeElkClient(), interval_seconds=60)
+        elastic_alert_doc = {
+            "@timestamp": "2026-11-26T04:15:00Z",
+            "kibana": {
+                "alert": {
+                    "rule": {"name": "Suspicious PowerShell Execution", "rule_id": "ps-001"},
+                    "severity": "high",
+                    "risk_score": 73,
+                    "reason": "powershell.exe executed encoded command",
+                }
+            },
+            "host": {"name": "WIN-WORKSTATION", "ip": ["192.168.1.25"]},
+            "user": {"name": "analyst"},
+        }
+
+        with patch("apps.webhook.service.RedisStreamClient", return_value=fake_redis):
+            sent, skipped = processor.process_action(elastic_alert_doc)
+
+        self.assertEqual(sent, 1)
+        self.assertEqual(skipped, 0)
+        self.assertEqual(len(fake_redis.messages), 1)
+        self.assertEqual(fake_redis.messages[0]["stream"], "ELASTIC-SECURITY-ALERTS")
+        self.assertEqual(fake_redis.messages[0]["data"]["host"]["name"], "WIN-WORKSTATION")
+
+
+class ElasticSecurityIngestTests(TestCase):
+    def test_ingest_elastic_security_alert_creates_case_alert_artifacts_and_job(self):
+        from apps.agentic.models import CaseAnalysisJob
+        from apps.alerts.models import Alert
+        from apps.cases.models import Case
+
+        raw_alert = {
+            "@timestamp": "2026-11-26T04:20:00Z",
+            "event": {"module": "endpoint", "dataset": "endpoint.events.process"},
+            "kibana": {
+                "alert": {
+                    "uuid": "elastic-alert-uuid-001",
+                    "rule": {
+                        "name": "Suspicious PowerShell Download Cradle",
+                        "rule_id": "elastic-ps-cradle",
+                        "tags": ["Windows", "Execution"],
+                        "threat": [
+                            {
+                                "framework": "MITRE ATT&CK",
+                                "tactic": {"name": "Execution"},
+                                "technique": [{"id": "T1059.001", "name": "PowerShell"}],
+                            }
+                        ],
+                    },
+                    "severity": "high",
+                    "risk_score": 78,
+                    "reason": "powershell.exe spawned by cmd.exe with network download",
+                }
+            },
+            "host": {"name": "WIN11-SOC", "ip": ["192.168.1.10"]},
+            "user": {"name": "anhquan"},
+            "source": {"ip": "203.0.113.45"},
+            "process": {
+                "name": "powershell.exe",
+                "command_line": "powershell.exe -NoP -W Hidden -c IEX (...)",
+                "parent": {"name": "cmd.exe"},
+            },
+            "file": {"path": "C:\\Temp\\stage.ps1", "hash": {"sha256": "abc123def456"}},
+            "url": {"full": "https://malicious.example.invalid/stage.ps1"},
+        }
+
+        alert = ingest_elastic_security_alert(raw_alert, schedule_analysis=True)
+
+        self.assertEqual(Case.objects.count(), 1)
+        self.assertEqual(Alert.objects.count(), 1)
+        self.assertEqual(CaseAnalysisJob.objects.count(), 1)
+        self.assertEqual(alert.product_name, "Elastic Security")
+        self.assertEqual(alert.severity, "High")
+        self.assertEqual(alert.tactic, "Execution")
+        self.assertEqual(alert.technique, "T1059.001 - PowerShell")
+        self.assertGreaterEqual(alert.artifacts.count(), 8)
+
+    def test_elastic_security_module_and_siem_yaml_registry_load(self):
+        from custom.modules.elastic_security_alert import Module
+        from integrations.siem.registry import reload_registry, scan_registry_configs
+
+        module = Module()
+        self.assertEqual(module.STREAM_NAME, "ELASTIC-SECURITY-ALERTS")
+
+        reload_registry()
+        indices, errors = scan_registry_configs()
+        self.assertEqual(errors, [])
+        by_name = {item["name"]: item for item in indices}
+        self.assertIn("logs-*", by_name)
+        self.assertIn(".alerts-security.alerts-*", by_name)
+        self.assertEqual(by_name["logs-*"]["backend"], "ELK")
+        self.assertEqual(by_name[".alerts-security.alerts-*"]["backend"], "ELK")
 
 
 class WebhookAPITests(SimpleTestCase):

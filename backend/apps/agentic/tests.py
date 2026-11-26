@@ -126,6 +126,8 @@ class AgentMonitorApiTests(TestCase):
         self.assertEqual(overview_resp.status_code, 200)
         self.assertEqual(overview_resp.data["queue"]["last_24h"]["total_tokens"], 620)
         self.assertEqual(overview_resp.data["rag"]["top_keywords"][0]["keyword"], "ssh")
+        self.assertIn(overview_resp.data["rag"]["mode"], {"hybrid", "lexical"})
+        self.assertIn("indexed_knowledge", overview_resp.data["rag"])
 
         with self.assertRaises(ValueError):
             cancel_case_analysis_job(completed)

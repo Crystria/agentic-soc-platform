@@ -25,6 +25,18 @@ class Knowledge(BaseModel):
         related_name="extracted_knowledge",
         help_text="Case this Knowledge was extracted from; empty for manual Knowledge (知识提取来源 Case, 手动知识为空)",
     )
+    embedding_vector = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Dense embedding vector stored for hybrid semantic RAG fallback and backfill",
+    )
+    embedding_model = models.CharField(max_length=200, blank=True, default="")
+    embedding_dimensions = models.PositiveIntegerField(default=0)
+    embedding_updated_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def has_embedding(self):
+        return bool(self.embedding_dimensions and self.embedding_vector)
 
     class Meta:
         db_table = "knowledge"

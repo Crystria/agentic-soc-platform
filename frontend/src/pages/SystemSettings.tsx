@@ -20,17 +20,17 @@ export default function SystemSettings() {
         items={[
           {
             key: 'users',
-            label: <IconTabLabel icon={UsersRound}>User Management</IconTabLabel>,
+            label: <IconTabLabel icon={UsersRound}>Quản lý người dùng</IconTabLabel>,
             children: <UserManagement />,
           },
           {
             key: 'llm-providers',
-            label: <IconTabLabel icon={Bot}>LLM Providers</IconTabLabel>,
+            label: <IconTabLabel icon={Bot}>Nhà cung cấp LLM</IconTabLabel>,
             children: <LLMProviderSettings />,
           },
           {
             key: 'threat-intelligence',
-            label: <IconTabLabel icon={Radar}>Threat Intelligence</IconTabLabel>,
+            label: <IconTabLabel icon={Radar}>Tình báo mối đe dọa</IconTabLabel>,
             children: <ThreatIntelligenceSettings />,
           },
           {
@@ -45,27 +45,27 @@ export default function SystemSettings() {
           },
           {
             key: 'runtime',
-            label: <IconTabLabel icon={SlidersHorizontal}>Runtime</IconTabLabel>,
+            label: <IconTabLabel icon={SlidersHorizontal}>Cấu hình Runtime</IconTabLabel>,
             children: <RuntimeSettings />,
           },
           {
             key: 'workers',
-            label: <IconTabLabel icon={Activity}>Workers</IconTabLabel>,
+            label: <IconTabLabel icon={Activity}>Worker hệ thống</IconTabLabel>,
             children: <WorkersSettings />,
           },
           {
             key: 'ai-quality',
-            label: <IconTabLabel icon={Scale}>AI Quality</IconTabLabel>,
+            label: <IconTabLabel icon={Scale}>Chất lượng AI</IconTabLabel>,
             children: <AIQualitySettings />,
           },
           {
             key: 'tag-preview',
-            label: <IconTabLabel icon={Tags}>Tags</IconTabLabel>,
+            label: <IconTabLabel icon={Tags}>Thẻ</IconTabLabel>,
             children: <TagPreviewSettings />,
           },
           {
             key: 'audit-logs',
-            label: <IconTabLabel icon={FileSearch}>Audit Logs</IconTabLabel>,
+            label: <IconTabLabel icon={FileSearch}>Nhật ký hệ thống</IconTabLabel>,
             children: <AuditLogsSettings />,
           },
         ]}

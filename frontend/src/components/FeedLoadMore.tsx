@@ -8,7 +8,7 @@ interface FeedLoadMoreProps {
   onClick: () => void
 }
 
-export default function FeedLoadMore({label = 'Load more', loading = false, onClick}: FeedLoadMoreProps) {
+export default function FeedLoadMore({label = 'Tải thêm', loading = false, onClick}: FeedLoadMoreProps) {
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0 2px'}}>
       <span style={{height: 1, flex: 1, background: 'rgba(255,255,255,0.08)'}}/>

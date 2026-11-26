@@ -50,7 +50,7 @@ export default function RelatedEnrichmentsTable({
         onOpenResource={onOpenResource}
         refreshToken={refreshKey}
         actions={(
-          <Tooltip title="Add Enrichment">
+          <Tooltip title="Thêm làm giàu dữ liệu">
             <Button
               icon={<PlusOutlined />}
               disabled={!targetId}

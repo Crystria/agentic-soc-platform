@@ -25,7 +25,7 @@ interface KnowledgeCreateValues {
 function apiErrorMessage(error: unknown) {
   const response = error as { response?: { data?: unknown } }
   if (response.response?.data) return JSON.stringify(response.response.data)
-  return 'Failed to create knowledge'
+  return 'Tạo tri thức thất bại'
 }
 
 const compactFormItemStyle = { marginBottom: 0 }
@@ -82,7 +82,7 @@ export default function KnowledgeCreateModal({ open, onCancel, onCreated }: Know
         tags: values.tags || [],
         body,
       })
-      message.success('Knowledge created')
+      message.success('Đã tạo tri thức')
       onCreated()
     } catch (error) {
       if ((error as { errorFields?: unknown }).errorFields) return
@@ -97,12 +97,12 @@ export default function KnowledgeCreateModal({ open, onCancel, onCreated }: Know
       title={(
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
           <BookOutlined style={{ color: token.colorPrimary }} />
-          <span>Add Knowledge</span>
+          <span>Thêm tri thức</span>
         </span>
       )}
       open={open}
       width="calc(100vw - 96px)"
-      okText="Create"
+      okText="Tạo"
       confirmLoading={saving}
       onOk={handleOk}
       onCancel={saving ? undefined : onCancel}
@@ -125,10 +125,10 @@ export default function KnowledgeCreateModal({ open, onCancel, onCreated }: Know
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(220px, 280px) minmax(220px, 360px)', gap: 12 }}>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Title</div>
+            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Tiêu đề</div>
             <Form.Item
               name="title"
-              rules={[{ required: true, whitespace: true, message: 'Title is required' }]}
+              rules={[{ required: true, whitespace: true, message: 'Tiêu đề là bắt buộc' }]}
               style={compactFormItemStyle}
             >
               <Input
@@ -139,19 +139,19 @@ export default function KnowledgeCreateModal({ open, onCancel, onCreated }: Know
             </Form.Item>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Expires At</div>
+            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Hết hạn lúc</div>
             <Form.Item name="expires_at" style={compactFormItemStyle}>
               <DatePicker
                 showTime
                 allowClear
                 variant="underlined"
-                placeholder="Leave empty to never expire"
+                placeholder="Để trống nếu không hết hạn"
                 style={fieldControlStyle}
               />
             </Form.Item>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Tags</div>
+            <div style={{ ...typography.fieldLabel, color: token.colorText, marginBottom: 8 }}>Thẻ</div>
             <Form.Item name="tags" style={compactFormItemStyle}>
               <Select
                 mode="tags"
@@ -166,7 +166,7 @@ export default function KnowledgeCreateModal({ open, onCancel, onCreated }: Know
             </Form.Item>
           </div>
         </div>
-        <Typography.Text style={{ ...typography.fieldLabel, color: token.colorText }}>Body</Typography.Text>
+        <Typography.Text style={{ ...typography.fieldLabel, color: token.colorText }}>Nội dung</Typography.Text>
         <div style={{ marginTop: 8, width: '100%', minWidth: 0, minHeight: 0, flex: 1 }}>
           <InlineMarkdownEditor
             value={body}

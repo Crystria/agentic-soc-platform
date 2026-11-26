@@ -30,21 +30,34 @@ import {
   type DashboardWindow,
 } from '../api/dashboard'
 import {severityColors} from '../theme'
+import {DISPLAY_DATE_LOCALE, localizeChoiceLabel, localizeWithMap, SEVERITY_LABELS} from '../utils/i18n'
 import './Dashboard.css'
 
 const {Text} = Typography
 
 const windowOptions: { label: string; value: DashboardWindow }[] = [
-  { label: '24h', value: '24h' },
-  { label: '7d', value: '7d' },
-  { label: '30d', value: '30d' },
+  { label: '24 giờ', value: '24h' },
+  { label: '7 ngày', value: '7d' },
+  { label: '30 ngày', value: '30d' },
 ]
+const windowLabels: Record<DashboardWindow, string> = {
+  '24h': '24 GIỜ',
+  '7d': '7 NGÀY',
+  '30d': '30 NGÀY',
+}
 const chartTheme = 'classicDark' as const
 const lucideIconProps = { size: 16, strokeWidth: 2 }
 const riskBands = ['STABLE', 'GUARDED', 'ELEVATED', 'CRITICAL'] as const
 
 type RiskBand = typeof riskBands[number]
 type MetricTone = 'critical' | 'warning' | 'signal' | 'success' | 'intel' | 'neutral'
+
+const riskBandLabels: Record<RiskBand, string> = {
+  STABLE: 'ỔN ĐỊNH',
+  GUARDED: 'CẢNH GIÁC',
+  ELEVATED: 'TĂNG CAO',
+  CRITICAL: 'NGHIÊM TRỌNG',
+}
 
 interface RiskPostureLevel {
   band: RiskBand
@@ -58,12 +71,12 @@ function hasValues(data: DashboardLabelValue[]) {
 
 function formatNumber(value: number | null | undefined) {
   if (value === null || value === undefined) return 'N/A'
-  return value.toLocaleString()
+  return value.toLocaleString(DISPLAY_DATE_LOCALE)
 }
 
 function formatPercent(value: number | null | undefined) {
   if (value === null || value === undefined) return 'N/A'
-  return `${value.toLocaleString()}%`
+  return `${value.toLocaleString(DISPLAY_DATE_LOCALE)}%`
 }
 
 function formatDuration(seconds: number | null | undefined) {
@@ -76,10 +89,10 @@ function formatDuration(seconds: number | null | undefined) {
   const minutes = Math.floor(remaining / 60)
   const restSeconds = remaining % 60
   const parts = [
-    days ? `${days}d` : '',
-    hours ? `${hours}h` : '',
-    minutes ? `${minutes}m` : '',
-    !days && !hours && !minutes ? `${restSeconds}s` : '',
+    days ? `${days} ngày` : '',
+    hours ? `${hours} giờ` : '',
+    minutes ? `${minutes} phút` : '',
+    !days && !hours && !minutes ? `${restSeconds} giây` : '',
   ].filter(Boolean)
   return parts.slice(0, 2).join(' ')
 }
@@ -91,30 +104,30 @@ function severityColor(severity: string) {
 function getRiskPostureLevel(value: number | null | undefined): RiskPostureLevel {
   const score = value ?? 0
   if (score >= 80) {
-    return { band: 'CRITICAL', color: '#ff4d4f', summary: 'Critical pressure requires command attention.' }
+    return { band: 'CRITICAL', color: '#ff4d4f', summary: 'Áp lực rủi ro nghiêm trọng, cần xử lý khẩn cấp.' }
   }
   if (score >= 55) {
-    return { band: 'ELEVATED', color: '#fa8c16', summary: 'Elevated risk pressure across active signals.' }
+    return { band: 'ELEVATED', color: '#fa8c16', summary: 'Áp lực rủi ro tăng cao trên các tín hiệu hoạt động.' }
   }
   if (score >= 35) {
-    return { band: 'GUARDED', color: '#fadb14', summary: 'Guarded posture with monitored signal pressure.' }
+    return { band: 'GUARDED', color: '#fadb14', summary: 'Mức cảnh giác với áp lực tín hiệu đang được theo dõi.' }
   }
-  return { band: 'STABLE', color: '#52c41a', summary: 'Stable posture with no dominant pressure.' }
+  return { band: 'STABLE', color: '#52c41a', summary: 'Trạng thái ổn định, chưa có áp lực nổi bật.' }
 }
 
 function commandNarrative(data: DashboardOverview | null) {
-  if (!data) return 'Waiting for telemetry handshake.'
+  if (!data) return 'Đang chờ đồng bộ dữ liệu giám sát.'
   const {summary} = data
   const posture = getRiskPostureLevel(summary.active_risk_index)
   const leadSignal = summary.open_critical_cases > 0
-    ? `${formatNumber(summary.open_critical_cases)} critical case${summary.open_critical_cases === 1 ? '' : 's'} open`
+    ? `${formatNumber(summary.open_critical_cases)} vụ việc nghiêm trọng đang mở`
     : summary.critical_high_alerts > 0
-      ? `${formatNumber(summary.critical_high_alerts)} critical/high alert${summary.critical_high_alerts === 1 ? '' : 's'} observed`
-      : 'critical signal quiet'
+      ? `${formatNumber(summary.critical_high_alerts)} cảnh báo cao/nghiêm trọng`
+      : 'tín hiệu nghiêm trọng ổn định'
   const automation = summary.failed_playbooks > 0
-    ? `${formatNumber(summary.failed_playbooks)} failed playbook${summary.failed_playbooks === 1 ? '' : 's'}`
-    : `${formatPercent(summary.automation_success_rate)} automation success`
-  return `${posture.band} posture · ${leadSignal} · ${automation}`
+    ? `${formatNumber(summary.failed_playbooks)} playbook thất bại`
+    : `tự động hóa thành công ${formatPercent(summary.automation_success_rate)}`
+  return `Mức ${riskBandLabels[posture.band]} · ${leadSignal} · ${automation}`
 }
 
 function automationTone(summary: DashboardOverview['summary'] | undefined): MetricTone {
@@ -125,8 +138,8 @@ function automationTone(summary: DashboardOverview['summary'] | undefined): Metr
 function eventTimeParts(timestamp: string) {
   const value = new Date(timestamp)
   return {
-    time: value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    date: value.toLocaleDateString([], { month: 'short', day: '2-digit' }),
+    time: value.toLocaleTimeString(DISPLAY_DATE_LOCALE, { hour: '2-digit', minute: '2-digit' }),
+    date: value.toLocaleDateString(DISPLAY_DATE_LOCALE, { month: '2-digit', day: '2-digit' }),
   }
 }
 
@@ -166,18 +179,18 @@ function eventAccentColor(item: DashboardHighlight) {
 }
 
 function generatedAtLabel(value: string | undefined) {
-  if (!value) return 'Waiting for telemetry'
-  return `Generated ${new Date(value).toLocaleTimeString()}`
+  if (!value) return 'Đang chờ dữ liệu'
+  return `Cập nhật lúc ${new Date(value).toLocaleTimeString(DISPLAY_DATE_LOCALE)}`
 }
 
 function cacheAgeLabel(seconds: number) {
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
-  return `${Math.floor(seconds / 86400)}d`
+  if (seconds < 60) return `${seconds} giây`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} phút`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ`
+  return `${Math.floor(seconds / 86400)} ngày`
 }
 
-function CyberEmpty({ title = 'Signal Quiet', description = 'No telemetry in this window.' }: { title?: string; description?: string }) {
+function CyberEmpty({ title = 'Chưa có tín hiệu', description = 'Không có dữ liệu trong khoảng thời gian này.' }: { title?: string; description?: string }) {
   return (
     <div className="dashboard-empty">
       <RadioTower size={22} strokeWidth={1.8} />
@@ -248,9 +261,9 @@ function MeanTimeCard({ title, metric, tooltip, accent }: { title: string; metri
       value={formatDuration(metric.seconds)}
       tooltip={tooltip}
       accent={accent}
-      category="Response Clock"
+      category="Thời gian phản hồi"
       tone="signal"
-      sub={`${metric.sample_count} valid sample${metric.sample_count === 1 ? '' : 's'}`}
+      sub={`${metric.sample_count} mẫu hợp lệ`}
     />
   )
 }
@@ -286,9 +299,9 @@ function RiskPostureCard({ data, loading }: { data: DashboardOverview | null; lo
   return (
     <CyberCard
       className="dashboard-risk-card"
-      title={<><ShieldAlert {...lucideIconProps} /> Active Risk Index</>}
+      title={<><ShieldAlert {...lucideIconProps} /> Chỉ số rủi ro hiện tại</>}
       extra={(
-        <Tooltip title="Weighted risk-pressure index based on open cases, active alerts, failed playbooks, and severity weights.">
+        <Tooltip title="Chỉ số áp lực rủi ro có trọng số dựa trên vụ việc đang mở, cảnh báo hoạt động, playbook thất bại và mức độ nghiêm trọng.">
           <InfoCircleOutlined />
         </Tooltip>
       )}
@@ -303,19 +316,19 @@ function RiskPostureCard({ data, loading }: { data: DashboardOverview | null; lo
           <div className="dashboard-risk-score">
             <div className="dashboard-risk-value-row">
               <div className="dashboard-risk-value">{riskIndex}</div>
-              <span className="dashboard-risk-level">{riskLevel.band}</span>
+              <span className="dashboard-risk-level">{riskBandLabels[riskLevel.band]}</span>
             </div>
-            <div className="dashboard-risk-label">weighted pressure / 100</div>
+            <div className="dashboard-risk-label">áp lực có trọng số / 100</div>
             <div className="dashboard-risk-summary">{riskLevel.summary}</div>
             <div className="dashboard-risk-band">
               {riskBands.map((band) => (
-                <span className={band === riskLevel.band ? 'active' : ''} key={band}>{band}</span>
+                <span className={band === riskLevel.band ? 'active' : ''} key={band}>{riskBandLabels[band]}</span>
               ))}
             </div>
             <div className="dashboard-risk-meta">
-              <div className="dashboard-chip"><span>Open cases</span><span>{formatNumber(data?.summary.open_cases)}</span></div>
-              <div className="dashboard-chip"><span>Critical cases</span><span>{formatNumber(data?.summary.open_critical_cases)}</span></div>
-              <div className="dashboard-chip"><span>Critical/High alerts</span><span>{formatNumber(data?.summary.critical_high_alerts)}</span></div>
+              <div className="dashboard-chip"><span>Vụ việc đang mở</span><span>{formatNumber(data?.summary.open_cases)}</span></div>
+              <div className="dashboard-chip"><span>Vụ việc nghiêm trọng</span><span>{formatNumber(data?.summary.open_critical_cases)}</span></div>
+              <div className="dashboard-chip"><span>Cảnh báo Cao/Nghiêm trọng</span><span>{formatNumber(data?.summary.critical_high_alerts)}</span></div>
             </div>
           </div>
         </div>
@@ -380,7 +393,7 @@ function SeverityPressure({ data }: { data: DashboardLabelValue[] }) {
             <div className="dashboard-severity-header">
               <span className="dashboard-severity-name">
                 <span className="dashboard-severity-dot" style={{ background: severityColor(item.label) }} />
-                {item.label}
+                {localizeChoiceLabel(item.label)}
               </span>
               <span className="dashboard-severity-value">{item.value}</span>
             </div>
@@ -390,7 +403,7 @@ function SeverityPressure({ data }: { data: DashboardLabelValue[] }) {
               strokeColor={severityColor(item.label)}
               railColor="rgba(255,255,255,0.08)"
             />
-            <div className="dashboard-severity-share">{share}% of severity telemetry</div>
+            <div className="dashboard-severity-share">{share}% phân bổ mức độ</div>
           </div>
         )
       })}
@@ -413,11 +426,11 @@ function CaseWorkloadState({ data }: { data: DashboardLabelValue[] }) {
         return (
           <div className="dashboard-workload-row" key={item.label}>
             <div className="dashboard-workload-head">
-              <span>{item.label}</span>
+              <span>{localizeChoiceLabel(item.label)}</span>
               <strong>{item.value}</strong>
             </div>
             <Progress percent={percent} showInfo={false} strokeColor={statusColor(item.label)} railColor="rgba(255,255,255,0.08)" />
-            <span className="dashboard-workload-share">{share}% of workload</span>
+            <span className="dashboard-workload-share">{share}% khối lượng xử lý</span>
           </div>
         )
       })}
@@ -442,15 +455,15 @@ function ProductCategorySignals({ data }: { data: DashboardLabelValue[] }) {
             <span className="dashboard-signal-index">{String(index + 1).padStart(2, '0')}</span>
             <div className="dashboard-signal-main">
               <div className="dashboard-signal-head">
-                <span>{item.label}</span>
+                <span>{localizeChoiceLabel(item.label)}</span>
                 <strong>{item.value}</strong>
               </div>
               <div className="dashboard-signal-track">
                 <span style={{ width: `${percent}%`, background: signalColor(index) }} />
               </div>
               <div className="dashboard-signal-meta">
-                <span>{share}% of product telemetry</span>
-                <span>{percent}% relative pressure</span>
+                <span>{share}% tín hiệu sản phẩm</span>
+                <span>{percent}% áp lực tương đối</span>
               </div>
             </div>
           </div>
@@ -466,7 +479,7 @@ function ThreatKeywordCloud({ data }: { data: DashboardKeyword[] }) {
   const minValue = Math.min(...values)
   const maxValue = Math.max(...values)
 
-  if (visibleData.length === 0) return <CyberEmpty title="No Threat Keywords" />
+  if (visibleData.length === 0) return <CyberEmpty title="Chưa có từ khóa đe dọa" />
 
   return (
     <div className="dashboard-keyword-cloud">
@@ -495,7 +508,7 @@ function ThreatKeywordCloud({ data }: { data: DashboardKeyword[] }) {
 
 function SecurityDomainRadar({ data }: { data: DashboardLabelValue[] }) {
   const visibleData = data.filter((item) => item.value > 0)
-  if (!hasValues(visibleData)) return <CyberEmpty title="No Domain Signals" />
+  if (!hasValues(visibleData)) return <CyberEmpty title="Chưa có tín hiệu tên miền" />
   const radarData = visibleData.map((item) => ({
     ...item,
     fullLabel: item.label,
@@ -561,17 +574,17 @@ function MitreSeverityMatrix({ data }: { data: DashboardMitreSeverityCell[] }) {
   const maxValue = Math.max(...visibleCells.map((item) => item.value), 0)
   const cellMap = new Map(data.map((item) => [`${item.severity}:${item.tactic}`, item.value]))
 
-  if (tactics.length === 0) return <CyberEmpty title="No MITRE Tactics" />
+  if (tactics.length === 0) return <CyberEmpty title="Chưa có chiến thuật MITRE" />
 
   return (
     <div className="dashboard-mitre-matrix">
       <div className="dashboard-mitre-head" style={{ gridTemplateColumns: `72px repeat(${tactics.length}, minmax(0, 1fr))` }}>
-        <span>Severity</span>
+        <span>Mức độ</span>
         {tactics.map((tactic) => <span key={tactic} title={tactic}>{tactic}</span>)}
       </div>
       {severities.map((severity) => (
         <div className="dashboard-mitre-row" key={severity} style={{ gridTemplateColumns: `72px repeat(${tactics.length}, minmax(0, 1fr))` }}>
-          <span className="dashboard-mitre-severity" title={severity}>{severity}</span>
+          <span className="dashboard-mitre-severity" title={localizeWithMap(severity, SEVERITY_LABELS)}>{localizeWithMap(severity, SEVERITY_LABELS)}</span>
           {tactics.map((tactic) => {
             const value = cellMap.get(`${severity}:${tactic}`) || 0
             const intensity = maxValue === 0 ? 0 : value / maxValue
@@ -580,7 +593,7 @@ function MitreSeverityMatrix({ data }: { data: DashboardMitreSeverityCell[] }) {
               <span
                 className="dashboard-mitre-cell"
                 key={`${severity}-${tactic}`}
-                title={`${severity} / ${tactic}: ${value}`}
+                title={`${localizeWithMap(severity, SEVERITY_LABELS)} / ${tactic}: ${value}`}
                 style={{
                   background: value > 0 ? `linear-gradient(135deg, ${color}${Math.round(34 + intensity * 108).toString(16).padStart(2, '0')}, rgba(255,255,255,0.04))` : 'rgba(255,255,255,0.035)',
                   borderColor: value > 0 ? `${color}66` : 'rgba(255,255,255,0.06)',
@@ -600,7 +613,7 @@ function MitreSeverityMatrix({ data }: { data: DashboardMitreSeverityCell[] }) {
 
 function AutomationPanel({ data }: { data: DashboardLabelValue[] }) {
   const total = data.reduce((sum, item) => sum + item.value, 0)
-  if (total === 0) return <CyberEmpty title="No Playbook Telemetry" description="No playbooks executed in this window." />
+  if (total === 0) return <CyberEmpty title="Chưa có dữ liệu Playbook" description="Chưa có playbook nào chạy trong khoảng thời gian này." />
 
   return (
     <div className="dashboard-mini-list">
@@ -610,7 +623,7 @@ function AutomationPanel({ data }: { data: DashboardLabelValue[] }) {
         return (
           <div className="dashboard-progress-row" key={item.label}>
             <div className="dashboard-progress-header">
-              <span>{item.label}</span>
+              <span>{localizeChoiceLabel(item.label)}</span>
               <strong>{item.value}</strong>
             </div>
             <Progress percent={percent} showInfo={false} strokeColor={color} railColor="rgba(255,255,255,0.08)" />
@@ -623,8 +636,8 @@ function AutomationPanel({ data }: { data: DashboardLabelValue[] }) {
 
 function CoveragePanel({ data }: { data: DashboardOverview }) {
   const rows = [
-    { label: 'Enrichment coverage', value: data.coverage.enrichment_coverage, color: '#13c2c2' },
-    { label: 'Playbook coverage', value: data.coverage.playbook_coverage, color: '#1677ff' },
+    { label: 'Độ phủ làm giàu dữ liệu', value: data.coverage.enrichment_coverage, color: '#13c2c2' },
+    { label: 'Độ phủ Playbook', value: data.coverage.playbook_coverage, color: '#1677ff' },
   ]
 
   return (
@@ -638,28 +651,28 @@ function CoveragePanel({ data }: { data: DashboardOverview }) {
           <Progress percent={row.value || 0} showInfo={false} strokeColor={row.color} railColor="rgba(255,255,255,0.08)" />
         </div>
       ))}
-      <div className="dashboard-chip"><span>Total cases in scope</span><span>{formatNumber(data.summary.total_cases)}</span></div>
-      <div className="dashboard-chip"><span>Distinct artifacts observed</span><span>{formatNumber(data.summary.total_artifacts)}</span></div>
-      <div className="dashboard-chip"><span>Knowledge records</span><span>{formatNumber(data.summary.total_knowledge)}</span></div>
-      <div className="dashboard-chip"><span>Enrichments produced</span><span>{formatNumber(data.summary.total_enrichments)}</span></div>
+      <div className="dashboard-chip"><span>Tổng số vụ việc</span><span>{formatNumber(data.summary.total_cases)}</span></div>
+      <div className="dashboard-chip"><span>Thực thể phân biệt quan sát được</span><span>{formatNumber(data.summary.total_artifacts)}</span></div>
+      <div className="dashboard-chip"><span>Bản ghi tri thức</span><span>{formatNumber(data.summary.total_knowledge)}</span></div>
+      <div className="dashboard-chip"><span>Làm giàu đã tạo</span><span>{formatNumber(data.summary.total_enrichments)}</span></div>
     </div>
   )
 }
 
 function RiskArtifacts({ artifacts }: { artifacts: DashboardRiskArtifact[] }) {
-  if (artifacts.length === 0) return <CyberEmpty title="No Risky Entities" description="No linked artifacts with alert pressure in this window." />
+  if (artifacts.length === 0) return <CyberEmpty title="Chưa có thực thể rủi ro" description="Không có thực thể liên kết cảnh báo nào trong khoảng thời gian này." />
 
   return (
     <div className="dashboard-artifact-grid">
       {artifacts.slice(0, 6).map((artifact) => (
         <div className="dashboard-artifact-card" key={artifact.id}>
-          <div className="dashboard-artifact-value" title={artifact.value}>{artifact.value || 'Unknown artifact'}</div>
+          <div className="dashboard-artifact-value" title={artifact.value}>{artifact.value || 'Thực thể không xác định'}</div>
           <div className="dashboard-artifact-meta">
-            <Tag color="blue">{artifact.type || 'Unknown'}</Tag>
-            <Tag color="purple">{artifact.role || 'Unknown'}</Tag>
+            <Tag color="blue">{localizeChoiceLabel(artifact.type || 'Unknown')}</Tag>
+            <Tag color="purple">{localizeChoiceLabel(artifact.role || 'Unknown')}</Tag>
           </div>
-          <div className="dashboard-chip"><span>Risk score</span><span>{artifact.risk_score}</span></div>
-          <div className="dashboard-chip"><span>Linked alerts</span><span>{artifact.alert_count}</span></div>
+          <div className="dashboard-chip"><span>Điểm rủi ro</span><span>{artifact.risk_score}</span></div>
+          <div className="dashboard-chip"><span>Cảnh báo liên kết</span><span>{artifact.alert_count}</span></div>
         </div>
       ))}
     </div>
@@ -667,7 +680,7 @@ function RiskArtifacts({ artifacts }: { artifacts: DashboardRiskArtifact[] }) {
 }
 
 function HighlightStream({ highlights }: { highlights: DashboardHighlight[] }) {
-  if (highlights.length === 0) return <CyberEmpty title="No High-Severity Events" description="Critical and high signals are quiet in this window." />
+  if (highlights.length === 0) return <CyberEmpty title="Chưa có sự kiện nghiêm trọng" description="Không ghi nhận tín hiệu cao hoặc nghiêm trọng trong khoảng thời gian này." />
 
   return (
     <div className="dashboard-event-stream-container">
@@ -675,6 +688,7 @@ function HighlightStream({ highlights }: { highlights: DashboardHighlight[] }) {
         {highlights.map((item) => {
           const timestamp = eventTimeParts(item.timestamp)
           const eventAccent = eventAccentColor(item)
+          const kindLabel = ({ case: 'VỤ VIỆC', alert: 'CẢNH BÁO' } as Record<string, string>)[item.kind] || String(item.kind).toUpperCase()
           return (
             <div
               className="dashboard-event"
@@ -688,12 +702,12 @@ function HighlightStream({ highlights }: { highlights: DashboardHighlight[] }) {
               <div className="dashboard-event-body">
                 <div className="dashboard-event-title">
                   <strong title={item.title}>{item.title || item.readable_id}</strong>
-                  <Badge color={severityColor(item.severity)} text={item.severity || 'Unknown'} />
+                  <Badge color={severityColor(item.severity)} text={localizeChoiceLabel(item.severity || 'Unknown')} />
                 </div>
                 <div className="dashboard-event-meta">
-                  <span>{item.kind.toUpperCase()}</span>
+                  <span>{kindLabel}</span>
                   <span>{item.readable_id}</span>
-                  <span>{item.status || 'Unknown'}</span>
+                  <span>{localizeChoiceLabel(item.status || 'Unknown')}</span>
                   <span>{item.subtitle}</span>
                 </div>
               </div>
@@ -729,8 +743,8 @@ export default function Dashboard() {
     } catch (requestError: unknown) {
       const responseStatus = (requestError as { response?: { status?: number } }).response?.status
       setError(responseStatus === 503
-        ? 'Dashboard cache is preparing. Data will appear after the background worker completes its first refresh.'
-        : 'Telemetry link degraded. Showing the last known dashboard frame when available.')
+        ? 'Bộ nhớ đệm Tổng quan đang được khởi tạo. Dữ liệu sẽ hiển thị sau khi worker nền hoàn tất lần làm mới đầu tiên.'
+        : 'Kết nối dữ liệu giám sát bị gián đoạn. Đang hiển thị dữ liệu gần nhất nếu có.')
     } finally {
       setLoading(false)
     }
@@ -759,10 +773,10 @@ export default function Dashboard() {
         <section className="dashboard-hero compact">
           <div className="dashboard-hero-content">
             <div className="dashboard-hero-copy">
-              <div className="dashboard-eyebrow"><RadioTower size={13} /> Cyber Command Center</div>
-              <h1 className="dashboard-title">Security Posture Dashboard</h1>
+              <div className="dashboard-eyebrow"><RadioTower size={13} /> Trung tâm Điều hành An ninh mạng</div>
+              <h1 className="dashboard-title">Tổng quan Trạng thái Bảo mật</h1>
               <div className="dashboard-command-summary" style={{ '--posture-color': riskLevel.color } as CSSProperties}>
-                <span className="dashboard-command-state">{riskLevel.band}</span>
+                <span className="dashboard-command-state">{riskBandLabels[riskLevel.band]}</span>
                 <span className="dashboard-command-copy">{commandNarrative(data)}</span>
               </div>
             </div>
@@ -772,7 +786,7 @@ export default function Dashboard() {
                 <Alert
                   className="dashboard-soft-alert"
                   type="warning"
-                  title={`Dashboard data is stale. Last refresh was ${cacheAgeLabel(data.cache.age_seconds)} ago.`}
+                  title={`Dữ liệu Tổng quan đã cũ. Lần cập nhật gần nhất cách đây ${cacheAgeLabel(data.cache.age_seconds)}.`}
                   showIcon
                 />
               )}
@@ -785,7 +799,7 @@ export default function Dashboard() {
                     value={selectedWindow}
                     onChange={(value) => setSelectedWindow(value as DashboardWindow)}
                   />
-                  <Tooltip title="Refresh">
+                  <Tooltip title="Làm mới">
                     <Button className="dashboard-refresh-button" icon={<ReloadOutlined />} loading={loading} onClick={() => void loadOverview(selectedWindow)} />
                   </Tooltip>
                 </div>
@@ -793,11 +807,11 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="dashboard-command-strip">
-            <CommandSignalPill label="Risk Index" value={`${formatNumber(summary?.active_risk_index)} / 100`} color={riskLevel.color} emphasis />
-            <CommandSignalPill label="Critical Cases" value={formatNumber(summary?.open_critical_cases)} color="#ff4d4f" />
-            <CommandSignalPill label="Critical/High Alerts" value={formatNumber(summary?.critical_high_alerts)} color="#fa8c16" />
-            <CommandSignalPill label="Automation" value={formatPercent(summary?.automation_success_rate)} color={summary?.failed_playbooks ? '#ff4d4f' : '#52c41a'} />
-            <CommandSignalPill label="Scope Window" value={selectedWindow.toUpperCase()} color="#69b1ff" />
+            <CommandSignalPill label="Chỉ số rủi ro" value={`${formatNumber(summary?.active_risk_index)} / 100`} color={riskLevel.color} emphasis />
+            <CommandSignalPill label="Vụ việc nghiêm trọng" value={formatNumber(summary?.open_critical_cases)} color="#ff4d4f" />
+            <CommandSignalPill label="Cảnh báo Cao/Nghiêm trọng" value={formatNumber(summary?.critical_high_alerts)} color="#fa8c16" />
+            <CommandSignalPill label="Tự động hóa" value={formatPercent(summary?.automation_success_rate)} color={summary?.failed_playbooks ? '#ff4d4f' : '#52c41a'} />
+            <CommandSignalPill label="Khung thời gian" value={windowLabels[selectedWindow]} color="#69b1ff" />
           </div>
         </section>
 
@@ -807,49 +821,49 @@ export default function Dashboard() {
           <div className="dashboard-posture-stack">
             <div className="dashboard-grid posture-kpis compact-3">
               <MetricCard
-                title="Open Critical Cases"
+                title="Vụ việc nghiêm trọng đang mở"
                 value={formatNumber(summary?.open_critical_cases)}
                 accent="#ff4d4f"
-                category="Primary Risk"
+                category="Rủi ro chính"
                 tone="critical"
                 priority
-                sub={`${formatNumber(summary?.open_cases)} open / ${formatNumber(summary?.total_cases)} total`}
+                sub={`${formatNumber(summary?.open_cases)} đang mở / ${formatNumber(summary?.total_cases)} tổng`}
               />
               <MetricCard
-                title="Critical / High Alerts"
+                title="Cảnh báo Cao / Nghiêm trọng"
                 value={formatNumber(summary?.critical_high_alerts)}
                 accent="#fa8c16"
-                category="Primary Risk"
+                category="Rủi ro chính"
                 tone="warning"
                 priority
-                sub={`${formatNumber(summary?.total_alerts)} alerts observed`}
+                sub={`${formatNumber(summary?.total_alerts)} cảnh báo ghi nhận`}
               />
               <MetricCard
-                title="Automation Success"
+                title="Tỷ lệ tự động hóa thành công"
                 value={formatPercent(summary?.automation_success_rate)}
                 accent={summary?.failed_playbooks ? '#ff4d4f' : '#52c41a'}
-                category="Response Capacity"
+                category="Năng lực phản ứng"
                 tone={automationTone(summary)}
-                sub={`${formatNumber(summary?.running_playbooks)} running · ${formatNumber(summary?.failed_playbooks)} failed`}
+                sub={`${formatNumber(summary?.running_playbooks)} đang chạy · ${formatNumber(summary?.failed_playbooks)} thất bại`}
               />
             </div>
             <div className="dashboard-grid posture-mean-times">
               <MeanTimeCard
                 title="MTTD"
                 metric={data?.mean_times.mttd || { seconds: null, sample_count: 0 }}
-                tooltip="Mean Time To Detect: first alert seen time to case creation."
+                tooltip="MTTD (Thời gian phát hiện trung bình): từ lúc phát hiện cảnh báo đầu tiên đến khi tạo vụ việc."
                 accent="#69b1ff"
               />
               <MeanTimeCard
                 title="MTTA"
                 metric={data?.mean_times.mtta || { seconds: null, sample_count: 0 }}
-                tooltip="Mean Time To Acknowledge: case creation to acknowledgement."
+                tooltip="MTTA (Thời gian xác nhận trung bình): từ khi tạo vụ việc đến khi xác nhận tiếp nhận."
                 accent="#b37feb"
               />
               <MeanTimeCard
                 title="MTTR"
                 metric={data?.mean_times.mttr || { seconds: null, sample_count: 0 }}
-                tooltip="Mean Time To Resolve: acknowledgement to closure."
+                tooltip="MTTR (Thời gian xử lý trung bình): từ lúc xác nhận tiếp nhận đến khi đóng vụ việc."
                 accent="#52c41a"
               />
             </div>
@@ -858,13 +872,13 @@ export default function Dashboard() {
 
         {/* Incident Operations: Telemetry Trend + Real-Time Incident Stream */}
         <div className="dashboard-grid operations-main">
-          <ChartPanel title={<><ChartSpline {...lucideIconProps} /> Alert Telemetry Trend</>} className="dashboard-trend-card">
+          <ChartPanel title={<><ChartSpline {...lucideIconProps} /> Xu hướng cảnh báo</>} className="dashboard-trend-card">
             {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <AlertTrend data={data?.alert_trend || []} />}
           </ChartPanel>
           <CyberCard
-            title={<><TriangleAlert {...lucideIconProps} /> High-Severity Event Stream</>}
+            title={<><TriangleAlert {...lucideIconProps} /> Luồng sự kiện mức độ cao</>}
             className="dashboard-stream-card"
-            extra={<span className="dashboard-card-badge">{data?.recent_highlights?.length ?? 0} events</span>}
+            extra={<span className="dashboard-card-badge">{data?.recent_highlights?.length ?? 0} sự kiện</span>}
           >
             {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <HighlightStream highlights={data?.recent_highlights || []} />}
           </CyberCard>
@@ -872,20 +886,20 @@ export default function Dashboard() {
 
         {/* Entity Risk & Triage Context */}
         <div className="dashboard-grid landscape-triage">
-          <CyberCard title={<><ScanSearch {...lucideIconProps} /> Entity Risk Focus</>}>
+          <CyberCard title={<><ScanSearch {...lucideIconProps} /> Trọng tâm rủi ro thực thể</>}>
             {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <RiskArtifacts artifacts={data?.top_risk_artifacts || []} />}
           </CyberCard>
-          <ChartPanel title={<><GaugeIcon {...lucideIconProps} /> Severity Pressure</>} compact>
+          <ChartPanel title={<><GaugeIcon {...lucideIconProps} /> Áp lực theo mức độ</>} compact>
             {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <SeverityPressure data={data?.severity_distribution || []} />}
           </ChartPanel>
-          <ChartPanel title={<><Kanban {...lucideIconProps} /> Case Workload State</>} compact>
+          <ChartPanel title={<><Kanban {...lucideIconProps} /> Trạng thái khối lượng vụ việc</>} compact>
             {loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <CaseWorkloadState data={data?.case_status_mix || []} />}
           </ChartPanel>
         </div>
 
         {/* Deep Dive Telemetry & Intelligence (Organized into Clean Tabs) */}
         <CyberCard
-          title={<><Activity {...lucideIconProps} /> Deep-Dive Telemetry & Intelligence</>}
+          title={<><Activity {...lucideIconProps} /> Phân tích chuyên sâu & Tình báo</>}
           className="dashboard-deepdive-card"
         >
           <Tabs
@@ -897,7 +911,7 @@ export default function Dashboard() {
                 label: (
                   <Space size={6}>
                     <Target size={14} />
-                    <span>MITRE Severity Heatmap</span>
+                    <span>Bản đồ nhiệt mức độ MITRE</span>
                   </Space>
                 ),
                 children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <MitreSeverityMatrix data={data?.mitre_severity_heatmap || []} />,
@@ -907,7 +921,7 @@ export default function Dashboard() {
                 label: (
                   <Space size={6}>
                     <TextSearch size={14} />
-                    <span>Threat Keywords</span>
+                    <span>Từ khóa mối đe dọa</span>
                   </Space>
                 ),
                 children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <ThreatKeywordCloud data={data?.threat_keywords || []} />,
@@ -917,7 +931,7 @@ export default function Dashboard() {
                 label: (
                   <Space size={6}>
                     <RadarIcon size={14} />
-                    <span>MITRE Tactic Radar</span>
+                    <span>Radar chiến thuật MITRE</span>
                   </Space>
                 ),
                 children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <SecurityDomainRadar data={data?.mitre_tactics || []} />,
@@ -927,7 +941,7 @@ export default function Dashboard() {
                 label: (
                   <Space size={6}>
                     <PackageSearch size={14} />
-                    <span>Product Signals</span>
+                    <span>Tín hiệu theo sản phẩm</span>
                   </Space>
                 ),
                 children: loading && !data ? <Skeleton active paragraph={{ rows: 6 }} /> : <ProductCategorySignals data={data?.product_category_distribution || []} />,
@@ -937,7 +951,7 @@ export default function Dashboard() {
                 label: (
                   <Space size={6}>
                     <BookOpen size={14} />
-                    <span>Coverage & Automation</span>
+                    <span>Độ phủ & Tự động hóa</span>
                   </Space>
                 ),
                 children: loading && !data ? (
@@ -945,16 +959,16 @@ export default function Dashboard() {
                 ) : data ? (
                   <div className="dashboard-deepdive-grid">
                     <div>
-                      <h4 className="dashboard-subheading"><Workflow size={14} /> Automation Execution</h4>
+                      <h4 className="dashboard-subheading"><Workflow size={14} /> Thực thi tự động hóa</h4>
                       <AutomationPanel data={data.automation || []} />
                     </div>
                     <div>
-                      <h4 className="dashboard-subheading"><BookOpen size={14} /> Intel & Surface Coverage</h4>
+                      <h4 className="dashboard-subheading"><BookOpen size={14} /> Độ phủ tình báo & bề mặt</h4>
                       <CoveragePanel data={data} />
                     </div>
                   </div>
                 ) : (
-                  <CyberEmpty title="No Telemetry" />
+                  <CyberEmpty title="Chưa có dữ liệu" />
                 ),
               },
             ]}

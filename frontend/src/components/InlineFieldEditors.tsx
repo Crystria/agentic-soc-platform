@@ -237,7 +237,7 @@ export function InlineTagChoiceEditor({
   options = [],
   renderTag,
   allowClear = true,
-  clearLabel = 'Clear',
+  clearLabel = 'Bỏ chọn',
   onStart,
   onChange,
   onComplete,
@@ -462,9 +462,9 @@ export function InlineMarkdownEditor({ value, disabled, height = '100%', default
       <Segmented
         value={mode}
         options={[
-          { label: 'Edit', value: 'edit' },
-          { label: 'Live', value: 'live' },
-          { label: 'Preview', value: 'preview' },
+          { label: 'Chỉnh sửa', value: 'edit' },
+          { label: 'Song song', value: 'live' },
+          { label: 'Xem trước', value: 'preview' },
         ]}
         onChange={(next) => setMode(next as 'edit' | 'live' | 'preview')}
         style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}

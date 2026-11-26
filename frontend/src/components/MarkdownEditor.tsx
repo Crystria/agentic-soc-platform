@@ -27,21 +27,21 @@ function fallbackImageName(index: number) {
 }
 
 function pastedImageUploadErrorMessage(error: unknown) {
-  if (!axios.isAxiosError(error)) return 'Failed to upload pasted image'
+  if (!axios.isAxiosError(error)) return 'Không thể tải ảnh dán lên'
   if (error.code === 'ECONNABORTED') {
-    return 'Pasted image upload timed out. Check object storage and try again.'
+    return 'Tải ảnh lên bị quá thời gian. Vui lòng kiểm tra object storage và thử lại.'
   }
   const detail = error.response?.data
   if (detail && typeof detail === 'object') return JSON.stringify(detail)
   if (typeof detail === 'string') return detail
-  return 'Failed to upload pasted image'
+  return 'Không thể tải ảnh dán lên'
 }
 
 export default function MarkdownEditor({
   value,
   disabled = false,
   height = 'auto',
-  placeholder = 'Write Markdown. Paste images directly with Ctrl+V.',
+  placeholder = 'Viết Markdown. Dán ảnh trực tiếp bằng Ctrl+V.',
   preview = 'edit',
   onChange,
 }: MarkdownEditorProps) {
@@ -70,7 +70,7 @@ export default function MarkdownEditor({
     const target = event.currentTarget
     const selectionStart = target.selectionStart ?? value.length
     const selectionEnd = target.selectionEnd ?? selectionStart
-    const closeUploadingMessage = message.loading(files.length === 1 ? 'Uploading pasted image...' : `Uploading ${files.length} pasted images...`, 0)
+    const closeUploadingMessage = message.loading(files.length === 1 ? 'Đang tải ảnh dán lên...' : `Đang tải ${files.length} ảnh dán lên...`, 0)
 
     setUploading(true)
     try {

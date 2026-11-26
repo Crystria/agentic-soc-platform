@@ -114,14 +114,14 @@ function apiErrorMessage(error: unknown, fallback: string) {
 
 function sourceOptions(): Array<{ label: string; value: SourceFilter }> {
   return [
-    { label: 'All sources', value: 'all' },
-    { label: 'Official', value: 'official' },
-    { label: 'Custom', value: 'custom' },
+    { label: 'Tất cả nguồn', value: 'all' },
+    { label: 'Chính thức', value: 'official' },
+    { label: 'Tùy chỉnh', value: 'custom' },
   ]
 }
 
 function SourceTag({ source }: { source: SourceType }) {
-  return <Tag {...comfortableTagProps} color={source === 'custom' ? 'blue' : 'gold'}>{source}</Tag>
+  return <Tag {...comfortableTagProps} color={source === 'custom' ? 'blue' : 'gold'}>{source === 'custom' ? 'Tùy chỉnh' : 'Chính thức'}</Tag>
 }
 
 function PathText({ path }: { path: string }) {
@@ -180,7 +180,7 @@ function useDefinitionSection<T>(endpoint: string, label: string) {
       const { data } = await client.get<SectionResult<T>>(endpoint)
       setResult(data)
     } catch (error) {
-      message.error(apiErrorMessage(error, `Failed to load ${label}`))
+      message.error(apiErrorMessage(error, `Không thể tải ${label}`))
       setResult(null)
     } finally {
       setLoading(false)
@@ -193,12 +193,12 @@ function useDefinitionSection<T>(endpoint: string, label: string) {
       const { data } = await client.post<SectionResult<T>>(endpoint)
       setResult(data)
       if (data.success) {
-        message.success(`${label} refreshed`)
+        message.success(`Đã làm mới ${label}`)
       } else {
-        message.warning(`${label} refreshed with ${data.counts.errors} error(s)`)
+        message.warning(`${label} đã làm mới với ${data.counts.errors} lỗi`)
       }
     } catch (error) {
-      message.error(apiErrorMessage(error, `Failed to refresh ${label}`))
+      message.error(apiErrorMessage(error, `Làm mới ${label} thất bại`))
     } finally {
       setRefreshing(false)
     }
@@ -235,11 +235,11 @@ function SectionToolbar({
 }) {
   return (
     <Space wrap style={{ marginBottom: 12 }}>
-      <Button type="primary" onClick={onRefresh} loading={refreshing}>Refresh / Validate</Button>
-      <Button icon={<ReloadOutlined />} onClick={onReload} loading={loading}>Reload</Button>
-      {source && onSourceChange ? <Select<SourceFilter> value={source} options={sourceOptions()} onChange={onSourceChange} style={{ width: 140 }} /> : null}
+      <Button type="primary" onClick={onRefresh} loading={refreshing}>Làm mới / Kiểm tra</Button>
+      <Button icon={<ReloadOutlined />} onClick={onReload} loading={loading}>Tải lại</Button>
+      {source && onSourceChange ? <Select<SourceFilter> value={source} options={sourceOptions()} onChange={onSourceChange} style={{ width: 160 }} /> : null}
       {extra}
-      <Input.Search allowClear placeholder="Search" value={search} onChange={(event) => onSearchChange(event.target.value)} style={{ width: 280 }} />
+      <Input.Search allowClear placeholder="Tìm kiếm" value={search} onChange={(event) => onSearchChange(event.target.value)} style={{ width: 280 }} />
     </Space>
   )
 }
@@ -264,7 +264,7 @@ function ModuleDrawer({ module, open, onClose }: { module: ModuleDefinition | nu
       setMessages(data.messages)
     } catch (error) {
       setMessages([])
-      setMessageError(apiErrorMessage(error, 'Failed to load stream messages'))
+      setMessageError(apiErrorMessage(error, 'Không thể tải thông điệp stream'))
     } finally {
       setLoadingMessages(false)
     }
@@ -290,7 +290,7 @@ function ModuleDrawer({ module, open, onClose }: { module: ModuleDefinition | nu
       setSelectedMessage(data.message)
     } catch (error) {
       setSelectedMessage(null)
-      setMessageError(apiErrorMessage(error, 'Failed to load stream message'))
+      setMessageError(apiErrorMessage(error, 'Không thể tải thông điệp stream'))
     } finally {
       setLoadingMessages(false)
     }
@@ -301,17 +301,17 @@ function ModuleDrawer({ module, open, onClose }: { module: ModuleDefinition | nu
       {module ? (
         <Flex vertical gap={16} style={{ width: '100%' }}>
           <Descriptions size="small" column={1} bordered items={[
-            { key: 'description', label: 'Description', children: module.description || '—' },
+            { key: 'description', label: 'Mô tả', children: module.description || '—' },
             { key: 'stream', label: 'Stream', children: <Typography.Text copyable>{module.stream_name}</Typography.Text> },
-            { key: 'threads', label: 'Threads', children: module.thread_num },
-            { key: 'path', label: 'Path', children: <PathText path={module.path} /> },
+            { key: 'threads', label: 'Số luồng', children: module.thread_num },
+            { key: 'path', label: 'Đường dẫn', children: <PathText path={module.path} /> },
           ]} />
 
-          <Descriptions size="small" title="Stream health" column={2} bordered items={[
-            { key: 'available', label: 'Available', children: module.stream_health.available ? 'Yes' : 'No' },
-            { key: 'length', label: 'Length', children: module.stream_health.length },
-            { key: 'first', label: 'First ID', children: module.stream_health.first_id || '—' },
-            { key: 'last', label: 'Last ID', children: module.stream_health.last_id || '—' },
+          <Descriptions size="small" title="Tình trạng Stream" column={2} bordered items={[
+            { key: 'available', label: 'Khả dụng', children: module.stream_health.available ? 'Có' : 'Không' },
+            { key: 'length', label: 'Độ dài', children: module.stream_health.length },
+            { key: 'first', label: 'ID đầu', children: module.stream_health.first_id || '—' },
+            { key: 'last', label: 'ID cuối', children: module.stream_health.last_id || '—' },
           ]} />
           {module.stream_health.warning ? <Alert type="warning" showIcon title={module.stream_health.warning} /> : null}
           {module.stream_health.groups.length ? (
@@ -321,26 +321,26 @@ function ModuleDrawer({ module, open, onClose }: { module: ModuleDefinition | nu
               pagination={false}
               dataSource={module.stream_health.groups}
               columns={[
-                { title: 'Group', dataIndex: 'name' },
-                { title: 'Consumers', dataIndex: 'consumers', width: 120 },
-                { title: 'Pending', dataIndex: 'pending', width: 120 },
-                { title: 'Last delivered', dataIndex: 'last_delivered_id', width: 220 },
+                { title: 'Nhóm', dataIndex: 'name' },
+                { title: 'Consumer', dataIndex: 'consumers', width: 120 },
+                { title: 'Đang chờ', dataIndex: 'pending', width: 120 },
+                { title: 'Phân phối gần nhất', dataIndex: 'last_delivered_id', width: 220 },
               ]}
             />
           ) : null}
 
           <div>
-            <Typography.Text strong>Recent messages</Typography.Text>
+            <Typography.Text strong>Thông điệp gần đây</Typography.Text>
             <Space style={{ marginLeft: 12 }}>
               <InputNumber min={1} max={20} value={messageLimit} onChange={(value) => setMessageLimit(Number(value || 5))} />
-              <Button onClick={loadRecent} loading={loadingMessages}>Load recent</Button>
+              <Button onClick={loadRecent} loading={loadingMessages}>Tải gần đây</Button>
             </Space>
           </div>
           {messageError ? <Alert type="error" showIcon title={messageError} /> : null}
           <List
             loading={loadingMessages}
             dataSource={messages}
-            locale={{ emptyText: <Empty description="No messages" /> }}
+            locale={{ emptyText: <Empty description="Không có thông điệp" /> }}
             renderItem={(item) => (
               <List.Item>
                 <Flex vertical gap={4} style={{ width: '100%' }}>
@@ -352,10 +352,10 @@ function ModuleDrawer({ module, open, onClose }: { module: ModuleDefinition | nu
           />
 
           <div>
-            <Typography.Text strong>Read by message ID</Typography.Text>
+            <Typography.Text strong>Đọc theo Message ID</Typography.Text>
             <Input.Search
               allowClear
-              enterButton="Read"
+              enterButton="Đọc"
               value={messageId}
               onChange={(event) => setMessageId(event.target.value)}
               onSearch={loadById}
@@ -385,12 +385,12 @@ function ModulesTab() {
 
   const columns = useMemo<ColumnsType<ModuleDefinition>>(() => [
     { title: 'Module', dataIndex: 'name', width: 340, render: (name: string) => <Typography.Text strong>{name}</Typography.Text> },
-    { title: 'Description', dataIndex: 'description', ellipsis: true },
+    { title: 'Mô tả', dataIndex: 'description', ellipsis: true },
     { title: 'Stream', dataIndex: 'stream_name', width: 380, ellipsis: true },
-    { title: 'Threads', dataIndex: 'thread_num', width: 100 },
-    { title: 'Length', width: 100, render: (_, record) => record.stream_health.length },
-    { title: 'Last ID', width: 180, render: (_, record) => record.stream_health.last_id || '—' },
-    { title: 'Path', dataIndex: 'path', width: 280, render: (path: string) => <PathText path={path} /> },
+    { title: 'Số luồng', dataIndex: 'thread_num', width: 100 },
+    { title: 'Độ dài', width: 100, render: (_, record) => record.stream_health.length },
+    { title: 'ID cuối', width: 180, render: (_, record) => record.stream_health.last_id || '—' },
+    { title: 'Đường dẫn', dataIndex: 'path', width: 280, render: (path: string) => <PathText path={path} /> },
   ], [])
 
   return (
@@ -411,7 +411,7 @@ function ModulesTab() {
         columns={columns}
         dataSource={rows}
         onRow={(record) => ({ onClick: () => setSelected(record), style: { cursor: 'pointer' } })}
-        locale={{ emptyText: loading ? <span /> : <Empty description="No modules loaded" /> }}
+        locale={{ emptyText: loading ? <span /> : <Empty description="Chưa nạp module nào" /> }}
         scroll={{ x: 1600 }}
       />
       <ModuleDrawer module={selected} open={selected !== null} onClose={() => setSelected(null)} />
@@ -420,7 +420,7 @@ function ModulesTab() {
 }
 
 function PlaybooksTab() {
-  const { result, loading, refreshing, load, refresh } = useDefinitionSection<PlaybookDefinition>('/custom/playbooks/', 'Playbooks')
+  const { result, loading, refreshing, load, refresh } = useDefinitionSection<PlaybookDefinition>('/custom/playbooks/', 'Playbook')
   const [source, setSource] = useState<SourceFilter>('all')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<PlaybookDefinition | null>(null)
@@ -436,16 +436,16 @@ function PlaybooksTab() {
 
   const columns = useMemo<ColumnsType<PlaybookDefinition>>(() => [
     { title: 'Playbook', dataIndex: 'name', width: 260, render: (name: string) => <Typography.Text strong>{name}</Typography.Text> },
-    { title: 'Source', dataIndex: 'source', width: 110, render: (value: SourceType) => <SourceTag source={value} /> },
-    { title: 'Risk', dataIndex: 'risk_level', width: 110, render: (value: string) => severityTag(value) },
+    { title: 'Nguồn', dataIndex: 'source', width: 110, render: (value: SourceType) => <SourceTag source={value} /> },
+    { title: 'Mức rủi ro', dataIndex: 'risk_level', width: 110, render: (value: string) => severityTag(value) },
     {
-      title: 'Tags',
+      title: 'Thẻ',
       dataIndex: 'tags',
       width: 260,
       render: (tags: string[]) => <OverflowTags items={tags} getColor={(tag) => PLAYBOOK_TAG_COLORS[tag] || 'blue'} />,
     },
-    { title: 'Description', dataIndex: 'description', ellipsis: true },
-    { title: 'Path', dataIndex: 'path', width: 300, render: (path: string) => <PathText path={path} /> },
+    { title: 'Mô tả', dataIndex: 'description', ellipsis: true },
+    { title: 'Đường dẫn', dataIndex: 'path', width: 300, render: (path: string) => <PathText path={path} /> },
   ], [])
 
   return (
@@ -468,7 +468,7 @@ function PlaybooksTab() {
         columns={columns}
         dataSource={rows}
         onRow={(record) => ({ onClick: () => setSelected(record), style: { cursor: 'pointer' } })}
-        locale={{ emptyText: loading ? <span /> : <Empty description="No playbooks loaded" /> }}
+        locale={{ emptyText: loading ? <span /> : <Empty description="Chưa nạp playbook nào" /> }}
         scroll={{ x: 1300 }}
       />
       <Drawer title={selected?.name || 'Playbook'} open={selected !== null} onClose={() => setSelected(null)} size="min(760px, calc(100vw - 48px))">
@@ -479,9 +479,9 @@ function PlaybooksTab() {
               {severityTag(selected.risk_level)}
               {(selected.tags || []).map((tag) => <Tag {...comfortableTagProps} key={tag} color={PLAYBOOK_TAG_COLORS[tag] || 'blue'}>{tag}</Tag>)}
             </Space>
-            <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{selected.description || 'No description.'}</Typography.Paragraph>
+            <Typography.Paragraph style={{ whiteSpace: 'pre-wrap' }}>{selected.description || 'Không có mô tả.'}</Typography.Paragraph>
             <Descriptions size="small" column={1} bordered items={[
-              { key: 'path', label: 'Path', children: <PathText path={selected.path} /> },
+              { key: 'path', label: 'Đường dẫn', children: <PathText path={selected.path} /> },
             ]} />
           </Flex>
         ) : null}
@@ -504,19 +504,19 @@ function SiemTab() {
   const columns = useMemo<ColumnsType<SiemDefinition>>(() => [
     { title: 'Index', dataIndex: 'name', width: 220, render: (name: string) => <Typography.Text strong>{name}</Typography.Text> },
     { title: 'Backend', dataIndex: 'backend', width: 120, render: (value: string) => <Tag {...comfortableTagProps} color={SIEM_BACKEND_COLORS[value] || 'default'}>{value}</Tag> },
-    { title: 'Description', dataIndex: 'description', ellipsis: true },
-    { title: 'Fields', dataIndex: 'field_count', width: 100 },
-    { title: 'Key fields', dataIndex: 'key_field_count', width: 120 },
-    { title: 'Path', dataIndex: 'path', width: 300, render: (path: string) => <PathText path={path} /> },
+    { title: 'Mô tả', dataIndex: 'description', ellipsis: true },
+    { title: 'Số trường', dataIndex: 'field_count', width: 100 },
+    { title: 'Trường khóa', dataIndex: 'key_field_count', width: 120 },
+    { title: 'Đường dẫn', dataIndex: 'path', width: 300, render: (path: string) => <PathText path={path} /> },
   ], [])
 
   const fieldColumns = useMemo<ColumnsType<SiemField>>(() => [
-    { title: 'Name', dataIndex: 'name', width: 220 },
-    { title: 'Type', dataIndex: 'type', width: 120 },
-    { title: 'Key field', dataIndex: 'is_key_field', width: 110, render: (value: boolean) => value ? <Tag color="blue">Key field</Tag> : '—' },
-    { title: 'Description', dataIndex: 'description' },
+    { title: 'Tên', dataIndex: 'name', width: 220 },
+    { title: 'Kiểu', dataIndex: 'type', width: 120 },
+    { title: 'Trường khóa', dataIndex: 'is_key_field', width: 110, render: (value: boolean) => value ? <Tag color="blue">Trường khóa</Tag> : '—' },
+    { title: 'Mô tả', dataIndex: 'description' },
     {
-      title: 'Sample values',
+      title: 'Giá trị mẫu',
       dataIndex: 'sample_values',
       width: 260,
       render: (values: unknown[]) => (
@@ -540,9 +540,9 @@ function SiemTab() {
           <Select<'all' | 'ELK' | 'Splunk'>
             value={backend}
             onChange={(value) => setBackend(value)}
-            style={{ width: 140 }}
+            style={{ width: 150 }}
             options={[
-              { label: 'All backends', value: 'all' },
+              { label: 'Tất cả backend', value: 'all' },
               { label: 'ELK', value: 'ELK' },
               { label: 'Splunk', value: 'Splunk' },
             ]}
@@ -557,7 +557,7 @@ function SiemTab() {
         columns={columns}
         dataSource={rows}
         onRow={(record) => ({ onClick: () => setSelected(record), style: { cursor: 'pointer' } })}
-        locale={{ emptyText: loading ? <span /> : <Empty description="No SIEM YAML loaded" /> }}
+        locale={{ emptyText: loading ? <span /> : <Empty description="Chưa nạp SIEM YAML nào" /> }}
         scroll={{ x: 1400 }}
       />
       <Drawer title={selected?.name || 'SIEM YAML'} open={selected !== null} onClose={() => setSelected(null)} size="min(1080px, calc(100vw - 48px))">
@@ -565,8 +565,8 @@ function SiemTab() {
           <Flex vertical gap={16} style={{ width: '100%' }}>
             <Descriptions size="small" column={1} bordered items={[
               { key: 'backend', label: 'Backend', children: <Tag {...comfortableTagProps} color={SIEM_BACKEND_COLORS[selected.backend] || 'default'}>{selected.backend}</Tag> },
-              { key: 'description', label: 'Description', children: selected.description || '—' },
-              { key: 'path', label: 'Path', children: <PathText path={selected.path} /> },
+              { key: 'description', label: 'Mô tả', children: selected.description || '—' },
+              { key: 'path', label: 'Đường dẫn', children: <PathText path={selected.path} /> },
             ]} />
             <Table<SiemField>
               size="small"
@@ -589,9 +589,9 @@ export default function CustomDefinitions() {
       <Tabs
         items={[
           { key: 'modules', label: <IconTabLabel icon={Boxes}>Modules</IconTabLabel>, children: <ModulesTab /> },
-          { key: 'playbooks', label: <IconTabLabel icon={BrainCircuit}>Playbooks</IconTabLabel>, children: <PlaybooksTab /> },
+          { key: 'playbooks', label: <IconTabLabel icon={BrainCircuit}>Playbook</IconTabLabel>, children: <PlaybooksTab /> },
           { key: 'siem', label: <IconTabLabel icon={DatabaseZap}>SIEM YAML</IconTabLabel>, children: <SiemTab /> },
-          { key: 'variables', label: <IconTabLabel icon={KeyRound}>Variables</IconTabLabel>, children: <CustomVariablesSettings /> },
+          { key: 'variables', label: <IconTabLabel icon={KeyRound}>Biến tùy chỉnh</IconTabLabel>, children: <CustomVariablesSettings /> },
         ]}
       />
     </div>
